@@ -1,0 +1,26 @@
+package com.tp1.proyecto.docente.controlador;
+
+import com.tp1.proyecto.docente.dto.DocenteRespuestaDto;
+import com.tp1.proyecto.docente.servicio.DocenteServicio;
+import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/docentes")
+public class DocenteControlador {
+
+    private final DocenteServicio docenteServicio;
+
+    public DocenteControlador(DocenteServicio docenteServicio) {
+        this.docenteServicio = docenteServicio;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
+    public List<DocenteRespuestaDto> listar() {
+        return docenteServicio.listar();
+    }
+}

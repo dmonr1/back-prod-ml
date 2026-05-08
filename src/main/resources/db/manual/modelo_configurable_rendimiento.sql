@@ -727,6 +727,9 @@ WHERE u.username = 'director';
 
 
 SELECT * FROM db_tp1.docentes
+
+SELECT * FROM db_tp1.docente_curso_seccion
+
 SELECT * FROM db_tp1.periodos_academicos
 SELECT * FROM db_tp1.bimestres
 SELECT * FROM db_tp1.secciones
@@ -737,11 +740,15 @@ SELECT * FROM db_tp1.matriculas
 
 SELECT * FROM db_tp1.roles
 
+SELECT * FROM db_tp1.grados
+
+
 SELECT * FROM db_tp1.niveles
 
 SELECT * FROM db_tp1.cursos
 SELECT * FROM db_tp1.usuarios
 
+SELECT * FROM db_tp1.usuarios_roles
 
 SELECT * FROM db_tp1.alumnos
 
@@ -749,3 +756,116 @@ SELECT * FROM db_tp1.predicciones_riesgo
 
 
 SELECT * FROM db_tp1.cargas_excel
+
+
+
+INSERT INTO db_tp1.cursos (nivel_id, nombre, descripcion, estado, fecha_registro, fecha_modificacion)
+VALUES
+(1, 'ARITMETICA', 'Curso de aritmetica', 'ACTIVO', NOW(), NOW()),
+(1, 'ALGEBRA', 'Curso de algebra', 'ACTIVO', NOW(), NOW()),
+(1, 'GEOMETRIA', 'Curso de geometria', 'ACTIVO', NOW(), NOW()),
+(1, 'RAZONAMIENTO MATEMATICO', 'Curso de razonamiento matematico', 'ACTIVO', NOW(), NOW()),
+(1, 'COMUNICACION', 'Curso de comunicacion', 'ACTIVO', NOW(), NOW()),
+(1, 'LENGUAJE', 'Curso de lenguaje', 'ACTIVO', NOW(), NOW()),
+(1, 'RAZONAMIENTO VERBAL', 'Curso de razonamiento verbal', 'ACTIVO', NOW(), NOW()),
+(1, 'PLAN LECTOR', 'Curso de plan lector', 'ACTIVO', NOW(), NOW()),
+(1, 'CALIGRAFIA', 'Curso de caligrafia', 'ACTIVO', NOW(), NOW()),
+(1, 'CIENCIA Y TECNOLOGIA', 'Curso de ciencia y tecnologia', 'ACTIVO', NOW(), NOW()),
+(1, 'BIOLOGIA', 'Curso de biologia', 'ACTIVO', NOW(), NOW()),
+(1, 'QUIMICA', 'Curso de quimica', 'ACTIVO', NOW(), NOW()),
+(1, 'FISICA', 'Curso de fisica', 'ACTIVO', NOW(), NOW()),
+(1, 'PERSONAL SOCIAL', 'Curso de personal social', 'ACTIVO', NOW(), NOW()),
+(1, 'HISTORIA', 'Curso de historia', 'ACTIVO', NOW(), NOW()),
+(1, 'GEOGRAFIA', 'Curso de geografia', 'ACTIVO', NOW(), NOW()),
+(1, 'CIVICA', 'Curso de civica', 'ACTIVO', NOW(), NOW()),
+(1, 'RELIGION', 'Curso de religion', 'ACTIVO', NOW(), NOW()),
+(1, 'ORATORIA Y LIDERAZGO', 'Curso de oratoria y liderazgo', 'ACTIVO', NOW(), NOW()),
+(1, 'ORATORIA Y VALORES', 'Curso de oratoria y valores', 'ACTIVO', NOW(), NOW()),
+(1, 'EDUCACION FISICA', 'Curso de educacion fisica', 'ACTIVO', NOW(), NOW()),
+(1, 'INGLES', 'Curso de ingles', 'ACTIVO', NOW(), NOW()),
+(1, 'COMPUTACION', 'Curso de computacion', 'ACTIVO', NOW(), NOW()),
+(1, 'TALLERES', 'Curso de talleres', 'ACTIVO', NOW(), NOW()),
+
+(2, 'ARITMETICA', 'Curso de aritmetica', 'ACTIVO', NOW(), NOW()),
+(2, 'ALGEBRA', 'Curso de algebra', 'ACTIVO', NOW(), NOW()),
+(2, 'HABILIDAD MATEMATICA', 'Curso de habilidad matematica', 'ACTIVO', NOW(), NOW()),
+(2, 'GEOMETRIA', 'Curso de geometria', 'ACTIVO', NOW(), NOW()),
+(2, 'TRIGONOMETRIA', 'Curso de trigonometria', 'ACTIVO', NOW(), NOW()),
+(2, 'LENGUAJE', 'Curso de lenguaje', 'ACTIVO', NOW(), NOW()),
+(2, 'HABILIDAD VERBAL', 'Curso de habilidad verbal', 'ACTIVO', NOW(), NOW()),
+(2, 'LITERATURA', 'Curso de literatura', 'ACTIVO', NOW(), NOW()),
+(2, 'BIOLOGIA', 'Curso de biologia', 'ACTIVO', NOW(), NOW()),
+(2, 'FISICA', 'Curso de fisica', 'ACTIVO', NOW(), NOW()),
+(2, 'QUIMICA', 'Curso de quimica', 'ACTIVO', NOW(), NOW()),
+(2, 'GEOGRAFIA', 'Curso de geografia', 'ACTIVO', NOW(), NOW()),
+(2, 'HISTORIA DEL PERU', 'Curso de historia del Peru', 'ACTIVO', NOW(), NOW()),
+(2, 'HISTORIA UNIVERSAL', 'Curso de historia universal', 'ACTIVO', NOW(), NOW()),
+(2, 'FILOSOFIA / PSICOLOGIA', 'Curso integrado de filosofia y psicologia', 'ACTIVO', NOW(), NOW()),
+(2, 'CIVICA / ECONOMIA', 'Curso integrado de civica y economia', 'ACTIVO', NOW(), NOW()),
+(2, 'COMPUTACION', 'Curso de computacion', 'ACTIVO', NOW(), NOW()),
+(2, 'INGLES', 'Curso de ingles', 'ACTIVO', NOW(), NOW()),
+(2, 'LIDERAZGO Y GESTION EMPRESARIAL', 'Curso de liderazgo y gestion empresarial', 'ACTIVO', NOW(), NOW()),
+(2, 'EDUCACION FISICA', 'Curso de educacion fisica', 'ACTIVO', NOW(), NOW());
+
+
+INSERT INTO db_tp1.docentes
+(usuario_id, dni, nombres, apellidos, telefono, especialidad, estado, fecha_registro, fecha_modificacion)
+VALUES
+((SELECT id FROM db_tp1.usuarios WHERE username = 'jperez'),   '73451268', 'JUAN',   'PEREZ LOPEZ',     '987451236', 'MATEMATICA',   'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.usuarios WHERE username = 'mlopez'),   '71896543', 'MARIA',  'LOPEZ GARCIA',    '986741255', 'COMUNICACION', 'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.usuarios WHERE username = 'director'), '70123456', 'CARLOS', 'RAMIREZ TORRES',  '985112233', 'DIRECCION',    'ACTIVO', NOW(), NOW());
+
+INSERT INTO db_tp1.usuarios
+(username, correo, password_hash, estado, ultimo_login, fecha_registro, fecha_modificacion)
+VALUES
+('arojas',   'ana.rojas@colegio.edu.pe',     '$2a$12$eyeUHAm5GCTkTQNJ/zklWO23UDrmyjvQ0kfN8o73rWwgaTiZMVf4C', 'ACTIVO', NULL, NOW(), NOW()),
+('lcastro',  'luis.castro@colegio.edu.pe',   '$2a$12$eyeUHAm5GCTkTQNJ/zklWO23UDrmyjvQ0kfN8o73rWwgaTiZMVf4C', 'ACTIVO', NULL, NOW(), NOW()),
+('rquiroz',  'rosa.quiroz@colegio.edu.pe',   '$2a$12$eyeUHAm5GCTkTQNJ/zklWO23UDrmyjvQ0kfN8o73rWwgaTiZMVf4C', 'ACTIVO', NULL, NOW(), NOW()),
+('hvega',    'hugo.vega@colegio.edu.pe',     '$2a$12$eyeUHAm5GCTkTQNJ/zklWO23UDrmyjvQ0kfN8o73rWwgaTiZMVf4C', 'ACTIVO', NULL, NOW(), NOW()),
+('csalazar', 'carla.salazar@colegio.edu.pe', '$2a$12$eyeUHAm5GCTkTQNJ/zklWO23UDrmyjvQ0kfN8o73rWwgaTiZMVf4C', 'ACTIVO', NULL, NOW(), NOW()),
+('eparedes', 'elena.paredes@colegio.edu.pe', '$2a$12$eyeUHAm5GCTkTQNJ/zklWO23UDrmyjvQ0kfN8o73rWwgaTiZMVf4C', 'ACTIVO', NULL, NOW(), NOW());
+
+
+INSERT INTO db_tp1.usuarios_roles (usuario_id, rol_id)
+SELECT u.id, 2
+FROM db_tp1.usuarios u
+WHERE u.username IN ('arojas', 'lcastro', 'rquiroz', 'hvega', 'csalazar', 'eparedes');
+
+INSERT INTO db_tp1.docentes
+(usuario_id, dni, nombres, apellidos, telefono, especialidad, estado, fecha_registro, fecha_modificacion)
+VALUES
+((SELECT id FROM db_tp1.usuarios WHERE username = 'arojas'),   '74561234', 'ANA',   'ROJAS MENDOZA',  '987111222', 'INGLES',               'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.usuarios WHERE username = 'lcastro'),  '75672345', 'LUIS',  'CASTRO VARGAS',  '987222333', 'CIENCIA Y TECNOLOGIA', 'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.usuarios WHERE username = 'rquiroz'),  '76783456', 'ROSA',  'QUIROZ FLORES',  '987333444', 'PERSONAL SOCIAL',      'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.usuarios WHERE username = 'hvega'),    '77894567', 'HUGO',  'VEGA SOTO',      '987444555', 'EDUCACION FISICA',     'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.usuarios WHERE username = 'csalazar'), '78905678', 'CARLA', 'SALAZAR RUIZ',   '987555666', 'COMPUTACION',          'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.usuarios WHERE username = 'eparedes'), '79016789', 'ELENA', 'PAREDES HUAMAN', '987666777', 'RELIGION',             'ACTIVO', NOW(), NOW());
+
+
+SELECT
+    d.id,
+    u.username,
+    d.dni,
+    d.nombres,
+    d.apellidos,
+    d.especialidad,
+    d.estado
+FROM db_tp1.docentes d
+LEFT JOIN db_tp1.usuarios u ON u.id = d.usuario_id
+ORDER BY d.apellidos, d.nombres;
+
+
+INSERT INTO db_tp1.grados (nivel_id, nombre, orden, estado, fecha_registro, fecha_modificacion)
+VALUES
+(1, '1RO PRIMARIA', 1, 'ACTIVO', NOW(), NOW()),
+(1, '2DO PRIMARIA', 2, 'ACTIVO', NOW(), NOW()),
+(1, '3RO PRIMARIA', 3, 'ACTIVO', NOW(), NOW()),
+(1, '4TO PRIMARIA', 4, 'ACTIVO', NOW(), NOW()),
+(1, '5TO PRIMARIA', 5, 'ACTIVO', NOW(), NOW()),
+(1, '6TO PRIMARIA', 6, 'ACTIVO', NOW(), NOW()),
+
+(2, '1RO SECUNDARIA', 1, 'ACTIVO', NOW(), NOW()),
+(2, '2DO SECUNDARIA', 2, 'ACTIVO', NOW(), NOW()),
+(2, '3RO SECUNDARIA', 3, 'ACTIVO', NOW(), NOW()),
+(2, '4TO SECUNDARIA', 4, 'ACTIVO', NOW(), NOW()),
+(2, '5TO SECUNDARIA', 5, 'ACTIVO', NOW(), NOW());
