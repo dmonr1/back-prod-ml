@@ -1,15 +1,15 @@
 package com.tp1.proyecto.academico.dto;
 
-public class SeccionRespuestaDto {
+import java.time.LocalDate;
+
+public class BimestreRespuestaDto {
 
     private Long id;
     private String nombre;
-    private Integer capacidad;
+    private Short numero;
+    private LocalDate fechaInicio;
+    private LocalDate fechaFin;
     private String estado;
-    private Long gradoId;
-    private String gradoNombre;
-    private Long nivelId;
-    private String nivelNombre;
     private Long periodoAcademicoId;
     private String periodoAcademicoNombre;
     private Integer anioAcademico;
@@ -30,12 +30,28 @@ public class SeccionRespuestaDto {
         this.nombre = nombre;
     }
 
-    public Integer getCapacidad() {
-        return capacidad;
+    public Short getNumero() {
+        return numero;
     }
 
-    public void setCapacidad(Integer capacidad) {
-        this.capacidad = capacidad;
+    public void setNumero(Short numero) {
+        this.numero = numero;
+    }
+
+    public LocalDate getFechaInicio() {
+        return fechaInicio;
+    }
+
+    public void setFechaInicio(LocalDate fechaInicio) {
+        this.fechaInicio = fechaInicio;
+    }
+
+    public LocalDate getFechaFin() {
+        return fechaFin;
+    }
+
+    public void setFechaFin(LocalDate fechaFin) {
+        this.fechaFin = fechaFin;
     }
 
     public String getEstado() {
@@ -44,38 +60,6 @@ public class SeccionRespuestaDto {
 
     public void setEstado(String estado) {
         this.estado = estado;
-    }
-
-    public Long getGradoId() {
-        return gradoId;
-    }
-
-    public void setGradoId(Long gradoId) {
-        this.gradoId = gradoId;
-    }
-
-    public String getGradoNombre() {
-        return gradoNombre;
-    }
-
-    public void setGradoNombre(String gradoNombre) {
-        this.gradoNombre = gradoNombre;
-    }
-
-    public Long getNivelId() {
-        return nivelId;
-    }
-
-    public void setNivelId(Long nivelId) {
-        this.nivelId = nivelId;
-    }
-
-    public String getNivelNombre() {
-        return nivelNombre;
-    }
-
-    public void setNivelNombre(String nivelNombre) {
-        this.nivelNombre = nivelNombre;
     }
 
     public Long getPeriodoAcademicoId() {

@@ -869,3 +869,87 @@ VALUES
 (2, '3RO SECUNDARIA', 3, 'ACTIVO', NOW(), NOW()),
 (2, '4TO SECUNDARIA', 4, 'ACTIVO', NOW(), NOW()),
 (2, '5TO SECUNDARIA', 5, 'ACTIVO', NOW(), NOW());
+
+
+
+ALTER TABLE db_tp1.secciones
+ADD COLUMN periodo_academico_id BIGINT;
+
+ALTER TABLE db_tp1.secciones
+ADD CONSTRAINT fk_secciones_periodo
+FOREIGN KEY (periodo_academico_id)
+REFERENCES db_tp1.periodos_academicos(id);
+
+
+UPDATE db_tp1.secciones
+SET periodo_academico_id = (
+  SELECT id
+  FROM db_tp1.periodos_academicos
+  WHERE anio = 2026
+)
+WHERE periodo_academico_id IS NULL;
+
+
+ALTER TABLE db_tp1.secciones
+ALTER COLUMN periodo_academico_id SET NOT NULL;
+
+
+ALTER TABLE db_tp1.secciones
+DROP CONSTRAINT uq_secciones;
+
+
+ALTER TABLE db_tp1.secciones
+ADD CONSTRAINT uq_secciones_periodo
+UNIQUE (periodo_academico_id, grado_id, nombre);
+
+
+INSERT INTO db_tp1.secciones
+(grado_id, periodo_academico_id, nombre, capacidad, estado, fecha_registro, fecha_modificacion)
+VALUES
+((SELECT id FROM db_tp1.grados WHERE nombre = '1RO PRIMARIA' AND nivel_id = 1), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'A', 30, 'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.grados WHERE nombre = '1RO PRIMARIA' AND nivel_id = 1), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'B', 30, 'ACTIVO', NOW(), NOW()),
+
+((SELECT id FROM db_tp1.grados WHERE nombre = '2DO PRIMARIA' AND nivel_id = 1), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'A', 30, 'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.grados WHERE nombre = '2DO PRIMARIA' AND nivel_id = 1), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'B', 30, 'ACTIVO', NOW(), NOW()),
+
+((SELECT id FROM db_tp1.grados WHERE nombre = '3RO PRIMARIA' AND nivel_id = 1), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'UNICA', 28, 'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.grados WHERE nombre = '4TO PRIMARIA' AND nivel_id = 1), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'UNICA', 28, 'ACTIVO', NOW(), NOW()),
+
+((SELECT id FROM db_tp1.grados WHERE nombre = '5TO PRIMARIA' AND nivel_id = 1), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'A', 30, 'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.grados WHERE nombre = '5TO PRIMARIA' AND nivel_id = 1), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'B', 30, 'ACTIVO', NOW(), NOW()),
+
+((SELECT id FROM db_tp1.grados WHERE nombre = '6TO PRIMARIA' AND nivel_id = 1), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'UNICA', 26, 'ACTIVO', NOW(), NOW()),
+
+((SELECT id FROM db_tp1.grados WHERE nombre = '1RO SECUNDARIA' AND nivel_id = 2), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'A', 32, 'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.grados WHERE nombre = '1RO SECUNDARIA' AND nivel_id = 2), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'B', 32, 'ACTIVO', NOW(), NOW()),
+
+((SELECT id FROM db_tp1.grados WHERE nombre = '2DO SECUNDARIA' AND nivel_id = 2), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'A', 32, 'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.grados WHERE nombre = '2DO SECUNDARIA' AND nivel_id = 2), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'B', 32, 'ACTIVO', NOW(), NOW()),
+
+((SELECT id FROM db_tp1.grados WHERE nombre = '3RO SECUNDARIA' AND nivel_id = 2), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'UNICA', 30, 'ACTIVO', NOW(), NOW()),
+
+((SELECT id FROM db_tp1.grados WHERE nombre = '4TO SECUNDARIA' AND nivel_id = 2), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'A', 30, 'ACTIVO', NOW(), NOW()),
+((SELECT id FROM db_tp1.grados WHERE nombre = '4TO SECUNDARIA' AND nivel_id = 2), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'B', 30, 'ACTIVO', NOW(), NOW()),
+
+((SELECT id FROM db_tp1.grados WHERE nombre = '5TO SECUNDARIA' AND nivel_id = 2), (SELECT id FROM db_tp1.periodos_academicos WHERE anio = 2025), 'UNICA', 28, 'ACTIVO', NOW(), NOW());
+
+
+BEGIN;
+
+DELETE FROM db_tp1.matriculas;
+DELETE FROM db_tp1.docente_curso_seccion;
+DELETE FROM db_tp1.tutorias;
+DELETE FROM db_tp1.bimestres;
+DELETE FROM db_tp1.secciones;
+DELETE FROM db_tp1.alumnos;
+DELETE FROM db_tp1.periodos_academicos;
+
+COMMIT;
+
+ALTER SEQUENCE db_tp1.alumnos_id_seq RESTART WITH 1;
+ALTER SEQUENCE db_tp1.secciones_id_seq RESTART WITH 1;
+ALTER SEQUENCE db_tp1.periodos_academicos_id_seq RESTART WITH 1;
+ALTER SEQUENCE db_tp1.bimestres_id_seq RESTART WITH 1;
+ALTER SEQUENCE db_tp1.matriculas_id_seq RESTART WITH 1;
+ALTER SEQUENCE db_tp1.docente_curso_seccion_id_seq RESTART WITH 1;
+ALTER SEQUENCE db_tp1.tutorias_id_seq RESTART WITH 1;

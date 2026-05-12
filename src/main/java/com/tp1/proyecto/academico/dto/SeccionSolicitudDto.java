@@ -11,6 +11,9 @@ public class SeccionSolicitudDto {
     @NotNull(message = "El grado es obligatorio")
     private Long gradoId;
 
+    @NotNull(message = "El periodo academico es obligatorio")
+    private Long periodoAcademicoId;
+
     @NotBlank(message = "El nombre de la seccion es obligatorio")
     @Size(max = 20, message = "El nombre de la seccion no debe exceder 20 caracteres")
     private String nombre;
@@ -25,6 +28,14 @@ public class SeccionSolicitudDto {
 
     public void setGradoId(Long gradoId) {
         this.gradoId = gradoId;
+    }
+
+    public Long getPeriodoAcademicoId() {
+        return periodoAcademicoId;
+    }
+
+    public void setPeriodoAcademicoId(Long periodoAcademicoId) {
+        this.periodoAcademicoId = periodoAcademicoId;
     }
 
     public String getNombre() {

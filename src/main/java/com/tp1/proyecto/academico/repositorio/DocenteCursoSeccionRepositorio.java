@@ -8,5 +8,14 @@ public interface DocenteCursoSeccionRepositorio extends JpaRepository<DocenteCur
 
     List<DocenteCursoSeccion> findByDocenteIdAndPeriodoAcademicoId(Long docenteId, Long periodoAcademicoId);
 
+    List<DocenteCursoSeccion> findByPeriodoAcademicoId(Long periodoAcademicoId);
+
     List<DocenteCursoSeccion> findBySeccionIdAndPeriodoAcademicoId(Long seccionId, Long periodoAcademicoId);
+
+    boolean existsByDocenteIdAndCursoIdAndSeccionIdAndPeriodoAcademicoId(
+        Long docenteId,
+        Long cursoId,
+        Long seccionId,
+        Long periodoAcademicoId
+    );
 }

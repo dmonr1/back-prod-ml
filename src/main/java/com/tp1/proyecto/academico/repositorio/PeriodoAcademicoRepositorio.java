@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PeriodoAcademicoRepositorio extends JpaRepository<PeriodoAcademico, Long> {
 
     Optional<PeriodoAcademico> findByAnio(Integer anio);
+
+    Optional<PeriodoAcademico> findFirstByAnioLessThanOrderByAnioDesc(Integer anio);
 }

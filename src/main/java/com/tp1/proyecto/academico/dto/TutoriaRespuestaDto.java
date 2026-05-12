@@ -1,12 +1,10 @@
 package com.tp1.proyecto.academico.dto;
 
-public class AsignacionDocenteRespuestaDto {
+public class TutoriaRespuestaDto {
 
     private Long id;
     private Long docenteId;
     private String docenteNombreCompleto;
-    private Long cursoId;
-    private String curso;
     private Long seccionId;
     private String seccion;
     private String grado;
@@ -37,22 +35,6 @@ public class AsignacionDocenteRespuestaDto {
 
     public void setDocenteNombreCompleto(String docenteNombreCompleto) {
         this.docenteNombreCompleto = docenteNombreCompleto;
-    }
-
-    public Long getCursoId() {
-        return cursoId;
-    }
-
-    public void setCursoId(Long cursoId) {
-        this.cursoId = cursoId;
-    }
-
-    public String getCurso() {
-        return curso;
-    }
-
-    public void setCurso(String curso) {
-        this.curso = curso;
     }
 
     public Long getSeccionId() {

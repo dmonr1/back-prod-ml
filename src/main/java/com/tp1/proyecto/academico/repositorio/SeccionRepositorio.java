@@ -9,5 +9,9 @@ public interface SeccionRepositorio extends JpaRepository<Seccion, Long> {
 
     List<Seccion> findByGradoId(Long gradoId);
 
-    Optional<Seccion> findByNombreAndGradoId(String nombre, Long gradoId);
+    List<Seccion> findByPeriodoAcademicoId(Long periodoAcademicoId);
+
+    List<Seccion> findByGradoIdAndPeriodoAcademicoId(Long gradoId, Long periodoAcademicoId);
+
+    Optional<Seccion> findByNombreAndGradoIdAndPeriodoAcademicoId(String nombre, Long gradoId, Long periodoAcademicoId);
 }

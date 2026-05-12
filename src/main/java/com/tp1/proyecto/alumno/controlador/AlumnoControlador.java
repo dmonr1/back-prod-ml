@@ -1,5 +1,7 @@
 package com.tp1.proyecto.alumno.controlador;
 
+import com.tp1.proyecto.academico.dto.MatriculaRespuestaDto;
+import com.tp1.proyecto.alumno.dto.AlumnoMatriculaSolicitudDto;
 import com.tp1.proyecto.alumno.dto.AlumnoRespuestaDto;
 import com.tp1.proyecto.alumno.dto.AlumnoSolicitudDto;
 import com.tp1.proyecto.alumno.servicio.AlumnoServicio;
@@ -43,6 +45,13 @@ public class AlumnoControlador {
     @PreAuthorize("hasRole('ADMIN')")
     public AlumnoRespuestaDto crear(@Valid @RequestBody AlumnoSolicitudDto solicitud) {
         return alumnoServicio.crear(solicitud);
+    }
+
+    @PostMapping("/registro-seccion")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
+    public MatriculaRespuestaDto crearYMatricular(@Valid @RequestBody AlumnoMatriculaSolicitudDto solicitud) {
+        return alumnoServicio.crearYMatricular(solicitud);
     }
 
     @PutMapping("/{id}")

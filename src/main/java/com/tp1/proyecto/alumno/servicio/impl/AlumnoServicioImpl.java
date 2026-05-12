@@ -1,5 +1,9 @@
 package com.tp1.proyecto.alumno.servicio.impl;
 
+import com.tp1.proyecto.academico.dto.MatriculaRespuestaDto;
+import com.tp1.proyecto.academico.dto.MatriculaSolicitudDto;
+import com.tp1.proyecto.academico.servicio.MatriculaServicio;
+import com.tp1.proyecto.alumno.dto.AlumnoMatriculaSolicitudDto;
 import com.tp1.proyecto.alumno.dto.AlumnoRespuestaDto;
 import com.tp1.proyecto.alumno.dto.AlumnoSolicitudDto;
 import com.tp1.proyecto.alumno.entidad.Alumno;
@@ -16,9 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AlumnoServicioImpl implements AlumnoServicio {
 
     private final AlumnoRepositorio alumnoRepositorio;
+    private final MatriculaServicio matriculaServicio;
 
-    public AlumnoServicioImpl(AlumnoRepositorio alumnoRepositorio) {
+    public AlumnoServicioImpl(AlumnoRepositorio alumnoRepositorio, MatriculaServicio matriculaServicio) {
         this.alumnoRepositorio = alumnoRepositorio;
+        this.matriculaServicio = matriculaServicio;
     }
 
     @Override
@@ -54,6 +60,23 @@ public class AlumnoServicioImpl implements AlumnoServicio {
         asignarCampos(alumno, solicitud);
 
         return mapearRespuesta(alumnoRepositorio.save(alumno));
+    }
+
+    @Override
+    public MatriculaRespuestaDto crearYMatricular(AlumnoMatriculaSolicitudDto solicitud) {
+        AlumnoSolicitudDto alumnoSolicitud = solicitud.getAlumno();
+        validarDuplicados(alumnoSolicitud.getCodigo(), alumnoSolicitud.getDni(), null);
+
+        Alumno alumno = new Alumno();
+        asignarCampos(alumno, alumnoSolicitud);
+        Alumno alumnoGuardado = alumnoRepositorio.save(alumno);
+
+        MatriculaSolicitudDto matriculaSolicitud = new MatriculaSolicitudDto();
+        matriculaSolicitud.setAlumnoId(alumnoGuardado.getId());
+        matriculaSolicitud.setSeccionId(solicitud.getSeccionId());
+        matriculaSolicitud.setPeriodoAcademicoId(solicitud.getPeriodoAcademicoId());
+
+        return matriculaServicio.crear(matriculaSolicitud);
     }
 
     private Alumno buscarAlumno(Long id) {

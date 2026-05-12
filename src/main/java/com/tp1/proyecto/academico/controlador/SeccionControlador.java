@@ -1,5 +1,6 @@
 package com.tp1.proyecto.academico.controlador;
 
+import com.tp1.proyecto.academico.dto.SeccionPeriodoAnteriorSolicitudDto;
 import com.tp1.proyecto.academico.dto.SeccionRespuestaDto;
 import com.tp1.proyecto.academico.dto.SeccionSolicitudDto;
 import com.tp1.proyecto.academico.servicio.SeccionServicio;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,8 +28,8 @@ public class SeccionControlador {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
-    public List<SeccionRespuestaDto> listar() {
-        return seccionServicio.listar();
+    public List<SeccionRespuestaDto> listar(@RequestParam(required = false) Long periodoAcademicoId) {
+        return seccionServicio.listar(periodoAcademicoId);
     }
 
     @PostMapping
@@ -35,5 +37,14 @@ public class SeccionControlador {
     @PreAuthorize("hasRole('ADMIN')")
     public SeccionRespuestaDto crear(@Valid @RequestBody SeccionSolicitudDto solicitud) {
         return seccionServicio.crear(solicitud);
+    }
+
+    @PostMapping("/copiar-periodo-anterior")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<SeccionRespuestaDto> copiarPeriodoAnterior(
+        @Valid @RequestBody SeccionPeriodoAnteriorSolicitudDto solicitud
+    ) {
+        return seccionServicio.copiarDesdePeriodoAnterior(solicitud);
     }
 }

@@ -1,8 +1,8 @@
 package com.tp1.proyecto.academico.controlador;
 
-import com.tp1.proyecto.academico.dto.PeriodoAcademicoRespuestaDto;
-import com.tp1.proyecto.academico.dto.PeriodoAcademicoSolicitudDto;
-import com.tp1.proyecto.academico.servicio.PeriodoAcademicoServicio;
+import com.tp1.proyecto.academico.dto.BimestreRespuestaDto;
+import com.tp1.proyecto.academico.dto.BimestreSolicitudDto;
+import com.tp1.proyecto.academico.servicio.BimestreServicio;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -15,25 +15,25 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/periodos-academicos")
-public class PeriodoAcademicoControlador {
+@RequestMapping("/api/bimestres")
+public class BimestreControlador {
 
-    private final PeriodoAcademicoServicio periodoAcademicoServicio;
+    private final BimestreServicio bimestreServicio;
 
-    public PeriodoAcademicoControlador(PeriodoAcademicoServicio periodoAcademicoServicio) {
-        this.periodoAcademicoServicio = periodoAcademicoServicio;
+    public BimestreControlador(BimestreServicio bimestreServicio) {
+        this.bimestreServicio = bimestreServicio;
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
-    public List<PeriodoAcademicoRespuestaDto> listar() {
-        return periodoAcademicoServicio.listar();
+    public List<BimestreRespuestaDto> listar() {
+        return bimestreServicio.listar();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
-    public PeriodoAcademicoRespuestaDto crear(@Valid @RequestBody PeriodoAcademicoSolicitudDto solicitud) {
-        return periodoAcademicoServicio.crear(solicitud);
+    public BimestreRespuestaDto crear(@Valid @RequestBody BimestreSolicitudDto solicitud) {
+        return bimestreServicio.crear(solicitud);
     }
 }

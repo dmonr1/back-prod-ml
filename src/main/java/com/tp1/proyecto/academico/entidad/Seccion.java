@@ -23,6 +23,10 @@ public class Seccion extends AuditoriaEntidad {
     @JoinColumn(name = "grado_id", nullable = false)
     private Grado grado;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "periodo_academico_id", nullable = false)
+    private PeriodoAcademico periodoAcademico;
+
     @Column(name = "nombre", nullable = false, length = 20)
     private String nombre;
 
@@ -43,6 +47,14 @@ public class Seccion extends AuditoriaEntidad {
 
     public void setGrado(Grado grado) {
         this.grado = grado;
+    }
+
+    public PeriodoAcademico getPeriodoAcademico() {
+        return periodoAcademico;
+    }
+
+    public void setPeriodoAcademico(PeriodoAcademico periodoAcademico) {
+        this.periodoAcademico = periodoAcademico;
     }
 
     public String getNombre() {
