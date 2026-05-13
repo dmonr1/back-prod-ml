@@ -9,13 +9,13 @@ public interface PrediccionRiesgoServicio {
 
     void generarPrediccionesGlobales(CargaExcel cargaExcel);
 
-    void generarPrediccionGlobalPorMatricula(Long matriculaId, Long bimestreId);
+    void generarPrediccionGlobalPorMatricula(Long matriculaId, Long periodoEvaluacionId);
 
-    List<PrediccionRiesgoRespuestaDto> listarPrediccionesGlobales(Long bimestreId, Long seccionId);
+    List<PrediccionRiesgoRespuestaDto> listarPrediccionesGlobales(Long periodoEvaluacionId, Long seccionId);
 
-    List<PrediccionRiesgoRespuestaDto> listarPrediccionesCurso(Long bimestreId, Long seccionId);
+    List<PrediccionRiesgoRespuestaDto> listarPrediccionesCurso(Long periodoEvaluacionId, Long seccionId);
 
     List<PrediccionRiesgoRespuestaDto> listarPrediccionesPorAlumno(Long alumnoId);
 
-    ResumenPrediccionDto obtenerResumenPredicciones(Long bimestreId, Long seccionId);
+    ResumenPrediccionDto obtenerResumenPredicciones(Long periodoEvaluacionId, Long seccionId);
 }

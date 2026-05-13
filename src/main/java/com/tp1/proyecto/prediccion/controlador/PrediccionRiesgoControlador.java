@@ -24,18 +24,18 @@ public class PrediccionRiesgoControlador {
 
     @GetMapping("/globales")
     public List<PrediccionRiesgoRespuestaDto> listarPrediccionesGlobales(
-        @RequestParam Long bimestreId,
+        @RequestParam Long periodoEvaluacionId,
         @RequestParam Long seccionId
     ) {
-        return prediccionRiesgoServicio.listarPrediccionesGlobales(bimestreId, seccionId);
+        return prediccionRiesgoServicio.listarPrediccionesGlobales(periodoEvaluacionId, seccionId);
     }
 
     @GetMapping("/cursos")
     public List<PrediccionRiesgoRespuestaDto> listarPrediccionesCurso(
-        @RequestParam Long bimestreId,
+        @RequestParam Long periodoEvaluacionId,
         @RequestParam Long seccionId
     ) {
-        return prediccionRiesgoServicio.listarPrediccionesCurso(bimestreId, seccionId);
+        return prediccionRiesgoServicio.listarPrediccionesCurso(periodoEvaluacionId, seccionId);
     }
 
     @GetMapping("/alumno/{alumnoId}")
@@ -45,9 +45,9 @@ public class PrediccionRiesgoControlador {
 
     @GetMapping("/resumen")
     public ResumenPrediccionDto obtenerResumen(
-        @RequestParam Long bimestreId,
+        @RequestParam Long periodoEvaluacionId,
         @RequestParam Long seccionId
     ) {
-        return prediccionRiesgoServicio.obtenerResumenPredicciones(bimestreId, seccionId);
+        return prediccionRiesgoServicio.obtenerResumenPredicciones(periodoEvaluacionId, seccionId);
     }
 }

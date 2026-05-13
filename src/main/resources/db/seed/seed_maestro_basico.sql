@@ -57,26 +57,26 @@ ON CONFLICT (grado_id, nombre) DO NOTHING;
 -- PERIODO ACADEMICO
 -- =========================================
 INSERT INTO periodos_academicos (
-    nombre, anio, fecha_inicio, fecha_fin, estado, fecha_registro, fecha_modificacion
+    nombre, anio, fecha_inicio, fecha_fin, tipo_periodo_evaluacion, estado, fecha_registro, fecha_modificacion
 )
 VALUES
-    ('ANIO ESCOLAR 2026', 2026, DATE '2026-03-01', DATE '2026-12-20', 'ACTIVO', NOW(), NOW())
+    ('ANIO ESCOLAR 2026', 2026, DATE '2026-03-01', DATE '2026-12-20', 'BIMESTRAL', 'ACTIVO', NOW(), NOW())
 ON CONFLICT (anio) DO NOTHING;
 
 -- =========================================
--- BIMESTRES
+-- PERIODOS_EVALUACION
 -- =========================================
-INSERT INTO bimestres (
+INSERT INTO periodos_evaluacion (
     periodo_academico_id, nombre, numero, fecha_inicio, fecha_fin, estado, fecha_registro, fecha_modificacion
 )
 SELECT p.id, b.nombre, b.numero, b.fecha_inicio, b.fecha_fin, 'ACTIVO', NOW(), NOW()
 FROM periodos_academicos p
 JOIN (
     VALUES
-        ('BIMESTRE I', 1, DATE '2026-03-01', DATE '2026-05-15'),
-        ('BIMESTRE II', 2, DATE '2026-05-16', DATE '2026-07-31'),
-        ('BIMESTRE III', 3, DATE '2026-08-01', DATE '2026-10-15'),
-        ('BIMESTRE IV', 4, DATE '2026-10-16', DATE '2026-12-20')
+        ('PERIODO_EVALUACION I', 1, DATE '2026-03-01', DATE '2026-05-15'),
+        ('PERIODO_EVALUACION II', 2, DATE '2026-05-16', DATE '2026-07-31'),
+        ('PERIODO_EVALUACION III', 3, DATE '2026-08-01', DATE '2026-10-15'),
+        ('PERIODO_EVALUACION IV', 4, DATE '2026-10-16', DATE '2026-12-20')
 ) AS b(nombre, numero, fecha_inicio, fecha_fin)
     ON p.anio = 2026
 ON CONFLICT (periodo_academico_id, numero) DO NOTHING;

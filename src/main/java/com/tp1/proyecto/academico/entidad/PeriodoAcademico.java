@@ -29,6 +29,9 @@ public class PeriodoAcademico extends AuditoriaEntidad {
     @Column(name = "fecha_fin", nullable = false)
     private LocalDate fechaFin;
 
+    @Column(name = "tipo_periodo_evaluacion", nullable = false, length = 30)
+    private String tipoPeriodoEvaluacion;
+
     public Long getId() {
         return id;
     }
@@ -67,5 +70,13 @@ public class PeriodoAcademico extends AuditoriaEntidad {
 
     public void setFechaFin(LocalDate fechaFin) {
         this.fechaFin = fechaFin;
+    }
+
+    public String getTipoPeriodoEvaluacion() {
+        return tipoPeriodoEvaluacion;
+    }
+
+    public void setTipoPeriodoEvaluacion(String tipoPeriodoEvaluacion) {
+        this.tipoPeriodoEvaluacion = tipoPeriodoEvaluacion;
     }
 }

@@ -8,7 +8,7 @@ public class CargaExcelRespuestaDto {
     private Long docenteId;
     private String docenteNombreCompleto;
     private Long periodoAcademicoId;
-    private Long bimestreId;
+    private Long periodoEvaluacionId;
     private Long seccionId;
     private String nombreArchivo;
     private Integer totalFilas;
@@ -50,12 +50,12 @@ public class CargaExcelRespuestaDto {
         this.periodoAcademicoId = periodoAcademicoId;
     }
 
-    public Long getBimestreId() {
-        return bimestreId;
+    public Long getPeriodoEvaluacionId() {
+        return periodoEvaluacionId;
     }
 
-    public void setBimestreId(Long bimestreId) {
-        this.bimestreId = bimestreId;
+    public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
+        this.periodoEvaluacionId = periodoEvaluacionId;
     }
 
     public Long getSeccionId() {

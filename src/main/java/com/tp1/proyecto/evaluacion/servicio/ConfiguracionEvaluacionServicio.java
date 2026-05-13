@@ -8,5 +8,5 @@ public interface ConfiguracionEvaluacionServicio {
 
     ConfiguracionEvaluacionRespuestaDto crear(ConfiguracionEvaluacionSolicitudDto solicitud);
 
-    List<ConfiguracionEvaluacionRespuestaDto> listarPorBimestreYCurso(Long bimestreId, Long cursoId);
+    List<ConfiguracionEvaluacionRespuestaDto> listarPorPeriodoEvaluacionYCurso(Long periodoEvaluacionId, Long cursoId);
 }

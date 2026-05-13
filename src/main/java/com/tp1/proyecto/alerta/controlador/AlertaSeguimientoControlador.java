@@ -25,18 +25,18 @@ public class AlertaSeguimientoControlador {
 
     @GetMapping
     public List<AlertaRespuestaDto> listarAlertas(
-        @RequestParam Long bimestreId,
+        @RequestParam Long periodoEvaluacionId,
         @RequestParam Long seccionId
     ) {
-        return alertaSeguimientoServicio.listarAlertas(bimestreId, seccionId);
+        return alertaSeguimientoServicio.listarAlertas(periodoEvaluacionId, seccionId);
     }
 
     @GetMapping("/recomendaciones")
     public List<RecomendacionRespuestaDto> listarRecomendaciones(
-        @RequestParam Long bimestreId,
+        @RequestParam Long periodoEvaluacionId,
         @RequestParam Long seccionId
     ) {
-        return alertaSeguimientoServicio.listarRecomendaciones(bimestreId, seccionId);
+        return alertaSeguimientoServicio.listarRecomendaciones(periodoEvaluacionId, seccionId);
     }
 
     @PatchMapping("/{alertaId}/atender")

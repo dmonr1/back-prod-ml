@@ -1,9 +1,9 @@
 package com.tp1.proyecto.notas.servicio.impl;
 
-import com.tp1.proyecto.academico.entidad.Bimestre;
+import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.Seccion;
-import com.tp1.proyecto.academico.repositorio.BimestreRepositorio;
+import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.PeriodoAcademicoRepositorio;
 import com.tp1.proyecto.academico.repositorio.SeccionRepositorio;
 import com.tp1.proyecto.docente.entidad.Docente;
@@ -38,7 +38,7 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
     private final CargaExcelRepositorio cargaExcelRepositorio;
     private final DocenteRepositorio docenteRepositorio;
     private final PeriodoAcademicoRepositorio periodoAcademicoRepositorio;
-    private final BimestreRepositorio bimestreRepositorio;
+    private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final SeccionRepositorio seccionRepositorio;
     private final ProcesadorExcelServicio procesadorExcelServicio;
     private final PrediccionRiesgoServicio prediccionRiesgoServicio;
@@ -47,7 +47,7 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
         CargaExcelRepositorio cargaExcelRepositorio,
         DocenteRepositorio docenteRepositorio,
         PeriodoAcademicoRepositorio periodoAcademicoRepositorio,
-        BimestreRepositorio bimestreRepositorio,
+        PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         SeccionRepositorio seccionRepositorio,
         ProcesadorExcelServicio procesadorExcelServicio,
         PrediccionRiesgoServicio prediccionRiesgoServicio
@@ -55,7 +55,7 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
         this.cargaExcelRepositorio = cargaExcelRepositorio;
         this.docenteRepositorio = docenteRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
-        this.bimestreRepositorio = bimestreRepositorio;
+        this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.seccionRepositorio = seccionRepositorio;
         this.procesadorExcelServicio = procesadorExcelServicio;
         this.prediccionRiesgoServicio = prediccionRiesgoServicio;
@@ -65,7 +65,7 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
     public CargaExcelRespuestaDto registrarCarga(
         Long docenteId,
         Long periodoAcademicoId,
-        Long bimestreId,
+        Long periodoEvaluacionId,
         Long seccionId,
         MultipartFile archivo
     ) {
@@ -81,18 +81,18 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
         PeriodoAcademico periodoAcademico = periodoAcademicoRepositorio.findById(periodoAcademicoId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Periodo academico no encontrado con id: " + periodoAcademicoId));
 
-        Bimestre bimestre = bimestreRepositorio.findById(bimestreId)
-            .orElseThrow(() -> new RecursoNoEncontradoException("Bimestre no encontrado con id: " + bimestreId));
+        PeriodoEvaluacion periodoEvaluacion = periodoEvaluacionRepositorio.findById(periodoEvaluacionId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("PeriodoEvaluacion no encontrado con id: " + periodoEvaluacionId));
 
         Seccion seccion = seccionRepositorio.findById(seccionId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + seccionId));
 
-        validarConsistenciaPeriodoBimestre(periodoAcademico, bimestre);
+        validarConsistenciaPeriodoPeriodoEvaluacion(periodoAcademico, periodoEvaluacion);
 
         CargaExcel cargaExcel = new CargaExcel();
         cargaExcel.setDocente(docente);
         cargaExcel.setPeriodoAcademico(periodoAcademico);
-        cargaExcel.setBimestre(bimestre);
+        cargaExcel.setPeriodoEvaluacion(periodoEvaluacion);
         cargaExcel.setSeccion(seccion);
         cargaExcel.setNombreArchivo(archivo.getOriginalFilename());
         cargaExcel.setTotalFilas(0);
@@ -140,9 +140,9 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
         }
     }
 
-    private void validarConsistenciaPeriodoBimestre(PeriodoAcademico periodoAcademico, Bimestre bimestre) {
-        if (bimestre.getPeriodoAcademico() == null || !bimestre.getPeriodoAcademico().getId().equals(periodoAcademico.getId())) {
-            throw new ReglaNegocioException("El bimestre no pertenece al periodo academico seleccionado");
+    private void validarConsistenciaPeriodoPeriodoEvaluacion(PeriodoAcademico periodoAcademico, PeriodoEvaluacion periodoEvaluacion) {
+        if (periodoEvaluacion.getPeriodoAcademico() == null || !periodoEvaluacion.getPeriodoAcademico().getId().equals(periodoAcademico.getId())) {
+            throw new ReglaNegocioException("El periodoEvaluacion no pertenece al periodo academico seleccionado");
         }
     }
 
@@ -158,8 +158,8 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
         if (cargaExcel.getPeriodoAcademico() != null) {
             dto.setPeriodoAcademicoId(cargaExcel.getPeriodoAcademico().getId());
         }
-        if (cargaExcel.getBimestre() != null) {
-            dto.setBimestreId(cargaExcel.getBimestre().getId());
+        if (cargaExcel.getPeriodoEvaluacion() != null) {
+            dto.setPeriodoEvaluacionId(cargaExcel.getPeriodoEvaluacion().getId());
         }
         if (cargaExcel.getSeccion() != null) {
             dto.setSeccionId(cargaExcel.getSeccion().getId());

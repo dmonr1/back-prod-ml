@@ -29,8 +29,8 @@ public class AlertaSeguimientoServicioImpl implements AlertaSeguimientoServicio 
 
     @Override
     @Transactional(readOnly = true)
-    public List<AlertaRespuestaDto> listarAlertas(Long bimestreId, Long seccionId) {
-        return alertaRepositorio.findByBimestreIdAndSeccionId(bimestreId, seccionId)
+    public List<AlertaRespuestaDto> listarAlertas(Long periodoEvaluacionId, Long seccionId) {
+        return alertaRepositorio.findByPeriodoEvaluacionIdAndSeccionId(periodoEvaluacionId, seccionId)
             .stream()
             .map(this::mapearAlerta)
             .toList();
@@ -38,8 +38,8 @@ public class AlertaSeguimientoServicioImpl implements AlertaSeguimientoServicio 
 
     @Override
     @Transactional(readOnly = true)
-    public List<RecomendacionRespuestaDto> listarRecomendaciones(Long bimestreId, Long seccionId) {
-        return recomendacionRepositorio.findByBimestreIdAndSeccionId(bimestreId, seccionId)
+    public List<RecomendacionRespuestaDto> listarRecomendaciones(Long periodoEvaluacionId, Long seccionId) {
+        return recomendacionRepositorio.findByPeriodoEvaluacionIdAndSeccionId(periodoEvaluacionId, seccionId)
             .stream()
             .map(this::mapearRecomendacion)
             .toList();

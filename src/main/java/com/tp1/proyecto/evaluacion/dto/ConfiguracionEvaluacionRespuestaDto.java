@@ -4,8 +4,8 @@ public class ConfiguracionEvaluacionRespuestaDto {
 
     private Long id;
     private Long periodoAcademicoId;
-    private Long bimestreId;
-    private String nombreBimestre;
+    private Long periodoEvaluacionId;
+    private String nombrePeriodoEvaluacion;
     private Long cursoId;
     private String nombreCurso;
     private Long gradoId;
@@ -32,20 +32,20 @@ public class ConfiguracionEvaluacionRespuestaDto {
         this.periodoAcademicoId = periodoAcademicoId;
     }
 
-    public Long getBimestreId() {
-        return bimestreId;
+    public Long getPeriodoEvaluacionId() {
+        return periodoEvaluacionId;
     }
 
-    public void setBimestreId(Long bimestreId) {
-        this.bimestreId = bimestreId;
+    public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
+        this.periodoEvaluacionId = periodoEvaluacionId;
     }
 
-    public String getNombreBimestre() {
-        return nombreBimestre;
+    public String getNombrePeriodoEvaluacion() {
+        return nombrePeriodoEvaluacion;
     }
 
-    public void setNombreBimestre(String nombreBimestre) {
-        this.nombreBimestre = nombreBimestre;
+    public void setNombrePeriodoEvaluacion(String nombrePeriodoEvaluacion) {
+        this.nombrePeriodoEvaluacion = nombrePeriodoEvaluacion;
     }
 
     public Long getCursoId() {

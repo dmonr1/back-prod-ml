@@ -10,7 +10,7 @@ public interface EvaluacionServicio {
 
     EvaluacionRespuestaDto crear(EvaluacionSolicitudDto solicitud);
 
-    List<EvaluacionRespuestaDto> listarPorAsignacionYBimestre(Long docenteCursoSeccionId, Long bimestreId);
+    List<EvaluacionRespuestaDto> listarPorAsignacionYPeriodoEvaluacion(Long docenteCursoSeccionId, Long periodoEvaluacionId);
 
     List<DetalleNotaEvaluacionRespuestaDto> registrarNotas(Long evaluacionId, RegistroNotasEvaluacionSolicitudDto solicitud);
 

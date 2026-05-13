@@ -13,8 +13,8 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "bimestres", schema = "db_tp1")
-public class Bimestre extends AuditoriaEntidad {
+@Table(name = "periodos_evaluacion", schema = "db_tp1")
+public class PeriodoEvaluacion extends AuditoriaEntidad {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

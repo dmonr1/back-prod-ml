@@ -1,6 +1,6 @@
 package com.tp1.proyecto.evaluacion.entidad;
 
-import com.tp1.proyecto.academico.entidad.Bimestre;
+import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.entidad.Matricula;
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
 import jakarta.persistence.Column;
@@ -14,8 +14,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "asistencias_bimestre", schema = "db_tp1")
-public class AsistenciaBimestre extends AuditoriaEntidad {
+@Table(name = "asistencias_periodo_evaluacion", schema = "db_tp1")
+public class AsistenciaPeriodoEvaluacion extends AuditoriaEntidad {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,8 +26,8 @@ public class AsistenciaBimestre extends AuditoriaEntidad {
     private Matricula matricula;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "bimestre_id", nullable = false)
-    private Bimestre bimestre;
+    @JoinColumn(name = "periodo_evaluacion_id", nullable = false)
+    private PeriodoEvaluacion periodoEvaluacion;
 
     @Column(name = "clases_programadas", nullable = false)
     private Integer clasesProgramadas;
@@ -54,12 +54,12 @@ public class AsistenciaBimestre extends AuditoriaEntidad {
         this.matricula = matricula;
     }
 
-    public Bimestre getBimestre() {
-        return bimestre;
+    public PeriodoEvaluacion getPeriodoEvaluacion() {
+        return periodoEvaluacion;
     }
 
-    public void setBimestre(Bimestre bimestre) {
-        this.bimestre = bimestre;
+    public void setPeriodoEvaluacion(PeriodoEvaluacion periodoEvaluacion) {
+        this.periodoEvaluacion = periodoEvaluacion;
     }
 
     public Integer getClasesProgramadas() {

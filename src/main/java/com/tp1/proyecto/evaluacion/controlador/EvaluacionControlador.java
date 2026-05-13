@@ -38,9 +38,9 @@ public class EvaluacionControlador {
     @GetMapping
     public List<EvaluacionRespuestaDto> listar(
         @RequestParam Long docenteCursoSeccionId,
-        @RequestParam Long bimestreId
+        @RequestParam Long periodoEvaluacionId
     ) {
-        return evaluacionServicio.listarPorAsignacionYBimestre(docenteCursoSeccionId, bimestreId);
+        return evaluacionServicio.listarPorAsignacionYPeriodoEvaluacion(docenteCursoSeccionId, periodoEvaluacionId);
     }
 
     @PostMapping("/{evaluacionId}/notas")

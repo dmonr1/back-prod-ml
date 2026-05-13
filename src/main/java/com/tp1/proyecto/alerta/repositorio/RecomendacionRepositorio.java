@@ -19,14 +19,14 @@ public interface RecomendacionRepositorio extends JpaRepository<Recomendacion, L
         FROM Recomendacion r
         WHERE (
             r.prediccionGlobal IS NOT NULL
-            AND r.prediccionGlobal.bimestre.id = :bimestreId
+            AND r.prediccionGlobal.periodoEvaluacion.id = :periodoEvaluacionId
             AND r.matricula.seccion.id = :seccionId
         ) OR (
             r.prediccionCurso IS NOT NULL
-            AND r.prediccionCurso.bimestre.id = :bimestreId
+            AND r.prediccionCurso.periodoEvaluacion.id = :periodoEvaluacionId
             AND r.matricula.seccion.id = :seccionId
         )
         ORDER BY r.fechaRegistro DESC
         """)
-    List<Recomendacion> findByBimestreIdAndSeccionId(@Param("bimestreId") Long bimestreId, @Param("seccionId") Long seccionId);
+    List<Recomendacion> findByPeriodoEvaluacionIdAndSeccionId(@Param("periodoEvaluacionId") Long periodoEvaluacionId, @Param("seccionId") Long seccionId);
 }

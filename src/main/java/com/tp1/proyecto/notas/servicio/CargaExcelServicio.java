@@ -14,7 +14,7 @@ public interface CargaExcelServicio {
     CargaExcelRespuestaDto registrarCarga(
         Long docenteId,
         Long periodoAcademicoId,
-        Long bimestreId,
+        Long periodoEvaluacionId,
         Long seccionId,
         MultipartFile archivo
     );

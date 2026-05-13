@@ -2,7 +2,7 @@ package com.tp1.proyecto.academico.dto;
 
 import java.time.LocalDate;
 
-public class BimestreRespuestaDto {
+public class PeriodoEvaluacionRespuestaDto {
 
     private Long id;
     private String nombre;

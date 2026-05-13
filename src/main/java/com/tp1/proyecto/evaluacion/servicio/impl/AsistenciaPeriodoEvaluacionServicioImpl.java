@@ -1,15 +1,15 @@
 package com.tp1.proyecto.evaluacion.servicio.impl;
 
 import com.tp1.proyecto.academico.entidad.Matricula;
-import com.tp1.proyecto.academico.repositorio.BimestreRepositorio;
+import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
-import com.tp1.proyecto.evaluacion.dto.AsistenciaBimestreRespuestaDto;
-import com.tp1.proyecto.evaluacion.dto.AsistenciaBimestreSolicitudDto;
-import com.tp1.proyecto.evaluacion.dto.RegistroAsistenciasBimestreSolicitudDto;
-import com.tp1.proyecto.evaluacion.entidad.AsistenciaBimestre;
-import com.tp1.proyecto.evaluacion.repositorio.AsistenciaBimestreRepositorio;
-import com.tp1.proyecto.evaluacion.servicio.AsistenciaBimestreServicio;
+import com.tp1.proyecto.evaluacion.dto.AsistenciaPeriodoEvaluacionRespuestaDto;
+import com.tp1.proyecto.evaluacion.dto.AsistenciaPeriodoEvaluacionSolicitudDto;
+import com.tp1.proyecto.evaluacion.dto.RegistroAsistenciasPeriodoEvaluacionSolicitudDto;
+import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
+import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.servicio.AsistenciaPeriodoEvaluacionServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
 import com.tp1.proyecto.prediccion.servicio.PrediccionRiesgoServicio;
@@ -24,32 +24,32 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-public class AsistenciaBimestreServicioImpl implements AsistenciaBimestreServicio {
+public class AsistenciaPeriodoEvaluacionServicioImpl implements AsistenciaPeriodoEvaluacionServicio {
 
-    private final AsistenciaBimestreRepositorio asistenciaBimestreRepositorio;
+    private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
     private final MatriculaRepositorio matriculaRepositorio;
-    private final BimestreRepositorio bimestreRepositorio;
+    private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final PrediccionRiesgoServicio prediccionRiesgoServicio;
 
-    public AsistenciaBimestreServicioImpl(
-        AsistenciaBimestreRepositorio asistenciaBimestreRepositorio,
+    public AsistenciaPeriodoEvaluacionServicioImpl(
+        AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
         MatriculaRepositorio matriculaRepositorio,
-        BimestreRepositorio bimestreRepositorio,
+        PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         PrediccionRiesgoServicio prediccionRiesgoServicio
     ) {
-        this.asistenciaBimestreRepositorio = asistenciaBimestreRepositorio;
+        this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
         this.matriculaRepositorio = matriculaRepositorio;
-        this.bimestreRepositorio = bimestreRepositorio;
+        this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.prediccionRiesgoServicio = prediccionRiesgoServicio;
     }
 
     @Override
-    public List<AsistenciaBimestreRespuestaDto> registrarAsistencias(Long bimestreId, RegistroAsistenciasBimestreSolicitudDto solicitud) {
-        var bimestre = bimestreRepositorio.findById(bimestreId)
-            .orElseThrow(() -> new RecursoNoEncontradoException("Bimestre no encontrado con id: " + bimestreId));
+    public List<AsistenciaPeriodoEvaluacionRespuestaDto> registrarAsistencias(Long periodoEvaluacionId, RegistroAsistenciasPeriodoEvaluacionSolicitudDto solicitud) {
+        var periodoEvaluacion = periodoEvaluacionRepositorio.findById(periodoEvaluacionId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("PeriodoEvaluacion no encontrado con id: " + periodoEvaluacionId));
 
-        List<AsistenciaBimestreRespuestaDto> respuestas = new ArrayList<>();
-        for (AsistenciaBimestreSolicitudDto item : solicitud.getAsistencias()) {
+        List<AsistenciaPeriodoEvaluacionRespuestaDto> respuestas = new ArrayList<>();
+        for (AsistenciaPeriodoEvaluacionSolicitudDto item : solicitud.getAsistencias()) {
             if (item.getClasesAsistidas() > item.getClasesProgramadas()) {
                 throw new ReglaNegocioException("Las clases asistidas no pueden ser mayores que las programadas");
             }
@@ -57,19 +57,19 @@ public class AsistenciaBimestreServicioImpl implements AsistenciaBimestreServici
             Matricula matricula = matriculaRepositorio.findById(item.getMatriculaId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Matricula no encontrada con id: " + item.getMatriculaId()));
 
-            AsistenciaBimestre asistencia = asistenciaBimestreRepositorio
-                .findByMatriculaIdAndBimestreId(item.getMatriculaId(), bimestreId)
-                .orElseGet(AsistenciaBimestre::new);
+            AsistenciaPeriodoEvaluacion asistencia = asistenciaPeriodoEvaluacionRepositorio
+                .findByMatriculaIdAndPeriodoEvaluacionId(item.getMatriculaId(), periodoEvaluacionId)
+                .orElseGet(AsistenciaPeriodoEvaluacion::new);
 
             asistencia.setMatricula(matricula);
-            asistencia.setBimestre(bimestre);
+            asistencia.setPeriodoEvaluacion(periodoEvaluacion);
             asistencia.setClasesProgramadas(item.getClasesProgramadas());
             asistencia.setClasesAsistidas(item.getClasesAsistidas());
             asistencia.setObservacion(item.getObservacion());
             asistencia.setEstado(EstadoRegistro.ACTIVO);
 
-            AsistenciaBimestre guardada = asistenciaBimestreRepositorio.save(asistencia);
-            prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(matricula.getId(), bimestreId);
+            AsistenciaPeriodoEvaluacion guardada = asistenciaPeriodoEvaluacionRepositorio.save(asistencia);
+            prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(matricula.getId(), periodoEvaluacionId);
             respuestas.add(mapear(guardada));
         }
 
@@ -78,21 +78,21 @@ public class AsistenciaBimestreServicioImpl implements AsistenciaBimestreServici
 
     @Override
     @Transactional(readOnly = true)
-    public List<AsistenciaBimestreRespuestaDto> listarPorSeccionYBimestre(Long seccionId, Long periodoAcademicoId, Long bimestreId) {
-        bimestreRepositorio.findById(bimestreId)
-            .orElseThrow(() -> new RecursoNoEncontradoException("Bimestre no encontrado con id: " + bimestreId));
+    public List<AsistenciaPeriodoEvaluacionRespuestaDto> listarPorSeccionYPeriodoEvaluacion(Long seccionId, Long periodoAcademicoId, Long periodoEvaluacionId) {
+        periodoEvaluacionRepositorio.findById(periodoEvaluacionId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("PeriodoEvaluacion no encontrado con id: " + periodoEvaluacionId));
 
-        Map<Long, AsistenciaBimestre> asistenciaPorMatricula = new LinkedHashMap<>();
+        Map<Long, AsistenciaPeriodoEvaluacion> asistenciaPorMatricula = new LinkedHashMap<>();
         for (Matricula matricula : matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(seccionId, periodoAcademicoId)) {
-            asistenciaBimestreRepositorio.findByMatriculaIdAndBimestreId(matricula.getId(), bimestreId)
+            asistenciaPeriodoEvaluacionRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
                 .ifPresent(asistencia -> asistenciaPorMatricula.put(matricula.getId(), asistencia));
         }
 
         return asistenciaPorMatricula.values().stream().map(this::mapear).toList();
     }
 
-    private AsistenciaBimestreRespuestaDto mapear(AsistenciaBimestre entidad) {
-        AsistenciaBimestreRespuestaDto dto = new AsistenciaBimestreRespuestaDto();
+    private AsistenciaPeriodoEvaluacionRespuestaDto mapear(AsistenciaPeriodoEvaluacion entidad) {
+        AsistenciaPeriodoEvaluacionRespuestaDto dto = new AsistenciaPeriodoEvaluacionRespuestaDto();
         dto.setId(entidad.getId());
         dto.setMatriculaId(entidad.getMatricula().getId());
         dto.setAlumnoId(entidad.getMatricula().getAlumno().getId());
@@ -100,7 +100,7 @@ public class AsistenciaBimestreServicioImpl implements AsistenciaBimestreServici
         dto.setAlumnoNombreCompleto(
             entidad.getMatricula().getAlumno().getNombres() + " " + entidad.getMatricula().getAlumno().getApellidos()
         );
-        dto.setBimestreId(entidad.getBimestre().getId());
+        dto.setPeriodoEvaluacionId(entidad.getPeriodoEvaluacion().getId());
         dto.setClasesProgramadas(entidad.getClasesProgramadas());
         dto.setClasesAsistidas(entidad.getClasesAsistidas());
         dto.setPorcentajeAsistencia(calcularPorcentaje(entidad.getClasesProgramadas(), entidad.getClasesAsistidas()));

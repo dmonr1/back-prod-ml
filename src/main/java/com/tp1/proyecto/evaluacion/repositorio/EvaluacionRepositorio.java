@@ -6,8 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EvaluacionRepositorio extends JpaRepository<Evaluacion, Long> {
 
-    List<Evaluacion> findByDocenteCursoSeccionIdAndBimestreIdOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+    List<Evaluacion> findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
         Long docenteCursoSeccionId,
-        Long bimestreId
+        Long periodoEvaluacionId
     );
 }

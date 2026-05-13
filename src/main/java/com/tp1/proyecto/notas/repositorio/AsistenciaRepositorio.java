@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AsistenciaRepositorio extends JpaRepository<Asistencia, Long> {
 
-    Optional<Asistencia> findByMatriculaIdAndBimestreId(Long matriculaId, Long bimestreId);
+    Optional<Asistencia> findByMatriculaIdAndPeriodoEvaluacionId(Long matriculaId, Long periodoEvaluacionId);
 
-    List<Asistencia> findByBimestreId(Long bimestreId);
+    List<Asistencia> findByPeriodoEvaluacionId(Long periodoEvaluacionId);
 }

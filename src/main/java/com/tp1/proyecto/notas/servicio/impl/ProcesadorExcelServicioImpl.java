@@ -155,7 +155,7 @@ public class ProcesadorExcelServicioImpl implements ProcesadorExcelServicio {
     }
 
     private void guardarNota(CargaExcel cargaExcel, Matricula matricula, Curso curso, BigDecimal valorNota) {
-        List<Nota> notas = notaRepositorio.findByMatriculaIdAndBimestreId(matricula.getId(), cargaExcel.getBimestre().getId());
+        List<Nota> notas = notaRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), cargaExcel.getPeriodoEvaluacion().getId());
         Optional<Nota> notaExistente = notas.stream()
             .filter(n -> n.getCurso() != null && n.getCurso().getId().equals(curso.getId()))
             .findFirst();
@@ -163,7 +163,7 @@ public class ProcesadorExcelServicioImpl implements ProcesadorExcelServicio {
         Nota nota = notaExistente.orElseGet(Nota::new);
         nota.setMatricula(matricula);
         nota.setCurso(curso);
-        nota.setBimestre(cargaExcel.getBimestre());
+        nota.setPeriodoEvaluacion(cargaExcel.getPeriodoEvaluacion());
         nota.setCargaExcel(cargaExcel);
         nota.setNota(valorNota);
         nota.setObservacion("Procesado desde archivo Excel");
@@ -174,11 +174,11 @@ public class ProcesadorExcelServicioImpl implements ProcesadorExcelServicio {
 
     private void guardarAsistencia(CargaExcel cargaExcel, Matricula matricula, Integer clasesProgramadas, Integer clasesAsistidas) {
         Asistencia asistencia = asistenciaRepositorio
-            .findByMatriculaIdAndBimestreId(matricula.getId(), cargaExcel.getBimestre().getId())
+            .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), cargaExcel.getPeriodoEvaluacion().getId())
             .orElseGet(Asistencia::new);
 
         asistencia.setMatricula(matricula);
-        asistencia.setBimestre(cargaExcel.getBimestre());
+        asistencia.setPeriodoEvaluacion(cargaExcel.getPeriodoEvaluacion());
         asistencia.setClasesProgramadas(clasesProgramadas);
         asistencia.setClasesAsistidas(clasesAsistidas);
         asistencia.setObservacion("Procesado desde archivo Excel");

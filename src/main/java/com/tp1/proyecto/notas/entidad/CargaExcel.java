@@ -1,6 +1,6 @@
 package com.tp1.proyecto.notas.entidad;
 
-import com.tp1.proyecto.academico.entidad.Bimestre;
+import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.Seccion;
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
@@ -17,7 +17,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "cargas_excel", schema = "db_tp1")
+@Table(name = "cargas_archivos", schema = "db_tp1")
 public class CargaExcel extends AuditoriaEntidad {
 
     @Id
@@ -33,8 +33,8 @@ public class CargaExcel extends AuditoriaEntidad {
     private PeriodoAcademico periodoAcademico;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "bimestre_id", nullable = false)
-    private Bimestre bimestre;
+    @JoinColumn(name = "periodo_evaluacion_id", nullable = false)
+    private PeriodoEvaluacion periodoEvaluacion;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "seccion_id", nullable = false)
@@ -85,12 +85,12 @@ public class CargaExcel extends AuditoriaEntidad {
         this.periodoAcademico = periodoAcademico;
     }
 
-    public Bimestre getBimestre() {
-        return bimestre;
+    public PeriodoEvaluacion getPeriodoEvaluacion() {
+        return periodoEvaluacion;
     }
 
-    public void setBimestre(Bimestre bimestre) {
-        this.bimestre = bimestre;
+    public void setPeriodoEvaluacion(PeriodoEvaluacion periodoEvaluacion) {
+        this.periodoEvaluacion = periodoEvaluacion;
     }
 
     public Seccion getSeccion() {

@@ -7,11 +7,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PrediccionRiesgoRepositorio extends JpaRepository<PrediccionRiesgo, Long> {
 
-    Optional<PrediccionRiesgo> findByMatriculaIdAndBimestreId(Long matriculaId, Long bimestreId);
+    Optional<PrediccionRiesgo> findByMatriculaIdAndPeriodoEvaluacionId(Long matriculaId, Long periodoEvaluacionId);
 
-    List<PrediccionRiesgo> findByBimestreId(Long bimestreId);
+    List<PrediccionRiesgo> findByPeriodoEvaluacionId(Long periodoEvaluacionId);
 
-    List<PrediccionRiesgo> findByBimestreIdAndMatriculaSeccionId(Long bimestreId, Long seccionId);
+    List<PrediccionRiesgo> findByPeriodoEvaluacionIdAndMatriculaSeccionId(Long periodoEvaluacionId, Long seccionId);
 
     List<PrediccionRiesgo> findByMatriculaAlumnoIdOrderByFechaPrediccionDesc(Long alumnoId);
 }

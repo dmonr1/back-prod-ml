@@ -3,7 +3,7 @@ package com.tp1.proyecto.evaluacion.dto;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
-public class AsistenciaBimestreSolicitudDto {
+public class AsistenciaPeriodoEvaluacionSolicitudDto {
 
     @NotNull
     private Long matriculaId;

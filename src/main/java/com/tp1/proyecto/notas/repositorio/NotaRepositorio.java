@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NotaRepositorio extends JpaRepository<Nota, Long> {
 
-    List<Nota> findByMatriculaIdAndBimestreId(Long matriculaId, Long bimestreId);
+    List<Nota> findByMatriculaIdAndPeriodoEvaluacionId(Long matriculaId, Long periodoEvaluacionId);
 
     List<Nota> findByCargaExcelId(Long cargaExcelId);
 }

@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/configuraciones-evaluacion")
-@PreAuthorize("hasRole('ADMIN')")
 public class ConfiguracionEvaluacionControlador {
 
     private final ConfiguracionEvaluacionServicio configuracionEvaluacionServicio;
@@ -28,15 +27,17 @@ public class ConfiguracionEvaluacionControlador {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     public ConfiguracionEvaluacionRespuestaDto crear(@Valid @RequestBody ConfiguracionEvaluacionSolicitudDto solicitud) {
         return configuracionEvaluacionServicio.crear(solicitud);
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
     public List<ConfiguracionEvaluacionRespuestaDto> listar(
-        @RequestParam Long bimestreId,
+        @RequestParam Long periodoEvaluacionId,
         @RequestParam Long cursoId
     ) {
-        return configuracionEvaluacionServicio.listarPorBimestreYCurso(bimestreId, cursoId);
+        return configuracionEvaluacionServicio.listarPorPeriodoEvaluacionYCurso(periodoEvaluacionId, cursoId);
     }
 }

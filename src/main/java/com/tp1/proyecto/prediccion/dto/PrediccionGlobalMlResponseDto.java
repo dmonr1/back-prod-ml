@@ -8,8 +8,8 @@ public class PrediccionGlobalMlResponseDto {
     @JsonProperty("matricula_id")
     private Long matriculaId;
 
-    @JsonProperty("bimestre_id")
-    private Long bimestreId;
+    @JsonProperty("periodo_evaluacion_id")
+    private Long periodoEvaluacionId;
 
     @JsonProperty("puntaje_riesgo")
     private Double puntajeRiesgo;
@@ -31,12 +31,12 @@ public class PrediccionGlobalMlResponseDto {
         this.matriculaId = matriculaId;
     }
 
-    public Long getBimestreId() {
-        return bimestreId;
+    public Long getPeriodoEvaluacionId() {
+        return periodoEvaluacionId;
     }
 
-    public void setBimestreId(Long bimestreId) {
-        this.bimestreId = bimestreId;
+    public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
+        this.periodoEvaluacionId = periodoEvaluacionId;
     }
 
     public Double getPuntajeRiesgo() {

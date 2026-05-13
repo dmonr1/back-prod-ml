@@ -3,16 +3,16 @@ package com.tp1.proyecto.prediccion.servicio.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tp1.proyecto.academico.entidad.Matricula;
-import com.tp1.proyecto.academico.repositorio.BimestreRepositorio;
+import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
 import com.tp1.proyecto.alerta.entidad.Alerta;
 import com.tp1.proyecto.alerta.entidad.Recomendacion;
 import com.tp1.proyecto.alerta.repositorio.AlertaRepositorio;
 import com.tp1.proyecto.alerta.repositorio.RecomendacionRepositorio;
-import com.tp1.proyecto.evaluacion.entidad.AsistenciaBimestre;
-import com.tp1.proyecto.evaluacion.entidad.NotaCursoBimestre;
-import com.tp1.proyecto.evaluacion.repositorio.AsistenciaBimestreRepositorio;
-import com.tp1.proyecto.evaluacion.repositorio.NotaCursoBimestreRepositorio;
+import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
+import com.tp1.proyecto.evaluacion.entidad.NotaCursoPeriodoEvaluacion;
+import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.NotaCursoPeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.notas.entidad.Asistencia;
 import com.tp1.proyecto.notas.entidad.CargaExcel;
 import com.tp1.proyecto.notas.entidad.Nota;
@@ -47,9 +47,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     private final MatriculaRepositorio matriculaRepositorio;
-    private final BimestreRepositorio bimestreRepositorio;
-    private final NotaCursoBimestreRepositorio notaCursoBimestreRepositorio;
-    private final AsistenciaBimestreRepositorio asistenciaBimestreRepositorio;
+    private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
+    private final NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio;
+    private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
     private final NotaRepositorio notaRepositorio;
     private final AsistenciaRepositorio asistenciaRepositorio;
     private final PrediccionRiesgoRepositorio prediccionRiesgoRepositorio;
@@ -61,9 +61,9 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     public PrediccionRiesgoServicioImpl(
         MatriculaRepositorio matriculaRepositorio,
-        BimestreRepositorio bimestreRepositorio,
-        NotaCursoBimestreRepositorio notaCursoBimestreRepositorio,
-        AsistenciaBimestreRepositorio asistenciaBimestreRepositorio,
+        PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
+        NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio,
+        AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
         NotaRepositorio notaRepositorio,
         AsistenciaRepositorio asistenciaRepositorio,
         PrediccionRiesgoRepositorio prediccionRiesgoRepositorio,
@@ -74,9 +74,9 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         ObjectMapper objectMapper
     ) {
         this.matriculaRepositorio = matriculaRepositorio;
-        this.bimestreRepositorio = bimestreRepositorio;
-        this.notaCursoBimestreRepositorio = notaCursoBimestreRepositorio;
-        this.asistenciaBimestreRepositorio = asistenciaBimestreRepositorio;
+        this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
+        this.notaCursoPeriodoEvaluacionRepositorio = notaCursoPeriodoEvaluacionRepositorio;
+        this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
         this.notaRepositorio = notaRepositorio;
         this.asistenciaRepositorio = asistenciaRepositorio;
         this.prediccionRiesgoRepositorio = prediccionRiesgoRepositorio;
@@ -95,71 +95,71 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         );
 
         for (Matricula matricula : matriculas) {
-            List<NotaCursoBimestre> notasConsolidadas = notaCursoBimestreRepositorio.findByMatriculaIdAndBimestreId(
+            List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(
                 matricula.getId(),
-                cargaExcel.getBimestre().getId()
+                cargaExcel.getPeriodoEvaluacion().getId()
             );
 
             if (!notasConsolidadas.isEmpty()) {
-                AsistenciaBimestre asistenciaConsolidada = asistenciaBimestreRepositorio
-                    .findByMatriculaIdAndBimestreId(matricula.getId(), cargaExcel.getBimestre().getId())
+                AsistenciaPeriodoEvaluacion asistenciaConsolidada = asistenciaPeriodoEvaluacionRepositorio
+                    .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), cargaExcel.getPeriodoEvaluacion().getId())
                     .orElse(null);
 
                 PrediccionMlRequestDto request = construirRequestConsolidado(
                     matricula,
-                    cargaExcel.getBimestre().getId(),
+                    cargaExcel.getPeriodoEvaluacion().getId(),
                     notasConsolidadas,
                     asistenciaConsolidada
                 );
 
-                procesarRespuestaPrediccion(matricula, cargaExcel.getBimestre().getId(), cargaExcel.getId(), request);
+                procesarRespuestaPrediccion(matricula, cargaExcel.getPeriodoEvaluacion().getId(), cargaExcel.getId(), request);
                 continue;
             }
 
             // Compatibilidad temporal con el flujo antiguo de notas/asistencias por Excel.
             // El flujo principal del sistema debe llegar aqui ya consolidado desde
             // evaluaciones parciales y asistencias bimestrales.
-            List<Nota> notas = notaRepositorio.findByMatriculaIdAndBimestreId(
+            List<Nota> notas = notaRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(
                 matricula.getId(),
-                cargaExcel.getBimestre().getId()
+                cargaExcel.getPeriodoEvaluacion().getId()
             );
 
             if (notas.isEmpty()) {
                 continue;
             }
 
-            Optional<Asistencia> asistenciaOpt = asistenciaRepositorio.findByMatriculaIdAndBimestreId(
+            Optional<Asistencia> asistenciaOpt = asistenciaRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(
                 matricula.getId(),
-                cargaExcel.getBimestre().getId()
+                cargaExcel.getPeriodoEvaluacion().getId()
             );
 
             PrediccionMlRequestDto request = construirRequestLegado(matricula, cargaExcel, notas, asistenciaOpt.orElse(null));
-            procesarRespuestaPrediccion(matricula, cargaExcel.getBimestre().getId(), cargaExcel.getId(), request);
+            procesarRespuestaPrediccion(matricula, cargaExcel.getPeriodoEvaluacion().getId(), cargaExcel.getId(), request);
         }
     }
 
     @Override
-    public void generarPrediccionGlobalPorMatricula(Long matriculaId, Long bimestreId) {
+    public void generarPrediccionGlobalPorMatricula(Long matriculaId, Long periodoEvaluacionId) {
         Matricula matricula = matriculaRepositorio.findById(matriculaId)
             .orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada: " + matriculaId));
 
-        List<NotaCursoBimestre> notasConsolidadas = notaCursoBimestreRepositorio.findByMatriculaIdAndBimestreId(matriculaId, bimestreId);
+        List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(matriculaId, periodoEvaluacionId);
         if (notasConsolidadas.isEmpty()) {
             return;
         }
 
-        AsistenciaBimestre asistenciaConsolidada = asistenciaBimestreRepositorio
-            .findByMatriculaIdAndBimestreId(matriculaId, bimestreId)
+        AsistenciaPeriodoEvaluacion asistenciaConsolidada = asistenciaPeriodoEvaluacionRepositorio
+            .findByMatriculaIdAndPeriodoEvaluacionId(matriculaId, periodoEvaluacionId)
             .orElse(null);
 
-        PrediccionMlRequestDto request = construirRequestConsolidado(matricula, bimestreId, notasConsolidadas, asistenciaConsolidada);
-        procesarRespuestaPrediccion(matricula, bimestreId, null, request);
+        PrediccionMlRequestDto request = construirRequestConsolidado(matricula, periodoEvaluacionId, notasConsolidadas, asistenciaConsolidada);
+        procesarRespuestaPrediccion(matricula, periodoEvaluacionId, null, request);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<PrediccionRiesgoRespuestaDto> listarPrediccionesGlobales(Long bimestreId, Long seccionId) {
-        return prediccionRiesgoRepositorio.findByBimestreIdAndMatriculaSeccionId(bimestreId, seccionId)
+    public List<PrediccionRiesgoRespuestaDto> listarPrediccionesGlobales(Long periodoEvaluacionId, Long seccionId) {
+        return prediccionRiesgoRepositorio.findByPeriodoEvaluacionIdAndMatriculaSeccionId(periodoEvaluacionId, seccionId)
             .stream()
             .map(this::mapearRespuestaGlobal)
             .toList();
@@ -167,8 +167,8 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PrediccionRiesgoRespuestaDto> listarPrediccionesCurso(Long bimestreId, Long seccionId) {
-        return prediccionRiesgoCursoRepositorio.findByBimestreIdAndMatriculaSeccionId(bimestreId, seccionId)
+    public List<PrediccionRiesgoRespuestaDto> listarPrediccionesCurso(Long periodoEvaluacionId, Long seccionId) {
+        return prediccionRiesgoCursoRepositorio.findByPeriodoEvaluacionIdAndMatriculaSeccionId(periodoEvaluacionId, seccionId)
             .stream()
             .map(this::mapearRespuestaCurso)
             .toList();
@@ -185,14 +185,14 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public ResumenPrediccionDto obtenerResumenPredicciones(Long bimestreId, Long seccionId) {
-        List<PrediccionRiesgo> predicciones = prediccionRiesgoRepositorio.findByBimestreIdAndMatriculaSeccionId(
-            bimestreId,
+    public ResumenPrediccionDto obtenerResumenPredicciones(Long periodoEvaluacionId, Long seccionId) {
+        List<PrediccionRiesgo> predicciones = prediccionRiesgoRepositorio.findByPeriodoEvaluacionIdAndMatriculaSeccionId(
+            periodoEvaluacionId,
             seccionId
         );
 
         ResumenPrediccionDto resumen = new ResumenPrediccionDto();
-        resumen.setBimestreId(bimestreId);
+        resumen.setPeriodoEvaluacionId(periodoEvaluacionId);
         resumen.setSeccionId(seccionId);
         resumen.setTotalPredicciones(predicciones.size());
         resumen.setTotalRiesgoAlto((int) predicciones.stream().filter(p -> "ALTO".equalsIgnoreCase(p.getNivelRiesgo())).count());
@@ -219,7 +219,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     private void procesarRespuestaPrediccion(
         Matricula matricula,
-        Long bimestreId,
+        Long periodoEvaluacionId,
         Long cargaArchivoId,
         PrediccionMlRequestDto request
     ) {
@@ -229,7 +229,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         }
 
         PrediccionRiesgo prediccionGlobal = guardarPrediccionGlobal(
-            bimestreId,
+            periodoEvaluacionId,
             cargaArchivoId,
             matricula,
             response.getGlobalPrediction()
@@ -259,7 +259,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
         PrediccionGlobalMlRequestDto global = new PrediccionGlobalMlRequestDto();
         global.setMatriculaId(matricula.getId());
-        global.setBimestreId(cargaExcel.getBimestre().getId());
+        global.setPeriodoEvaluacionId(cargaExcel.getPeriodoEvaluacion().getId());
         global.setPromedioGeneral(promedio.doubleValue());
         global.setCantidadCursos(notas.size());
         global.setCantidadCursosDesaprobados(cursosDesaprobados);
@@ -278,17 +278,17 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     private PrediccionMlRequestDto construirRequestConsolidado(
         Matricula matricula,
-        Long bimestreId,
-        List<NotaCursoBimestre> notas,
-        AsistenciaBimestre asistencia
+        Long periodoEvaluacionId,
+        List<NotaCursoPeriodoEvaluacion> notas,
+        AsistenciaPeriodoEvaluacion asistencia
     ) {
         BigDecimal suma = notas.stream()
-            .map(NotaCursoBimestre::getPromedioCurso)
+            .map(NotaCursoPeriodoEvaluacion::getPromedioCurso)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal promedio = suma.divide(BigDecimal.valueOf(notas.size()), 2, RoundingMode.HALF_UP);
-        BigDecimal notaMaxima = notas.stream().map(NotaCursoBimestre::getPromedioCurso).max(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
-        BigDecimal notaMinima = notas.stream().map(NotaCursoBimestre::getPromedioCurso).min(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
+        BigDecimal notaMaxima = notas.stream().map(NotaCursoPeriodoEvaluacion::getPromedioCurso).max(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
+        BigDecimal notaMinima = notas.stream().map(NotaCursoPeriodoEvaluacion::getPromedioCurso).min(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
         int cursosDesaprobados = (int) notas.stream().filter(nota -> nota.getPromedioCurso().compareTo(BigDecimal.valueOf(11)) < 0).count();
 
         int clasesProgramadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
@@ -297,7 +297,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
         PrediccionGlobalMlRequestDto global = new PrediccionGlobalMlRequestDto();
         global.setMatriculaId(matricula.getId());
-        global.setBimestreId(bimestreId);
+        global.setPeriodoEvaluacionId(periodoEvaluacionId);
         global.setPromedioGeneral(promedio.doubleValue());
         global.setCantidadCursos(notas.size());
         global.setCantidadCursosDesaprobados(cursosDesaprobados);
@@ -310,25 +310,25 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         PrediccionMlRequestDto request = new PrediccionMlRequestDto();
         request.setModeloVersion("v1");
         request.setGlobalFeatures(global);
-        request.setCourseFeatures(construirFeaturesCurso(matricula, bimestreId, notas, promedio.doubleValue(), cursosDesaprobados, porcentajeAsistencia));
+        request.setCourseFeatures(construirFeaturesCurso(matricula, periodoEvaluacionId, notas, promedio.doubleValue(), cursosDesaprobados, porcentajeAsistencia));
         return request;
     }
 
     private List<PrediccionCursoMlDto> construirFeaturesCurso(
         Matricula matricula,
-        Long bimestreId,
-        List<NotaCursoBimestre> notas,
+        Long periodoEvaluacionId,
+        List<NotaCursoPeriodoEvaluacion> notas,
         Double promedioGeneral,
         Integer cursosDesaprobados,
         Double porcentajeAsistencia
     ) {
         List<PrediccionCursoMlDto> courseFeatures = new ArrayList<>();
-        for (NotaCursoBimestre nota : notas) {
+        for (NotaCursoPeriodoEvaluacion nota : notas) {
             PrediccionCursoMlDto dto = new PrediccionCursoMlDto();
             dto.setMatriculaId(matricula.getId());
             dto.setCursoId(nota.getCurso().getId());
             dto.setCursoNombre(nota.getCurso().getNombre());
-            dto.setBimestreId(bimestreId);
+            dto.setPeriodoEvaluacionId(periodoEvaluacionId);
             dto.setNotaCurso(nota.getPromedioCurso().doubleValue());
             dto.setPromedioGeneral(promedioGeneral);
             dto.setCantidadCursosDesaprobados(cursosDesaprobados);
@@ -339,17 +339,17 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
     }
 
     private PrediccionRiesgo guardarPrediccionGlobal(
-        Long bimestreId,
+        Long periodoEvaluacionId,
         Long cargaArchivoId,
         Matricula matricula,
         PrediccionGlobalMlResponseDto response
     ) {
         PrediccionRiesgo prediccion = prediccionRiesgoRepositorio
-            .findByMatriculaIdAndBimestreId(matricula.getId(), bimestreId)
+            .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
             .orElseGet(PrediccionRiesgo::new);
 
         prediccion.setMatricula(matricula);
-        prediccion.setBimestre(bimestreRepositorio.findById(bimestreId).orElseThrow());
+        prediccion.setPeriodoEvaluacion(periodoEvaluacionRepositorio.findById(periodoEvaluacionId).orElseThrow());
         prediccion.setCargaArchivoId(cargaArchivoId);
         prediccion.setPuntajeRiesgo(BigDecimal.valueOf(response.getPuntajeRiesgo()));
         prediccion.setNivelRiesgo(response.getNivelRiesgo());
@@ -370,21 +370,21 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         }
 
         for (PrediccionCursoMlResponseDto response : coursePredictions) {
-            NotaCursoBimestre notaCursoBimestre = notaCursoBimestreRepositorio
-                .findByMatriculaIdAndCursoIdAndBimestreId(matricula.getId(), response.getCursoId(), response.getBimestreId())
+            NotaCursoPeriodoEvaluacion notaCursoPeriodoEvaluacion = notaCursoPeriodoEvaluacionRepositorio
+                .findByMatriculaIdAndCursoIdAndPeriodoEvaluacionId(matricula.getId(), response.getCursoId(), response.getPeriodoEvaluacionId())
                 .orElse(null);
 
-            if (notaCursoBimestre == null) {
+            if (notaCursoPeriodoEvaluacion == null) {
                 continue;
             }
 
             PrediccionRiesgoCurso prediccionCurso = prediccionRiesgoCursoRepositorio
-                .findByMatriculaIdAndCursoIdAndBimestreId(matricula.getId(), response.getCursoId(), response.getBimestreId())
+                .findByMatriculaIdAndCursoIdAndPeriodoEvaluacionId(matricula.getId(), response.getCursoId(), response.getPeriodoEvaluacionId())
                 .orElseGet(PrediccionRiesgoCurso::new);
 
             prediccionCurso.setMatricula(matricula);
-            prediccionCurso.setCurso(notaCursoBimestre.getCurso());
-            prediccionCurso.setBimestre(bimestreRepositorio.findById(response.getBimestreId()).orElseThrow());
+            prediccionCurso.setCurso(notaCursoPeriodoEvaluacion.getCurso());
+            prediccionCurso.setPeriodoEvaluacion(periodoEvaluacionRepositorio.findById(response.getPeriodoEvaluacionId()).orElseThrow());
             prediccionCurso.setCargaArchivoId(cargaArchivoId);
             prediccionCurso.setPuntajeRiesgo(BigDecimal.valueOf(response.getPuntajeRiesgo()));
             prediccionCurso.setNivelRiesgo(response.getNivelRiesgo());
@@ -474,10 +474,10 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         dto.setVariablesEntrada(prediccion.getVariablesEntrada());
         dto.setFechaPrediccion(prediccion.getFechaPrediccion());
 
-        if (prediccion.getBimestre() != null) {
-            dto.setBimestreId(prediccion.getBimestre().getId());
-            dto.setNumeroBimestre(prediccion.getBimestre().getNumero());
-            dto.setNombreBimestre(prediccion.getBimestre().getNombre());
+        if (prediccion.getPeriodoEvaluacion() != null) {
+            dto.setPeriodoEvaluacionId(prediccion.getPeriodoEvaluacion().getId());
+            dto.setNumeroPeriodoEvaluacion(prediccion.getPeriodoEvaluacion().getNumero());
+            dto.setNombrePeriodoEvaluacion(prediccion.getPeriodoEvaluacion().getNombre());
         }
 
         if (prediccion.getMatricula() != null) {
@@ -519,10 +519,10 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         dto.setCursoId(prediccion.getCurso().getId());
         dto.setCurso(prediccion.getCurso().getNombre());
 
-        if (prediccion.getBimestre() != null) {
-            dto.setBimestreId(prediccion.getBimestre().getId());
-            dto.setNumeroBimestre(prediccion.getBimestre().getNumero());
-            dto.setNombreBimestre(prediccion.getBimestre().getNombre());
+        if (prediccion.getPeriodoEvaluacion() != null) {
+            dto.setPeriodoEvaluacionId(prediccion.getPeriodoEvaluacion().getId());
+            dto.setNumeroPeriodoEvaluacion(prediccion.getPeriodoEvaluacion().getNumero());
+            dto.setNombrePeriodoEvaluacion(prediccion.getPeriodoEvaluacion().getNombre());
         }
 
         if (prediccion.getMatricula() != null) {

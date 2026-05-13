@@ -13,8 +13,8 @@ public class PrediccionCursoMlDto {
     @JsonProperty("curso_nombre")
     private String cursoNombre;
 
-    @JsonProperty("bimestre_id")
-    private Long bimestreId;
+    @JsonProperty("periodo_evaluacion_id")
+    private Long periodoEvaluacionId;
 
     @JsonProperty("nota_curso")
     private Double notaCurso;
@@ -52,12 +52,12 @@ public class PrediccionCursoMlDto {
         this.cursoNombre = cursoNombre;
     }
 
-    public Long getBimestreId() {
-        return bimestreId;
+    public Long getPeriodoEvaluacionId() {
+        return periodoEvaluacionId;
     }
 
-    public void setBimestreId(Long bimestreId) {
-        this.bimestreId = bimestreId;
+    public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
+        this.periodoEvaluacionId = periodoEvaluacionId;
     }
 
     public Double getNotaCurso() {

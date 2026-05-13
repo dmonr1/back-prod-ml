@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
@@ -23,6 +24,13 @@ public class PeriodoAcademicoSolicitudDto {
 
     @NotNull(message = "La fecha de fin es obligatoria")
     private LocalDate fechaFin;
+
+    @NotBlank(message = "El tipo de periodo de evaluacion es obligatorio")
+    @Pattern(
+        regexp = "BIMESTRAL|TRIMESTRAL|SEMESTRAL|ANUAL",
+        message = "El tipo de periodo de evaluacion debe ser BIMESTRAL, TRIMESTRAL, SEMESTRAL o ANUAL"
+    )
+    private String tipoPeriodoEvaluacion;
 
     public String getNombre() {
         return nombre;
@@ -54,5 +62,13 @@ public class PeriodoAcademicoSolicitudDto {
 
     public void setFechaFin(LocalDate fechaFin) {
         this.fechaFin = fechaFin;
+    }
+
+    public String getTipoPeriodoEvaluacion() {
+        return tipoPeriodoEvaluacion;
+    }
+
+    public void setTipoPeriodoEvaluacion(String tipoPeriodoEvaluacion) {
+        this.tipoPeriodoEvaluacion = tipoPeriodoEvaluacion;
     }
 }

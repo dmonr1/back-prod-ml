@@ -1,10 +1,10 @@
 package com.tp1.proyecto.evaluacion.servicio.impl;
 
-import com.tp1.proyecto.academico.entidad.Bimestre;
+import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.entidad.Curso;
 import com.tp1.proyecto.academico.entidad.Grado;
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
-import com.tp1.proyecto.academico.repositorio.BimestreRepositorio;
+import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.CursoRepositorio;
 import com.tp1.proyecto.academico.repositorio.GradoRepositorio;
 import com.tp1.proyecto.academico.repositorio.PeriodoAcademicoRepositorio;
@@ -27,7 +27,7 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
 
     private final ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio;
     private final PeriodoAcademicoRepositorio periodoAcademicoRepositorio;
-    private final BimestreRepositorio bimestreRepositorio;
+    private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final CursoRepositorio cursoRepositorio;
     private final GradoRepositorio gradoRepositorio;
     private final TipoEvaluacionRepositorio tipoEvaluacionRepositorio;
@@ -35,14 +35,14 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
     public ConfiguracionEvaluacionServicioImpl(
         ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio,
         PeriodoAcademicoRepositorio periodoAcademicoRepositorio,
-        BimestreRepositorio bimestreRepositorio,
+        PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         CursoRepositorio cursoRepositorio,
         GradoRepositorio gradoRepositorio,
         TipoEvaluacionRepositorio tipoEvaluacionRepositorio
     ) {
         this.configuracionEvaluacionRepositorio = configuracionEvaluacionRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
-        this.bimestreRepositorio = bimestreRepositorio;
+        this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.cursoRepositorio = cursoRepositorio;
         this.gradoRepositorio = gradoRepositorio;
         this.tipoEvaluacionRepositorio = tipoEvaluacionRepositorio;
@@ -53,8 +53,8 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         PeriodoAcademico periodoAcademico = periodoAcademicoRepositorio.findById(solicitud.getPeriodoAcademicoId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Periodo academico no encontrado con id: " + solicitud.getPeriodoAcademicoId()));
 
-        Bimestre bimestre = bimestreRepositorio.findById(solicitud.getBimestreId())
-            .orElseThrow(() -> new RecursoNoEncontradoException("Bimestre no encontrado con id: " + solicitud.getBimestreId()));
+        PeriodoEvaluacion periodoEvaluacion = periodoEvaluacionRepositorio.findById(solicitud.getPeriodoEvaluacionId())
+            .orElseThrow(() -> new RecursoNoEncontradoException("PeriodoEvaluacion no encontrado con id: " + solicitud.getPeriodoEvaluacionId()));
 
         Curso curso = cursoRepositorio.findById(solicitud.getCursoId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Curso no encontrado con id: " + solicitud.getCursoId()));
@@ -62,8 +62,8 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         TipoEvaluacion tipoEvaluacion = tipoEvaluacionRepositorio.findById(solicitud.getTipoEvaluacionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Tipo de evaluacion no encontrado con id: " + solicitud.getTipoEvaluacionId()));
 
-        if (!bimestre.getPeriodoAcademico().getId().equals(periodoAcademico.getId())) {
-            throw new ReglaNegocioException("El bimestre no pertenece al periodo academico seleccionado");
+        if (!periodoEvaluacion.getPeriodoAcademico().getId().equals(periodoAcademico.getId())) {
+            throw new ReglaNegocioException("El periodoEvaluacion no pertenece al periodo academico seleccionado");
         }
 
         Grado grado = null;
@@ -74,7 +74,7 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
 
         ConfiguracionEvaluacion configuracion = new ConfiguracionEvaluacion();
         configuracion.setPeriodoAcademico(periodoAcademico);
-        configuracion.setBimestre(bimestre);
+        configuracion.setPeriodoEvaluacion(periodoEvaluacion);
         configuracion.setCurso(curso);
         configuracion.setGrado(grado);
         configuracion.setTipoEvaluacion(tipoEvaluacion);
@@ -86,8 +86,8 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
 
     @Override
     @Transactional(readOnly = true)
-    public List<ConfiguracionEvaluacionRespuestaDto> listarPorBimestreYCurso(Long bimestreId, Long cursoId) {
-        return configuracionEvaluacionRepositorio.findByBimestreIdAndCursoIdOrderByTipoEvaluacionOrdenAsc(bimestreId, cursoId)
+    public List<ConfiguracionEvaluacionRespuestaDto> listarPorPeriodoEvaluacionYCurso(Long periodoEvaluacionId, Long cursoId) {
+        return configuracionEvaluacionRepositorio.findByPeriodoEvaluacionIdAndCursoIdOrderByTipoEvaluacionOrdenAsc(periodoEvaluacionId, cursoId)
             .stream()
             .map(this::mapear)
             .toList();
@@ -97,8 +97,8 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         ConfiguracionEvaluacionRespuestaDto dto = new ConfiguracionEvaluacionRespuestaDto();
         dto.setId(entidad.getId());
         dto.setPeriodoAcademicoId(entidad.getPeriodoAcademico().getId());
-        dto.setBimestreId(entidad.getBimestre().getId());
-        dto.setNombreBimestre(entidad.getBimestre().getNombre());
+        dto.setPeriodoEvaluacionId(entidad.getPeriodoEvaluacion().getId());
+        dto.setNombrePeriodoEvaluacion(entidad.getPeriodoEvaluacion().getNombre());
         dto.setCursoId(entidad.getCurso().getId());
         dto.setNombreCurso(entidad.getCurso().getNombre());
         if (entidad.getGrado() != null) {

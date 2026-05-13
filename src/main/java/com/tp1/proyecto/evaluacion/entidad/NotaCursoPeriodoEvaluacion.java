@@ -1,6 +1,6 @@
 package com.tp1.proyecto.evaluacion.entidad;
 
-import com.tp1.proyecto.academico.entidad.Bimestre;
+import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.entidad.Curso;
 import com.tp1.proyecto.academico.entidad.Matricula;
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
@@ -16,8 +16,8 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "notas_curso_bimestre", schema = "db_tp1")
-public class NotaCursoBimestre extends AuditoriaEntidad {
+@Table(name = "notas_curso_periodo_evaluacion", schema = "db_tp1")
+public class NotaCursoPeriodoEvaluacion extends AuditoriaEntidad {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,8 +32,8 @@ public class NotaCursoBimestre extends AuditoriaEntidad {
     private Curso curso;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "bimestre_id", nullable = false)
-    private Bimestre bimestre;
+    @JoinColumn(name = "periodo_evaluacion_id", nullable = false)
+    private PeriodoEvaluacion periodoEvaluacion;
 
     @Column(name = "promedio_curso", nullable = false, precision = 5, scale = 2)
     private BigDecimal promedioCurso;
@@ -68,12 +68,12 @@ public class NotaCursoBimestre extends AuditoriaEntidad {
         this.curso = curso;
     }
 
-    public Bimestre getBimestre() {
-        return bimestre;
+    public PeriodoEvaluacion getPeriodoEvaluacion() {
+        return periodoEvaluacion;
     }
 
-    public void setBimestre(Bimestre bimestre) {
-        this.bimestre = bimestre;
+    public void setPeriodoEvaluacion(PeriodoEvaluacion periodoEvaluacion) {
+        this.periodoEvaluacion = periodoEvaluacion;
     }
 
     public BigDecimal getPromedioCurso() {

@@ -17,9 +17,9 @@ public class PrediccionRiesgoRespuestaDto {
     private String seccion;
     private Long periodoAcademicoId;
     private Integer anioAcademico;
-    private Long bimestreId;
-    private Short numeroBimestre;
-    private String nombreBimestre;
+    private Long periodoEvaluacionId;
+    private Short numeroPeriodoEvaluacion;
+    private String nombrePeriodoEvaluacion;
     private BigDecimal puntajeRiesgo;
     private String nivelRiesgo;
     private String modeloVersion;
@@ -122,28 +122,28 @@ public class PrediccionRiesgoRespuestaDto {
         this.anioAcademico = anioAcademico;
     }
 
-    public Long getBimestreId() {
-        return bimestreId;
+    public Long getPeriodoEvaluacionId() {
+        return periodoEvaluacionId;
     }
 
-    public void setBimestreId(Long bimestreId) {
-        this.bimestreId = bimestreId;
+    public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
+        this.periodoEvaluacionId = periodoEvaluacionId;
     }
 
-    public Short getNumeroBimestre() {
-        return numeroBimestre;
+    public Short getNumeroPeriodoEvaluacion() {
+        return numeroPeriodoEvaluacion;
     }
 
-    public void setNumeroBimestre(Short numeroBimestre) {
-        this.numeroBimestre = numeroBimestre;
+    public void setNumeroPeriodoEvaluacion(Short numeroPeriodoEvaluacion) {
+        this.numeroPeriodoEvaluacion = numeroPeriodoEvaluacion;
     }
 
-    public String getNombreBimestre() {
-        return nombreBimestre;
+    public String getNombrePeriodoEvaluacion() {
+        return nombrePeriodoEvaluacion;
     }
 
-    public void setNombreBimestre(String nombreBimestre) {
-        this.nombreBimestre = nombreBimestre;
+    public void setNombrePeriodoEvaluacion(String nombrePeriodoEvaluacion) {
+        this.nombrePeriodoEvaluacion = nombrePeriodoEvaluacion;
     }
 
     public BigDecimal getPuntajeRiesgo() {

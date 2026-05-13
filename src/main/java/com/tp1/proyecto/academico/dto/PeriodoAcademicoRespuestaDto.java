@@ -9,6 +9,7 @@ public class PeriodoAcademicoRespuestaDto {
     private Integer anio;
     private LocalDate fechaInicio;
     private LocalDate fechaFin;
+    private String tipoPeriodoEvaluacion;
     private String estado;
 
     public Long getId() {
@@ -49,6 +50,14 @@ public class PeriodoAcademicoRespuestaDto {
 
     public void setFechaFin(LocalDate fechaFin) {
         this.fechaFin = fechaFin;
+    }
+
+    public String getTipoPeriodoEvaluacion() {
+        return tipoPeriodoEvaluacion;
+    }
+
+    public void setTipoPeriodoEvaluacion(String tipoPeriodoEvaluacion) {
+        this.tipoPeriodoEvaluacion = tipoPeriodoEvaluacion;
     }
 
     public String getEstado() {

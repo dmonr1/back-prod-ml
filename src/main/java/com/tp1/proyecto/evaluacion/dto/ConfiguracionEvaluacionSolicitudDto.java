@@ -9,7 +9,7 @@ public class ConfiguracionEvaluacionSolicitudDto {
     private Long periodoAcademicoId;
 
     @NotNull
-    private Long bimestreId;
+    private Long periodoEvaluacionId;
 
     @NotNull
     private Long cursoId;
@@ -34,12 +34,12 @@ public class ConfiguracionEvaluacionSolicitudDto {
         this.periodoAcademicoId = periodoAcademicoId;
     }
 
-    public Long getBimestreId() {
-        return bimestreId;
+    public Long getPeriodoEvaluacionId() {
+        return periodoEvaluacionId;
     }
 
-    public void setBimestreId(Long bimestreId) {
-        this.bimestreId = bimestreId;
+    public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
+        this.periodoEvaluacionId = periodoEvaluacionId;
     }
 
     public Long getCursoId() {

@@ -1,6 +1,6 @@
 package com.tp1.proyecto.evaluacion.entidad;
 
-import com.tp1.proyecto.academico.entidad.Bimestre;
+import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.entidad.Curso;
 import com.tp1.proyecto.academico.entidad.Grado;
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
@@ -28,8 +28,8 @@ public class ConfiguracionEvaluacion extends AuditoriaEntidad {
     private PeriodoAcademico periodoAcademico;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "bimestre_id", nullable = false)
-    private Bimestre bimestre;
+    @JoinColumn(name = "periodo_evaluacion_id", nullable = false)
+    private PeriodoEvaluacion periodoEvaluacion;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "curso_id", nullable = false)
@@ -65,12 +65,12 @@ public class ConfiguracionEvaluacion extends AuditoriaEntidad {
         this.periodoAcademico = periodoAcademico;
     }
 
-    public Bimestre getBimestre() {
-        return bimestre;
+    public PeriodoEvaluacion getPeriodoEvaluacion() {
+        return periodoEvaluacion;
     }
 
-    public void setBimestre(Bimestre bimestre) {
-        this.bimestre = bimestre;
+    public void setPeriodoEvaluacion(PeriodoEvaluacion periodoEvaluacion) {
+        this.periodoEvaluacion = periodoEvaluacion;
     }
 
     public Curso getCurso() {

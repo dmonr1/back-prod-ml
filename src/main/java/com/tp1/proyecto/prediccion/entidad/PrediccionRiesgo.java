@@ -1,6 +1,6 @@
 package com.tp1.proyecto.prediccion.entidad;
 
-import com.tp1.proyecto.academico.entidad.Bimestre;
+import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.entidad.Matricula;
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
 import jakarta.persistence.Column;
@@ -30,8 +30,8 @@ public class PrediccionRiesgo extends AuditoriaEntidad {
     private Matricula matricula;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "bimestre_id", nullable = false)
-    private Bimestre bimestre;
+    @JoinColumn(name = "periodo_evaluacion_id", nullable = false)
+    private PeriodoEvaluacion periodoEvaluacion;
 
     @Column(name = "carga_archivo_id")
     private Long cargaArchivoId;
@@ -68,12 +68,12 @@ public class PrediccionRiesgo extends AuditoriaEntidad {
         this.matricula = matricula;
     }
 
-    public Bimestre getBimestre() {
-        return bimestre;
+    public PeriodoEvaluacion getPeriodoEvaluacion() {
+        return periodoEvaluacion;
     }
 
-    public void setBimestre(Bimestre bimestre) {
-        this.bimestre = bimestre;
+    public void setPeriodoEvaluacion(PeriodoEvaluacion periodoEvaluacion) {
+        this.periodoEvaluacion = periodoEvaluacion;
     }
 
     public Long getCargaArchivoId() {

@@ -6,9 +6,9 @@ import java.util.List;
 
 public interface AlertaSeguimientoServicio {
 
-    List<AlertaRespuestaDto> listarAlertas(Long bimestreId, Long seccionId);
+    List<AlertaRespuestaDto> listarAlertas(Long periodoEvaluacionId, Long seccionId);
 
-    List<RecomendacionRespuestaDto> listarRecomendaciones(Long bimestreId, Long seccionId);
+    List<RecomendacionRespuestaDto> listarRecomendaciones(Long periodoEvaluacionId, Long seccionId);
 
     AlertaRespuestaDto marcarAtendida(Long alertaId);
 }

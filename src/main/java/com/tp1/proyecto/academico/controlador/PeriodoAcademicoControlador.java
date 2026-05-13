@@ -1,5 +1,7 @@
 package com.tp1.proyecto.academico.controlador;
 
+import com.tp1.proyecto.academico.dto.PeriodoAcademicoConPeriodosRespuestaDto;
+import com.tp1.proyecto.academico.dto.PeriodoAcademicoConPeriodosSolicitudDto;
 import com.tp1.proyecto.academico.dto.PeriodoAcademicoRespuestaDto;
 import com.tp1.proyecto.academico.dto.PeriodoAcademicoSolicitudDto;
 import com.tp1.proyecto.academico.servicio.PeriodoAcademicoServicio;
@@ -35,5 +37,14 @@ public class PeriodoAcademicoControlador {
     @PreAuthorize("hasRole('ADMIN')")
     public PeriodoAcademicoRespuestaDto crear(@Valid @RequestBody PeriodoAcademicoSolicitudDto solicitud) {
         return periodoAcademicoServicio.crear(solicitud);
+    }
+
+    @PostMapping("/con-periodos-evaluacion")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
+    public PeriodoAcademicoConPeriodosRespuestaDto crearConPeriodosEvaluacion(
+        @Valid @RequestBody PeriodoAcademicoConPeriodosSolicitudDto solicitud
+    ) {
+        return periodoAcademicoServicio.crearConPeriodosEvaluacion(solicitud);
     }
 }

@@ -1,13 +1,13 @@
 package com.tp1.proyecto.evaluacion.dto;
 
-public class AsistenciaBimestreRespuestaDto {
+public class AsistenciaPeriodoEvaluacionRespuestaDto {
 
     private Long id;
     private Long matriculaId;
     private Long alumnoId;
     private String codigoAlumno;
     private String alumnoNombreCompleto;
-    private Long bimestreId;
+    private Long periodoEvaluacionId;
     private Integer clasesProgramadas;
     private Integer clasesAsistidas;
     private Double porcentajeAsistencia;
@@ -53,12 +53,12 @@ public class AsistenciaBimestreRespuestaDto {
         this.alumnoNombreCompleto = alumnoNombreCompleto;
     }
 
-    public Long getBimestreId() {
-        return bimestreId;
+    public Long getPeriodoEvaluacionId() {
+        return periodoEvaluacionId;
     }
 
-    public void setBimestreId(Long bimestreId) {
-        this.bimestreId = bimestreId;
+    public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
+        this.periodoEvaluacionId = periodoEvaluacionId;
     }
 
     public Integer getClasesProgramadas() {

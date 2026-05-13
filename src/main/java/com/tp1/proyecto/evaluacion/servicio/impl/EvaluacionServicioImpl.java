@@ -2,7 +2,7 @@ package com.tp1.proyecto.evaluacion.servicio.impl;
 
 import com.tp1.proyecto.academico.entidad.DocenteCursoSeccion;
 import com.tp1.proyecto.academico.entidad.Matricula;
-import com.tp1.proyecto.academico.repositorio.BimestreRepositorio;
+import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.DocenteCursoSeccionRepositorio;
 import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
@@ -14,12 +14,12 @@ import com.tp1.proyecto.evaluacion.dto.RegistroNotasEvaluacionSolicitudDto;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.DetalleNotaEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
-import com.tp1.proyecto.evaluacion.entidad.NotaCursoBimestre;
+import com.tp1.proyecto.evaluacion.entidad.NotaCursoPeriodoEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.TipoEvaluacion;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.DetalleNotaEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
-import com.tp1.proyecto.evaluacion.repositorio.NotaCursoBimestreRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.NotaCursoPeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.TipoEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.servicio.EvaluacionServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
@@ -41,32 +41,32 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
     private final EvaluacionRepositorio evaluacionRepositorio;
     private final ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio;
     private final DocenteCursoSeccionRepositorio docenteCursoSeccionRepositorio;
-    private final BimestreRepositorio bimestreRepositorio;
+    private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final TipoEvaluacionRepositorio tipoEvaluacionRepositorio;
     private final DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio;
     private final MatriculaRepositorio matriculaRepositorio;
-    private final NotaCursoBimestreRepositorio notaCursoBimestreRepositorio;
+    private final NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio;
     private final PrediccionRiesgoServicio prediccionRiesgoServicio;
 
     public EvaluacionServicioImpl(
         EvaluacionRepositorio evaluacionRepositorio,
         ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio,
         DocenteCursoSeccionRepositorio docenteCursoSeccionRepositorio,
-        BimestreRepositorio bimestreRepositorio,
+        PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         TipoEvaluacionRepositorio tipoEvaluacionRepositorio,
         DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
         MatriculaRepositorio matriculaRepositorio,
-        NotaCursoBimestreRepositorio notaCursoBimestreRepositorio,
+        NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio,
         PrediccionRiesgoServicio prediccionRiesgoServicio
     ) {
         this.evaluacionRepositorio = evaluacionRepositorio;
         this.configuracionEvaluacionRepositorio = configuracionEvaluacionRepositorio;
         this.docenteCursoSeccionRepositorio = docenteCursoSeccionRepositorio;
-        this.bimestreRepositorio = bimestreRepositorio;
+        this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.tipoEvaluacionRepositorio = tipoEvaluacionRepositorio;
         this.detalleNotaEvaluacionRepositorio = detalleNotaEvaluacionRepositorio;
         this.matriculaRepositorio = matriculaRepositorio;
-        this.notaCursoBimestreRepositorio = notaCursoBimestreRepositorio;
+        this.notaCursoPeriodoEvaluacionRepositorio = notaCursoPeriodoEvaluacionRepositorio;
         this.prediccionRiesgoServicio = prediccionRiesgoServicio;
     }
 
@@ -78,18 +78,18 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         DocenteCursoSeccion docenteCursoSeccion = docenteCursoSeccionRepositorio.findById(solicitud.getDocenteCursoSeccionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Asignacion docente-curso-seccion no encontrada con id: " + solicitud.getDocenteCursoSeccionId()));
 
-        var bimestre = bimestreRepositorio.findById(solicitud.getBimestreId())
-            .orElseThrow(() -> new RecursoNoEncontradoException("Bimestre no encontrado con id: " + solicitud.getBimestreId()));
+        var periodoEvaluacion = periodoEvaluacionRepositorio.findById(solicitud.getPeriodoEvaluacionId())
+            .orElseThrow(() -> new RecursoNoEncontradoException("PeriodoEvaluacion no encontrado con id: " + solicitud.getPeriodoEvaluacionId()));
 
         TipoEvaluacion tipoEvaluacion = tipoEvaluacionRepositorio.findById(solicitud.getTipoEvaluacionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Tipo de evaluacion no encontrado con id: " + solicitud.getTipoEvaluacionId()));
 
-        validarCoherenciaConfiguracion(configuracion, docenteCursoSeccion, bimestre.getId(), tipoEvaluacion.getId());
+        validarCoherenciaConfiguracion(configuracion, docenteCursoSeccion, periodoEvaluacion.getId(), tipoEvaluacion.getId());
 
         Evaluacion evaluacion = new Evaluacion();
         evaluacion.setConfiguracionEvaluacion(configuracion);
         evaluacion.setDocenteCursoSeccion(docenteCursoSeccion);
-        evaluacion.setBimestre(bimestre);
+        evaluacion.setPeriodoEvaluacion(periodoEvaluacion);
         evaluacion.setTipoEvaluacion(tipoEvaluacion);
         evaluacion.setNumeroEvaluacion(solicitud.getNumeroEvaluacion());
         evaluacion.setNombre(solicitud.getNombre().trim());
@@ -100,9 +100,9 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EvaluacionRespuestaDto> listarPorAsignacionYBimestre(Long docenteCursoSeccionId, Long bimestreId) {
+    public List<EvaluacionRespuestaDto> listarPorAsignacionYPeriodoEvaluacion(Long docenteCursoSeccionId, Long periodoEvaluacionId) {
         return evaluacionRepositorio
-            .findByDocenteCursoSeccionIdAndBimestreIdOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(docenteCursoSeccionId, bimestreId)
+            .findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(docenteCursoSeccionId, periodoEvaluacionId)
             .stream()
             .map(this::mapearEvaluacion)
             .toList();
@@ -139,8 +139,8 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
             detalle.setEstado(EstadoRegistro.ACTIVO);
 
             DetalleNotaEvaluacion guardado = detalleNotaEvaluacionRepositorio.save(detalle);
-            recalcularNotaCursoBimestre(evaluacion, matricula);
-            prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(matricula.getId(), evaluacion.getBimestre().getId());
+            recalcularNotaCursoPeriodoEvaluacion(evaluacion, matricula);
+            prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(matricula.getId(), evaluacion.getPeriodoEvaluacion().getId());
             respuestas.add(mapearDetalle(guardado));
         }
 
@@ -162,25 +162,25 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
     private void validarCoherenciaConfiguracion(
         ConfiguracionEvaluacion configuracion,
         DocenteCursoSeccion docenteCursoSeccion,
-        Long bimestreId,
+        Long periodoEvaluacionId,
         Long tipoEvaluacionId
     ) {
         if (!configuracion.getCurso().getId().equals(docenteCursoSeccion.getCurso().getId())) {
             throw new ReglaNegocioException("La configuracion no corresponde al curso asignado");
         }
-        if (!configuracion.getBimestre().getId().equals(bimestreId)) {
-            throw new ReglaNegocioException("La configuracion no corresponde al bimestre seleccionado");
+        if (!configuracion.getPeriodoEvaluacion().getId().equals(periodoEvaluacionId)) {
+            throw new ReglaNegocioException("La configuracion no corresponde al periodoEvaluacion seleccionado");
         }
         if (!configuracion.getTipoEvaluacion().getId().equals(tipoEvaluacionId)) {
             throw new ReglaNegocioException("El tipo de evaluacion no coincide con la configuracion");
         }
     }
 
-    private void recalcularNotaCursoBimestre(Evaluacion evaluacion, Matricula matricula) {
+    private void recalcularNotaCursoPeriodoEvaluacion(Evaluacion evaluacion, Matricula matricula) {
         List<Evaluacion> evaluacionesRelacionadas = evaluacionRepositorio
-            .findByDocenteCursoSeccionIdAndBimestreIdOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+            .findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
                 evaluacion.getDocenteCursoSeccion().getId(),
-                evaluacion.getBimestre().getId()
+                evaluacion.getPeriodoEvaluacion().getId()
             );
 
         List<BigDecimal> notasConsideradas = new ArrayList<>();
@@ -200,23 +200,23 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         BigDecimal suma = notasConsideradas.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal promedio = suma.divide(BigDecimal.valueOf(notasConsideradas.size()), 2, RoundingMode.HALF_UP);
 
-        NotaCursoBimestre consolidado = notaCursoBimestreRepositorio
-            .findByMatriculaIdAndCursoIdAndBimestreId(
+        NotaCursoPeriodoEvaluacion consolidado = notaCursoPeriodoEvaluacionRepositorio
+            .findByMatriculaIdAndCursoIdAndPeriodoEvaluacionId(
                 matricula.getId(),
                 evaluacion.getDocenteCursoSeccion().getCurso().getId(),
-                evaluacion.getBimestre().getId()
+                evaluacion.getPeriodoEvaluacion().getId()
             )
-            .orElseGet(NotaCursoBimestre::new);
+            .orElseGet(NotaCursoPeriodoEvaluacion::new);
 
         consolidado.setMatricula(matricula);
         consolidado.setCurso(evaluacion.getDocenteCursoSeccion().getCurso());
-        consolidado.setBimestre(evaluacion.getBimestre());
+        consolidado.setPeriodoEvaluacion(evaluacion.getPeriodoEvaluacion());
         consolidado.setPromedioCurso(promedio);
         consolidado.setCantidadEvaluacionesRegistradas(notasConsideradas.size());
         consolidado.setObservacion("Promedio recalculado desde evaluaciones parciales");
         consolidado.setEstado(EstadoRegistro.ACTIVO);
 
-        notaCursoBimestreRepositorio.save(consolidado);
+        notaCursoPeriodoEvaluacionRepositorio.save(consolidado);
     }
 
     private EvaluacionRespuestaDto mapearEvaluacion(Evaluacion entidad) {
@@ -224,8 +224,8 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         dto.setId(entidad.getId());
         dto.setConfiguracionEvaluacionId(entidad.getConfiguracionEvaluacion().getId());
         dto.setDocenteCursoSeccionId(entidad.getDocenteCursoSeccion().getId());
-        dto.setBimestreId(entidad.getBimestre().getId());
-        dto.setNombreBimestre(entidad.getBimestre().getNombre());
+        dto.setPeriodoEvaluacionId(entidad.getPeriodoEvaluacion().getId());
+        dto.setNombrePeriodoEvaluacion(entidad.getPeriodoEvaluacion().getNombre());
         dto.setTipoEvaluacionId(entidad.getTipoEvaluacion().getId());
         dto.setTipoEvaluacion(entidad.getTipoEvaluacion().getNombre());
         dto.setNumeroEvaluacion(entidad.getNumeroEvaluacion());

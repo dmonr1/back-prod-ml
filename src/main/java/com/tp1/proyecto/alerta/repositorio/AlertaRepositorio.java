@@ -21,14 +21,14 @@ public interface AlertaRepositorio extends JpaRepository<Alerta, Long> {
         FROM Alerta a
         WHERE (
             a.prediccionGlobal IS NOT NULL
-            AND a.prediccionGlobal.bimestre.id = :bimestreId
+            AND a.prediccionGlobal.periodoEvaluacion.id = :periodoEvaluacionId
             AND a.matricula.seccion.id = :seccionId
         ) OR (
             a.prediccionCurso IS NOT NULL
-            AND a.prediccionCurso.bimestre.id = :bimestreId
+            AND a.prediccionCurso.periodoEvaluacion.id = :periodoEvaluacionId
             AND a.matricula.seccion.id = :seccionId
         )
         ORDER BY a.fechaRegistro DESC
         """)
-    List<Alerta> findByBimestreIdAndSeccionId(@Param("bimestreId") Long bimestreId, @Param("seccionId") Long seccionId);
+    List<Alerta> findByPeriodoEvaluacionIdAndSeccionId(@Param("periodoEvaluacionId") Long periodoEvaluacionId, @Param("seccionId") Long seccionId);
 }

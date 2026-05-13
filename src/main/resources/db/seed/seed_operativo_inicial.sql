@@ -121,13 +121,15 @@ CREATE TABLE periodos_academicos (
     anio INTEGER NOT NULL UNIQUE,
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE NOT NULL,
+    tipo_periodo_evaluacion VARCHAR(30) NOT NULL DEFAULT 'BIMESTRAL',
     estado VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
     fecha_registro TIMESTAMP NOT NULL DEFAULT NOW(),
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_periodos_fechas CHECK (fecha_fin >= fecha_inicio)
+    CONSTRAINT chk_periodos_fechas CHECK (fecha_fin >= fecha_inicio),
+    CONSTRAINT chk_periodos_tipo_evaluacion CHECK (tipo_periodo_evaluacion IN ('BIMESTRAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'))
 );
 
-CREATE TABLE bimestres (
+CREATE TABLE periodos_evaluacion (
     id BIGSERIAL PRIMARY KEY,
     periodo_academico_id BIGINT NOT NULL,
     nombre VARCHAR(50) NOT NULL,
@@ -137,10 +139,10 @@ CREATE TABLE bimestres (
     estado VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
     fecha_registro TIMESTAMP NOT NULL DEFAULT NOW(),
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT fk_bimestres_periodo FOREIGN KEY (periodo_academico_id) REFERENCES periodos_academicos(id),
-    CONSTRAINT chk_bimestres_numero CHECK (numero BETWEEN 1 AND 4),
-    CONSTRAINT chk_bimestres_fechas CHECK (fecha_fin >= fecha_inicio),
-    CONSTRAINT uq_bimestres UNIQUE (periodo_academico_id, numero)
+    CONSTRAINT fk_periodos_evaluacion_periodo FOREIGN KEY (periodo_academico_id) REFERENCES periodos_academicos(id),
+    CONSTRAINT chk_periodos_evaluacion_numero CHECK (numero > 0),
+    CONSTRAINT chk_periodos_evaluacion_fechas CHECK (fecha_fin >= fecha_inicio),
+    CONSTRAINT uq_periodos_evaluacion UNIQUE (periodo_academico_id, numero)
 );
 
 CREATE TABLE cursos (
@@ -220,7 +222,7 @@ CREATE TABLE tipos_evaluacion (
 CREATE TABLE configuraciones_evaluacion (
     id BIGSERIAL PRIMARY KEY,
     periodo_academico_id BIGINT NOT NULL,
-    bimestre_id BIGINT NOT NULL,
+    periodo_evaluacion_id BIGINT NOT NULL,
     curso_id BIGINT NOT NULL,
     grado_id BIGINT,
     tipo_evaluacion_id BIGINT NOT NULL,
@@ -230,19 +232,19 @@ CREATE TABLE configuraciones_evaluacion (
     fecha_registro TIMESTAMP NOT NULL DEFAULT NOW(),
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_conf_eval_periodo FOREIGN KEY (periodo_academico_id) REFERENCES periodos_academicos(id),
-    CONSTRAINT fk_conf_eval_bimestre FOREIGN KEY (bimestre_id) REFERENCES bimestres(id),
+    CONSTRAINT fk_conf_eval_periodo_evaluacion FOREIGN KEY (periodo_evaluacion_id) REFERENCES periodos_evaluacion(id),
     CONSTRAINT fk_conf_eval_curso FOREIGN KEY (curso_id) REFERENCES cursos(id),
     CONSTRAINT fk_conf_eval_grado FOREIGN KEY (grado_id) REFERENCES grados(id),
     CONSTRAINT fk_conf_eval_tipo FOREIGN KEY (tipo_evaluacion_id) REFERENCES tipos_evaluacion(id),
     CONSTRAINT chk_conf_eval_cantidad CHECK (cantidad_evaluaciones > 0),
-    CONSTRAINT uq_conf_eval UNIQUE (bimestre_id, curso_id, grado_id, tipo_evaluacion_id)
+    CONSTRAINT uq_conf_eval UNIQUE (periodo_evaluacion_id, curso_id, grado_id, tipo_evaluacion_id)
 );
 
 CREATE TABLE evaluaciones (
     id BIGSERIAL PRIMARY KEY,
     configuracion_evaluacion_id BIGINT NOT NULL,
     docente_curso_seccion_id BIGINT NOT NULL,
-    bimestre_id BIGINT NOT NULL,
+    periodo_evaluacion_id BIGINT NOT NULL,
     tipo_evaluacion_id BIGINT NOT NULL,
     numero_evaluacion INTEGER NOT NULL,
     nombre VARCHAR(150) NOT NULL,
@@ -252,10 +254,10 @@ CREATE TABLE evaluaciones (
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_evaluaciones_configuracion FOREIGN KEY (configuracion_evaluacion_id) REFERENCES configuraciones_evaluacion(id),
     CONSTRAINT fk_evaluaciones_dcs FOREIGN KEY (docente_curso_seccion_id) REFERENCES docente_curso_seccion(id),
-    CONSTRAINT fk_evaluaciones_bimestre FOREIGN KEY (bimestre_id) REFERENCES bimestres(id),
+    CONSTRAINT fk_evaluaciones_periodo_evaluacion FOREIGN KEY (periodo_evaluacion_id) REFERENCES periodos_evaluacion(id),
     CONSTRAINT fk_evaluaciones_tipo FOREIGN KEY (tipo_evaluacion_id) REFERENCES tipos_evaluacion(id),
     CONSTRAINT chk_evaluaciones_numero CHECK (numero_evaluacion > 0),
-    CONSTRAINT uq_evaluaciones UNIQUE (docente_curso_seccion_id, bimestre_id, tipo_evaluacion_id, numero_evaluacion)
+    CONSTRAINT uq_evaluaciones UNIQUE (docente_curso_seccion_id, periodo_evaluacion_id, tipo_evaluacion_id, numero_evaluacion)
 );
 
 CREATE TABLE detalle_notas_evaluacion (
@@ -277,11 +279,11 @@ CREATE TABLE detalle_notas_evaluacion (
 -- CONSOLIDADOS
 -- =========================================================
 
-CREATE TABLE notas_curso_bimestre (
+CREATE TABLE notas_curso_periodo_evaluacion (
     id BIGSERIAL PRIMARY KEY,
     matricula_id BIGINT NOT NULL,
     curso_id BIGINT NOT NULL,
-    bimestre_id BIGINT NOT NULL,
+    periodo_evaluacion_id BIGINT NOT NULL,
     promedio_curso NUMERIC(5,2) NOT NULL,
     cantidad_evaluaciones_registradas INTEGER NOT NULL DEFAULT 0,
     observacion VARCHAR(255),
@@ -290,15 +292,15 @@ CREATE TABLE notas_curso_bimestre (
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_notas_cb_matricula FOREIGN KEY (matricula_id) REFERENCES matriculas(id),
     CONSTRAINT fk_notas_cb_curso FOREIGN KEY (curso_id) REFERENCES cursos(id),
-    CONSTRAINT fk_notas_cb_bimestre FOREIGN KEY (bimestre_id) REFERENCES bimestres(id),
+    CONSTRAINT fk_notas_cb_periodo_evaluacion FOREIGN KEY (periodo_evaluacion_id) REFERENCES periodos_evaluacion(id),
     CONSTRAINT chk_notas_cb_rango CHECK (promedio_curso >= 0 AND promedio_curso <= 20),
-    CONSTRAINT uq_notas_cb UNIQUE (matricula_id, curso_id, bimestre_id)
+    CONSTRAINT uq_notas_cb UNIQUE (matricula_id, curso_id, periodo_evaluacion_id)
 );
 
-CREATE TABLE asistencias_bimestre (
+CREATE TABLE asistencias_periodo_evaluacion (
     id BIGSERIAL PRIMARY KEY,
     matricula_id BIGINT NOT NULL,
-    bimestre_id BIGINT NOT NULL,
+    periodo_evaluacion_id BIGINT NOT NULL,
     clases_programadas INTEGER NOT NULL,
     clases_asistidas INTEGER NOT NULL,
     observacion VARCHAR(255),
@@ -306,11 +308,11 @@ CREATE TABLE asistencias_bimestre (
     fecha_registro TIMESTAMP NOT NULL DEFAULT NOW(),
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_asist_b_matricula FOREIGN KEY (matricula_id) REFERENCES matriculas(id),
-    CONSTRAINT fk_asist_b_bimestre FOREIGN KEY (bimestre_id) REFERENCES bimestres(id),
+    CONSTRAINT fk_asist_b_periodo_evaluacion FOREIGN KEY (periodo_evaluacion_id) REFERENCES periodos_evaluacion(id),
     CONSTRAINT chk_asist_b_programadas CHECK (clases_programadas >= 0),
     CONSTRAINT chk_asist_b_asistidas CHECK (clases_asistidas >= 0),
     CONSTRAINT chk_asist_b_limite CHECK (clases_asistidas <= clases_programadas),
-    CONSTRAINT uq_asist_b UNIQUE (matricula_id, bimestre_id)
+    CONSTRAINT uq_asist_b UNIQUE (matricula_id, periodo_evaluacion_id)
 );
 
 -- =========================================================
@@ -321,7 +323,7 @@ CREATE TABLE cargas_archivos (
     id BIGSERIAL PRIMARY KEY,
     docente_id BIGINT NOT NULL,
     periodo_academico_id BIGINT NOT NULL,
-    bimestre_id BIGINT NOT NULL,
+    periodo_evaluacion_id BIGINT NOT NULL,
     seccion_id BIGINT NOT NULL,
     nombre_archivo VARCHAR(255) NOT NULL,
     tipo_carga VARCHAR(50) NOT NULL,
@@ -336,7 +338,7 @@ CREATE TABLE cargas_archivos (
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_cargas_docente FOREIGN KEY (docente_id) REFERENCES docentes(id),
     CONSTRAINT fk_cargas_periodo FOREIGN KEY (periodo_academico_id) REFERENCES periodos_academicos(id),
-    CONSTRAINT fk_cargas_bimestre FOREIGN KEY (bimestre_id) REFERENCES bimestres(id),
+    CONSTRAINT fk_cargas_periodo_evaluacion FOREIGN KEY (periodo_evaluacion_id) REFERENCES periodos_evaluacion(id),
     CONSTRAINT fk_cargas_seccion FOREIGN KEY (seccion_id) REFERENCES secciones(id)
 );
 
@@ -347,7 +349,7 @@ CREATE TABLE cargas_archivos (
 CREATE TABLE predicciones_riesgo_global (
     id BIGSERIAL PRIMARY KEY,
     matricula_id BIGINT NOT NULL,
-    bimestre_id BIGINT NOT NULL,
+    periodo_evaluacion_id BIGINT NOT NULL,
     carga_archivo_id BIGINT,
     puntaje_riesgo NUMERIC(5,2) NOT NULL,
     nivel_riesgo VARCHAR(20) NOT NULL,
@@ -358,18 +360,18 @@ CREATE TABLE predicciones_riesgo_global (
     fecha_registro TIMESTAMP NOT NULL DEFAULT NOW(),
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_pred_global_matricula FOREIGN KEY (matricula_id) REFERENCES matriculas(id),
-    CONSTRAINT fk_pred_global_bimestre FOREIGN KEY (bimestre_id) REFERENCES bimestres(id),
+    CONSTRAINT fk_pred_global_periodo_evaluacion FOREIGN KEY (periodo_evaluacion_id) REFERENCES periodos_evaluacion(id),
     CONSTRAINT fk_pred_global_carga FOREIGN KEY (carga_archivo_id) REFERENCES cargas_archivos(id),
     CONSTRAINT chk_pred_global_puntaje CHECK (puntaje_riesgo >= 0 AND puntaje_riesgo <= 100),
     CONSTRAINT chk_pred_global_nivel CHECK (nivel_riesgo IN ('BAJO', 'MEDIO', 'ALTO')),
-    CONSTRAINT uq_pred_global UNIQUE (matricula_id, bimestre_id)
+    CONSTRAINT uq_pred_global UNIQUE (matricula_id, periodo_evaluacion_id)
 );
 
 CREATE TABLE predicciones_riesgo_curso (
     id BIGSERIAL PRIMARY KEY,
     matricula_id BIGINT NOT NULL,
     curso_id BIGINT NOT NULL,
-    bimestre_id BIGINT NOT NULL,
+    periodo_evaluacion_id BIGINT NOT NULL,
     carga_archivo_id BIGINT,
     puntaje_riesgo NUMERIC(5,2) NOT NULL,
     nivel_riesgo VARCHAR(20) NOT NULL,
@@ -381,11 +383,11 @@ CREATE TABLE predicciones_riesgo_curso (
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_pred_curso_matricula FOREIGN KEY (matricula_id) REFERENCES matriculas(id),
     CONSTRAINT fk_pred_curso_curso FOREIGN KEY (curso_id) REFERENCES cursos(id),
-    CONSTRAINT fk_pred_curso_bimestre FOREIGN KEY (bimestre_id) REFERENCES bimestres(id),
+    CONSTRAINT fk_pred_curso_periodo_evaluacion FOREIGN KEY (periodo_evaluacion_id) REFERENCES periodos_evaluacion(id),
     CONSTRAINT fk_pred_curso_carga FOREIGN KEY (carga_archivo_id) REFERENCES cargas_archivos(id),
     CONSTRAINT chk_pred_curso_puntaje CHECK (puntaje_riesgo >= 0 AND puntaje_riesgo <= 100),
     CONSTRAINT chk_pred_curso_nivel CHECK (nivel_riesgo IN ('BAJO', 'MEDIO', 'ALTO')),
-    CONSTRAINT uq_pred_curso UNIQUE (matricula_id, curso_id, bimestre_id)
+    CONSTRAINT uq_pred_curso UNIQUE (matricula_id, curso_id, periodo_evaluacion_id)
 );
 
 CREATE TABLE alertas (
@@ -430,7 +432,7 @@ CREATE TABLE recomendaciones (
 CREATE TABLE hallazgos_data_mining (
     id BIGSERIAL PRIMARY KEY,
     periodo_academico_id BIGINT NOT NULL,
-    bimestre_id BIGINT,
+    periodo_evaluacion_id BIGINT,
     curso_id BIGINT,
     tipo VARCHAR(50) NOT NULL,
     titulo VARCHAR(150) NOT NULL,
@@ -441,7 +443,7 @@ CREATE TABLE hallazgos_data_mining (
     fecha_registro TIMESTAMP NOT NULL DEFAULT NOW(),
     fecha_modificacion TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_hallazgos_periodo FOREIGN KEY (periodo_academico_id) REFERENCES periodos_academicos(id),
-    CONSTRAINT fk_hallazgos_bimestre FOREIGN KEY (bimestre_id) REFERENCES bimestres(id),
+    CONSTRAINT fk_hallazgos_periodo_evaluacion FOREIGN KEY (periodo_evaluacion_id) REFERENCES periodos_evaluacion(id),
     CONSTRAINT fk_hallazgos_curso FOREIGN KEY (curso_id) REFERENCES cursos(id)
 );
 
@@ -459,14 +461,14 @@ CREATE INDEX idx_matriculas_seccion ON matriculas(seccion_id);
 CREATE INDEX idx_dcs_docente ON docente_curso_seccion(docente_id);
 CREATE INDEX idx_dcs_periodo ON docente_curso_seccion(periodo_academico_id);
 CREATE INDEX idx_tutorias_docente ON tutorias(docente_id);
-CREATE INDEX idx_conf_eval_bimestre_curso ON configuraciones_evaluacion(bimestre_id, curso_id);
-CREATE INDEX idx_evaluaciones_dcs_bimestre ON evaluaciones(docente_curso_seccion_id, bimestre_id);
+CREATE INDEX idx_conf_eval_periodo_evaluacion_curso ON configuraciones_evaluacion(periodo_evaluacion_id, curso_id);
+CREATE INDEX idx_evaluaciones_dcs_periodo_evaluacion ON evaluaciones(docente_curso_seccion_id, periodo_evaluacion_id);
 CREATE INDEX idx_detalle_eval_matricula ON detalle_notas_evaluacion(matricula_id);
-CREATE INDEX idx_notas_cb_bimestre ON notas_curso_bimestre(bimestre_id);
-CREATE INDEX idx_notas_cb_matricula ON notas_curso_bimestre(matricula_id);
-CREATE INDEX idx_asist_b_bimestre ON asistencias_bimestre(bimestre_id);
-CREATE INDEX idx_pred_global_bimestre ON predicciones_riesgo_global(bimestre_id);
-CREATE INDEX idx_pred_curso_bimestre ON predicciones_riesgo_curso(bimestre_id);
+CREATE INDEX idx_notas_cb_periodo_evaluacion ON notas_curso_periodo_evaluacion(periodo_evaluacion_id);
+CREATE INDEX idx_notas_cb_matricula ON notas_curso_periodo_evaluacion(matricula_id);
+CREATE INDEX idx_asist_b_periodo_evaluacion ON asistencias_periodo_evaluacion(periodo_evaluacion_id);
+CREATE INDEX idx_pred_global_periodo_evaluacion ON predicciones_riesgo_global(periodo_evaluacion_id);
+CREATE INDEX idx_pred_curso_periodo_evaluacion ON predicciones_riesgo_curso(periodo_evaluacion_id);
 CREATE INDEX idx_alertas_matricula ON alertas(matricula_id);
 CREATE INDEX idx_recom_matricula ON recomendaciones(matricula_id);
 
@@ -506,8 +508,8 @@ CREATE TRIGGER trg_periodos_mod
 BEFORE UPDATE ON periodos_academicos
 FOR EACH ROW EXECUTE FUNCTION actualizar_fecha_modificacion();
 
-CREATE TRIGGER trg_bimestres_mod
-BEFORE UPDATE ON bimestres
+CREATE TRIGGER trg_periodos_evaluacion_mod
+BEFORE UPDATE ON periodos_evaluacion
 FOR EACH ROW EXECUTE FUNCTION actualizar_fecha_modificacion();
 
 CREATE TRIGGER trg_cursos_mod
@@ -543,11 +545,11 @@ BEFORE UPDATE ON detalle_notas_evaluacion
 FOR EACH ROW EXECUTE FUNCTION actualizar_fecha_modificacion();
 
 CREATE TRIGGER trg_notas_cb_mod
-BEFORE UPDATE ON notas_curso_bimestre
+BEFORE UPDATE ON notas_curso_periodo_evaluacion
 FOR EACH ROW EXECUTE FUNCTION actualizar_fecha_modificacion();
 
 CREATE TRIGGER trg_asist_b_mod
-BEFORE UPDATE ON asistencias_bimestre
+BEFORE UPDATE ON asistencias_periodo_evaluacion
 FOR EACH ROW EXECUTE FUNCTION actualizar_fecha_modificacion();
 
 CREATE TRIGGER trg_cargas_mod
@@ -582,14 +584,14 @@ CREATE OR REPLACE VIEW vw_asistencia_porcentaje AS
 SELECT
     ab.id,
     ab.matricula_id,
-    ab.bimestre_id,
+    ab.periodo_evaluacion_id,
     ab.clases_programadas,
     ab.clases_asistidas,
     CASE
         WHEN ab.clases_programadas = 0 THEN 0
         ELSE ROUND((ab.clases_asistidas::numeric / ab.clases_programadas::numeric) * 100, 2)
     END AS porcentaje_asistencia
-FROM asistencias_bimestre ab;
+FROM asistencias_periodo_evaluacion ab;
 
 CREATE OR REPLACE VIEW vw_predicciones_globales_legibles AS
 SELECT
@@ -600,7 +602,7 @@ SELECT
     n.nombre AS nivel,
     g.nombre AS grado,
     s.nombre AS seccion,
-    b.nombre AS bimestre,
+    b.nombre AS periodo_evaluacion,
     prg.puntaje_riesgo,
     prg.nivel_riesgo,
     prg.modelo_version,
@@ -611,7 +613,7 @@ JOIN alumnos a ON a.id = m.alumno_id
 JOIN grados g ON g.id = m.grado_id
 JOIN niveles n ON n.id = g.nivel_id
 JOIN secciones s ON s.id = m.seccion_id
-JOIN bimestres b ON b.id = prg.bimestre_id;
+JOIN periodos_evaluacion b ON b.id = prg.periodo_evaluacion_id;
 
 CREATE OR REPLACE VIEW vw_docente_asignaciones AS
 SELECT

@@ -37,11 +37,11 @@ public class CargaExcelControlador {
     public CargaExcelRespuestaDto registrarCarga(
         @RequestParam Long docenteId,
         @RequestParam Long periodoAcademicoId,
-        @RequestParam Long bimestreId,
+        @RequestParam Long periodoEvaluacionId,
         @RequestParam Long seccionId,
         @RequestParam("archivo") MultipartFile archivo
     ) {
-        return cargaExcelServicio.registrarCarga(docenteId, periodoAcademicoId, bimestreId, seccionId, archivo);
+        return cargaExcelServicio.registrarCarga(docenteId, periodoAcademicoId, periodoEvaluacionId, seccionId, archivo);
     }
 
     @GetMapping("/docente/{docenteId}")

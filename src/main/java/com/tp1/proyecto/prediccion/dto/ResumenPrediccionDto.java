@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 public class ResumenPrediccionDto {
 
-    private Long bimestreId;
+    private Long periodoEvaluacionId;
     private Long seccionId;
     private String nivel;
     private String grado;
@@ -15,12 +15,12 @@ public class ResumenPrediccionDto {
     private Integer totalRiesgoBajo;
     private BigDecimal promedioPuntajeRiesgo;
 
-    public Long getBimestreId() {
-        return bimestreId;
+    public Long getPeriodoEvaluacionId() {
+        return periodoEvaluacionId;
     }
 
-    public void setBimestreId(Long bimestreId) {
-        this.bimestreId = bimestreId;
+    public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
+        this.periodoEvaluacionId = periodoEvaluacionId;
     }
 
     public Long getSeccionId() {

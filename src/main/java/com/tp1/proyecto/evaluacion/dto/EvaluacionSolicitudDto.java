@@ -13,7 +13,7 @@ public class EvaluacionSolicitudDto {
     private Long docenteCursoSeccionId;
 
     @NotNull
-    private Long bimestreId;
+    private Long periodoEvaluacionId;
 
     @NotNull
     private Long tipoEvaluacionId;
@@ -42,12 +42,12 @@ public class EvaluacionSolicitudDto {
         this.docenteCursoSeccionId = docenteCursoSeccionId;
     }
 
-    public Long getBimestreId() {
-        return bimestreId;
+    public Long getPeriodoEvaluacionId() {
+        return periodoEvaluacionId;
     }
 
-    public void setBimestreId(Long bimestreId) {
-        this.bimestreId = bimestreId;
+    public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
+        this.periodoEvaluacionId = periodoEvaluacionId;
     }
 
     public Long getTipoEvaluacionId() {
