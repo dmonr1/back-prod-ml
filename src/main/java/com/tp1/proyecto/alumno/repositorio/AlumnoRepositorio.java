@@ -9,4 +9,6 @@ public interface AlumnoRepositorio extends JpaRepository<Alumno, Long> {
     Optional<Alumno> findByCodigo(String codigo);
 
     Optional<Alumno> findByDni(String dni);
+
+    Optional<Alumno> findTopByCodigoStartingWithOrderByCodigoDesc(String prefijo);
 }

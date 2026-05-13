@@ -65,6 +65,13 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
         PeriodoAcademico periodoAcademico = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
 
+        if (
+            seccion.getPeriodoAcademico() == null ||
+            !seccion.getPeriodoAcademico().getId().equals(periodoAcademico.getId())
+        ) {
+            throw new ReglaNegocioException("La seccion seleccionada no pertenece al periodo academico indicado.");
+        }
+
         if (docenteCursoSeccionRepositorio.existsByDocenteIdAndCursoIdAndSeccionIdAndPeriodoAcademicoId(
             docente.getId(),
             curso.getId(),
@@ -111,6 +118,13 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         Seccion seccion = seccionRepositorio.findById(solicitud.getSeccionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
         PeriodoAcademico periodoAcademico = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
+
+        if (
+            seccion.getPeriodoAcademico() == null ||
+            !seccion.getPeriodoAcademico().getId().equals(periodoAcademico.getId())
+        ) {
+            throw new ReglaNegocioException("La seccion seleccionada no pertenece al periodo academico indicado.");
+        }
 
         if (tutoriaRepositorio.existsByDocenteIdAndPeriodoAcademicoId(docente.getId(), periodoAcademico.getId())) {
             throw new ReglaNegocioException("El docente ya tiene una tutoria registrada en este periodo.");

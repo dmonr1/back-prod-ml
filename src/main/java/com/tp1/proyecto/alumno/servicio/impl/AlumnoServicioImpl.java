@@ -11,6 +11,7 @@ import com.tp1.proyecto.alumno.repositorio.AlumnoRepositorio;
 import com.tp1.proyecto.alumno.servicio.AlumnoServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +45,7 @@ public class AlumnoServicioImpl implements AlumnoServicio {
 
     @Override
     public AlumnoRespuestaDto crear(AlumnoSolicitudDto solicitud) {
+        solicitud.setCodigo(resolverCodigo(solicitud.getCodigo(), null));
         validarDuplicados(solicitud.getCodigo(), solicitud.getDni(), null);
 
         Alumno alumno = new Alumno();
@@ -55,6 +57,7 @@ public class AlumnoServicioImpl implements AlumnoServicio {
     @Override
     public AlumnoRespuestaDto actualizar(Long id, AlumnoSolicitudDto solicitud) {
         Alumno alumno = buscarAlumno(id);
+        solicitud.setCodigo(resolverCodigo(solicitud.getCodigo(), alumno.getCodigo()));
         validarDuplicados(solicitud.getCodigo(), solicitud.getDni(), alumno.getId());
 
         asignarCampos(alumno, solicitud);
@@ -65,6 +68,7 @@ public class AlumnoServicioImpl implements AlumnoServicio {
     @Override
     public MatriculaRespuestaDto crearYMatricular(AlumnoMatriculaSolicitudDto solicitud) {
         AlumnoSolicitudDto alumnoSolicitud = solicitud.getAlumno();
+        alumnoSolicitud.setCodigo(resolverCodigo(alumnoSolicitud.getCodigo(), null));
         validarDuplicados(alumnoSolicitud.getCodigo(), alumnoSolicitud.getDni(), null);
 
         Alumno alumno = new Alumno();
@@ -85,13 +89,16 @@ public class AlumnoServicioImpl implements AlumnoServicio {
     }
 
     private void validarDuplicados(String codigo, String dni, Long alumnoActualId) {
-        alumnoRepositorio.findByCodigo(normalizarTexto(codigo))
-            .ifPresent(alumnoExistente -> {
-                boolean esOtroAlumno = alumnoActualId == null || !alumnoExistente.getId().equals(alumnoActualId);
-                if (esOtroAlumno) {
-                    throw new ReglaNegocioException("Ya existe un alumno con ese codigo");
-                }
-            });
+        String codigoNormalizado = normalizarTextoOpcional(codigo);
+        if (codigoNormalizado != null) {
+            alumnoRepositorio.findByCodigo(codigoNormalizado)
+                .ifPresent(alumnoExistente -> {
+                    boolean esOtroAlumno = alumnoActualId == null || !alumnoExistente.getId().equals(alumnoActualId);
+                    if (esOtroAlumno) {
+                        throw new ReglaNegocioException("Ya existe un alumno con ese codigo");
+                    }
+                });
+        }
 
         if (dni != null && !dni.trim().isEmpty()) {
             alumnoRepositorio.findByDni(dni.trim())
@@ -101,6 +108,41 @@ public class AlumnoServicioImpl implements AlumnoServicio {
                         throw new ReglaNegocioException("Ya existe un alumno con ese DNI");
                     }
                 });
+        }
+    }
+
+    private String resolverCodigo(String codigoSolicitado, String codigoActual) {
+        String codigoNormalizado = normalizarTextoOpcional(codigoSolicitado);
+        if (codigoNormalizado != null) {
+            return codigoNormalizado;
+        }
+
+        if (codigoActual != null && !codigoActual.isBlank()) {
+            return codigoActual;
+        }
+
+        return generarCodigoAutomatico();
+    }
+
+    private String generarCodigoAutomatico() {
+        int anio = LocalDate.now().getYear();
+        String prefijo = "AL-" + anio + "-";
+
+        int siguienteNumero = alumnoRepositorio.findTopByCodigoStartingWithOrderByCodigoDesc(prefijo)
+            .map(Alumno::getCodigo)
+            .map(codigo -> codigo.substring(prefijo.length()))
+            .map(this::parsearCorrelativo)
+            .map(numero -> numero + 1)
+            .orElse(1);
+
+        return prefijo + String.format("%03d", siguienteNumero);
+    }
+
+    private int parsearCorrelativo(String correlativo) {
+        try {
+            return Integer.parseInt(correlativo);
+        } catch (NumberFormatException ex) {
+            return 0;
         }
     }
 

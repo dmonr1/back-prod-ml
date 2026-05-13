@@ -739,6 +739,7 @@ SELECT * FROM db_tp1.notas
 SELECT * FROM db_tp1.asistencias
 SELECT * FROM db_tp1.matriculas
 
+SELECT * FROM db_tp1.evaluaciones
 
 SELECT * FROM db_tp1.roles
 
@@ -758,6 +759,9 @@ SELECT * FROM db_tp1.predicciones_riesgo
 
 
 SELECT * FROM db_tp1.cargas_archivos
+
+DELETE FROM db_tp1.docente_curso_seccion
+WHERE periodo_academico_id = 2;
 
 
 

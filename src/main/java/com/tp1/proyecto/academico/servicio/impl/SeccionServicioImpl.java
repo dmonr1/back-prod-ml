@@ -10,6 +10,7 @@ import com.tp1.proyecto.academico.repositorio.GradoRepositorio;
 import com.tp1.proyecto.academico.repositorio.PeriodoAcademicoRepositorio;
 import com.tp1.proyecto.academico.repositorio.SeccionRepositorio;
 import com.tp1.proyecto.academico.servicio.SeccionServicio;
+import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
 import java.util.Comparator;
@@ -108,6 +109,15 @@ public class SeccionServicioImpl implements SeccionServicio {
         }
 
         return creadas.stream().map(this::mapearRespuesta).toList();
+    }
+
+    @Override
+    public SeccionRespuestaDto actualizarEstado(Long seccionId, boolean activa) {
+        Seccion seccion = seccionRepositorio.findById(seccionId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + seccionId));
+
+        seccion.setEstado(activa ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
+        return mapearRespuesta(seccionRepositorio.save(seccion));
     }
 
     private SeccionRespuestaDto mapearRespuesta(Seccion seccion) {

@@ -12,4 +12,6 @@ public interface SeccionServicio {
     SeccionRespuestaDto crear(SeccionSolicitudDto solicitud);
 
     List<SeccionRespuestaDto> copiarDesdePeriodoAnterior(SeccionPeriodoAnteriorSolicitudDto solicitud);
+
+    SeccionRespuestaDto actualizarEstado(Long seccionId, boolean activa);
 }

@@ -9,6 +9,8 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -46,5 +48,14 @@ public class SeccionControlador {
         @Valid @RequestBody SeccionPeriodoAnteriorSolicitudDto solicitud
     ) {
         return seccionServicio.copiarDesdePeriodoAnterior(solicitud);
+    }
+
+    @PatchMapping("/{seccionId}/estado")
+    @PreAuthorize("hasRole('ADMIN')")
+    public SeccionRespuestaDto actualizarEstado(
+        @PathVariable Long seccionId,
+        @RequestParam boolean activa
+    ) {
+        return seccionServicio.actualizarEstado(seccionId, activa);
     }
 }

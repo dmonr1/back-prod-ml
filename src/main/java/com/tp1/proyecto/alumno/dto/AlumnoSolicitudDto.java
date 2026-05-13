@@ -7,7 +7,6 @@ import java.time.LocalDate;
 
 public class AlumnoSolicitudDto {
 
-    @NotBlank(message = "El codigo es obligatorio")
     @Size(max = 30, message = "El codigo no debe exceder 30 caracteres")
     private String codigo;
 
