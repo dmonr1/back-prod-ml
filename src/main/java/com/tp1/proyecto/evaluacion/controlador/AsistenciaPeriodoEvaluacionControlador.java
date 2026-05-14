@@ -1,6 +1,8 @@
 package com.tp1.proyecto.evaluacion.controlador;
 
 import com.tp1.proyecto.evaluacion.dto.AsistenciaPeriodoEvaluacionRespuestaDto;
+import com.tp1.proyecto.evaluacion.dto.ConfiguracionAsistenciaPeriodoRespuestaDto;
+import com.tp1.proyecto.evaluacion.dto.ConfiguracionAsistenciaPeriodoSolicitudDto;
 import com.tp1.proyecto.evaluacion.dto.RegistroAsistenciasPeriodoEvaluacionSolicitudDto;
 import com.tp1.proyecto.evaluacion.servicio.AsistenciaPeriodoEvaluacionServicio;
 import jakarta.validation.Valid;
@@ -23,6 +25,22 @@ public class AsistenciaPeriodoEvaluacionControlador {
 
     public AsistenciaPeriodoEvaluacionControlador(AsistenciaPeriodoEvaluacionServicio asistenciaPeriodoEvaluacionServicio) {
         this.asistenciaPeriodoEvaluacionServicio = asistenciaPeriodoEvaluacionServicio;
+    }
+
+    @PostMapping("/{periodoEvaluacionId}/configuracion")
+    public ConfiguracionAsistenciaPeriodoRespuestaDto guardarConfiguracion(
+        @PathVariable Long periodoEvaluacionId,
+        @Valid @RequestBody ConfiguracionAsistenciaPeriodoSolicitudDto solicitud
+    ) {
+        return asistenciaPeriodoEvaluacionServicio.guardarConfiguracion(periodoEvaluacionId, solicitud);
+    }
+
+    @GetMapping("/configuracion")
+    public ConfiguracionAsistenciaPeriodoRespuestaDto obtenerConfiguracion(
+        @RequestParam Long docenteCursoSeccionId,
+        @RequestParam Long periodoEvaluacionId
+    ) {
+        return asistenciaPeriodoEvaluacionServicio.obtenerConfiguracion(docenteCursoSeccionId, periodoEvaluacionId);
     }
 
     @PostMapping("/{periodoEvaluacionId}")

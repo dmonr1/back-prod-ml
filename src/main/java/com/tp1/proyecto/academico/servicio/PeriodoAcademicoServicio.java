@@ -12,5 +12,12 @@ public interface PeriodoAcademicoServicio {
 
     PeriodoAcademicoRespuestaDto crear(PeriodoAcademicoSolicitudDto solicitud);
 
+    PeriodoAcademicoConPeriodosRespuestaDto obtenerDetalle(Long periodoAcademicoId);
+
     PeriodoAcademicoConPeriodosRespuestaDto crearConPeriodosEvaluacion(PeriodoAcademicoConPeriodosSolicitudDto solicitud);
+
+    PeriodoAcademicoConPeriodosRespuestaDto actualizarConPeriodosEvaluacion(
+        Long periodoAcademicoId,
+        PeriodoAcademicoConPeriodosSolicitudDto solicitud
+    );
 }

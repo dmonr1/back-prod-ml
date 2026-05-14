@@ -6,23 +6,40 @@ import com.tp1.proyecto.academico.dto.AsignacionDocenteRespuestaDto;
 import com.tp1.proyecto.academico.dto.TutoriaRespuestaDto;
 import com.tp1.proyecto.academico.dto.TutoriaSolicitudDto;
 import com.tp1.proyecto.academico.entidad.Curso;
+import com.tp1.proyecto.academico.entidad.CursoPeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.DocenteCursoSeccion;
 import com.tp1.proyecto.academico.entidad.Matricula;
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.Seccion;
 import com.tp1.proyecto.academico.entidad.Tutoria;
+import com.tp1.proyecto.academico.repositorio.CursoPeriodoAcademicoRepositorio;
 import com.tp1.proyecto.academico.repositorio.CursoRepositorio;
 import com.tp1.proyecto.academico.repositorio.DocenteCursoSeccionRepositorio;
 import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
 import com.tp1.proyecto.academico.repositorio.PeriodoAcademicoRepositorio;
+import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.SeccionRepositorio;
 import com.tp1.proyecto.academico.repositorio.TutoriaRepositorio;
 import com.tp1.proyecto.academico.servicio.AsignacionAcademicaServicio;
+import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.docente.entidad.Docente;
 import com.tp1.proyecto.docente.repositorio.DocenteRepositorio;
+import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacion;
+import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionCurso;
+import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionPeriodo;
+import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
+import com.tp1.proyecto.evaluacion.entidad.TipoEvaluacion;
+import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionCursoRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionPeriodoRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,29 +48,47 @@ import org.springframework.transaction.annotation.Transactional;
 public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServicio {
 
     private final DocenteRepositorio docenteRepositorio;
+    private final CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio;
     private final CursoRepositorio cursoRepositorio;
     private final SeccionRepositorio seccionRepositorio;
     private final PeriodoAcademicoRepositorio periodoAcademicoRepositorio;
+    private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final DocenteCursoSeccionRepositorio docenteCursoSeccionRepositorio;
     private final TutoriaRepositorio tutoriaRepositorio;
     private final MatriculaRepositorio matriculaRepositorio;
+    private final ConfiguracionEvaluacionPeriodoRepositorio configuracionEvaluacionPeriodoRepositorio;
+    private final ConfiguracionEvaluacionCursoRepositorio configuracionEvaluacionCursoRepositorio;
+    private final ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio;
+    private final EvaluacionRepositorio evaluacionRepositorio;
 
     public AsignacionAcademicaServicioImpl(
         DocenteRepositorio docenteRepositorio,
+        CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio,
         CursoRepositorio cursoRepositorio,
         SeccionRepositorio seccionRepositorio,
         PeriodoAcademicoRepositorio periodoAcademicoRepositorio,
+        PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         DocenteCursoSeccionRepositorio docenteCursoSeccionRepositorio,
         TutoriaRepositorio tutoriaRepositorio,
-        MatriculaRepositorio matriculaRepositorio
+        MatriculaRepositorio matriculaRepositorio,
+        ConfiguracionEvaluacionPeriodoRepositorio configuracionEvaluacionPeriodoRepositorio,
+        ConfiguracionEvaluacionCursoRepositorio configuracionEvaluacionCursoRepositorio,
+        ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio,
+        EvaluacionRepositorio evaluacionRepositorio
     ) {
         this.docenteRepositorio = docenteRepositorio;
+        this.cursoPeriodoAcademicoRepositorio = cursoPeriodoAcademicoRepositorio;
         this.cursoRepositorio = cursoRepositorio;
         this.seccionRepositorio = seccionRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
+        this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.docenteCursoSeccionRepositorio = docenteCursoSeccionRepositorio;
         this.tutoriaRepositorio = tutoriaRepositorio;
         this.matriculaRepositorio = matriculaRepositorio;
+        this.configuracionEvaluacionPeriodoRepositorio = configuracionEvaluacionPeriodoRepositorio;
+        this.configuracionEvaluacionCursoRepositorio = configuracionEvaluacionCursoRepositorio;
+        this.configuracionEvaluacionRepositorio = configuracionEvaluacionRepositorio;
+        this.evaluacionRepositorio = evaluacionRepositorio;
     }
 
     @Override
@@ -72,6 +107,16 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             throw new ReglaNegocioException("La seccion seleccionada no pertenece al periodo academico indicado.");
         }
 
+        CursoPeriodoAcademico cursoPeriodo = cursoPeriodoAcademicoRepositorio
+            .findByPeriodoAcademicoIdAndCursoId(periodoAcademico.getId(), curso.getId())
+            .orElseThrow(() ->
+                new ReglaNegocioException("El curso seleccionado no esta habilitado para el periodo academico indicado.")
+            );
+
+        if (cursoPeriodo.getEstado() != EstadoRegistro.ACTIVO) {
+            throw new ReglaNegocioException("El curso seleccionado esta deshabilitado para el periodo academico indicado.");
+        }
+
         if (docenteCursoSeccionRepositorio.existsByDocenteIdAndCursoIdAndSeccionIdAndPeriodoAcademicoId(
             docente.getId(),
             curso.getId(),
@@ -87,7 +132,9 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         asignacion.setSeccion(seccion);
         asignacion.setPeriodoAcademico(periodoAcademico);
 
-        return mapearAsignacion(docenteCursoSeccionRepositorio.save(asignacion));
+        DocenteCursoSeccion asignacionGuardada = docenteCursoSeccionRepositorio.save(asignacion);
+        generarEvaluacionesProgramadas(asignacionGuardada);
+        return mapearAsignacion(asignacionGuardada);
     }
 
     @Override
@@ -214,6 +261,182 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         return docenteRepositorio.findById(docenteId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Docente no encontrado con id: " + docenteId));
     }
+
+    private void generarEvaluacionesProgramadas(DocenteCursoSeccion asignacion) {
+        List<ConfiguracionEvaluacion> configuraciones = asegurarConfiguracionesDerivadas(asignacion);
+
+        if (configuraciones.isEmpty()) {
+            return;
+        }
+
+        List<Evaluacion> evaluaciones = new ArrayList<>();
+        for (ConfiguracionEvaluacion configuracion : configuraciones) {
+            int cantidad = configuracion.getCantidadEvaluaciones() != null ? configuracion.getCantidadEvaluaciones() : 0;
+
+            for (int numero = 1; numero <= cantidad; numero++) {
+                if (
+                    evaluacionRepositorio.existsByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndTipoEvaluacionIdAndNumeroEvaluacion(
+                        asignacion.getId(),
+                        configuracion.getPeriodoEvaluacion().getId(),
+                        configuracion.getTipoEvaluacion().getId(),
+                        numero
+                    )
+                ) {
+                    continue;
+                }
+
+                Evaluacion evaluacion = new Evaluacion();
+                evaluacion.setConfiguracionEvaluacion(configuracion);
+                evaluacion.setDocenteCursoSeccion(asignacion);
+                evaluacion.setPeriodoEvaluacion(configuracion.getPeriodoEvaluacion());
+                evaluacion.setTipoEvaluacion(configuracion.getTipoEvaluacion());
+                evaluacion.setNumeroEvaluacion(numero);
+                evaluacion.setNombre(configuracion.getTipoEvaluacion().getNombre() + " " + numero);
+                evaluaciones.add(evaluacion);
+            }
+        }
+
+        if (!evaluaciones.isEmpty()) {
+            evaluacionRepositorio.saveAll(evaluaciones);
+        }
+    }
+
+    private List<ConfiguracionEvaluacion> asegurarConfiguracionesDerivadas(DocenteCursoSeccion asignacion) {
+        Long periodoAcademicoId = asignacion.getPeriodoAcademico().getId();
+        Long cursoId = asignacion.getCurso().getId();
+
+        List<ConfiguracionEvaluacionPeriodo> configuracionesPeriodo = configuracionEvaluacionPeriodoRepositorio
+            .findByPeriodoAcademicoIdOrderByTipoEvaluacionOrdenAsc(periodoAcademicoId)
+            .stream()
+            .filter(configuracion -> configuracion.getEstado() == EstadoRegistro.ACTIVO)
+            .toList();
+
+        if (configuracionesPeriodo.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, ConfiguracionFuente> configuracionesEfectivas = new LinkedHashMap<>();
+        for (ConfiguracionEvaluacionPeriodo configuracion : configuracionesPeriodo) {
+            if (configuracion.getCantidadEvaluaciones() == null || configuracion.getCantidadEvaluaciones() <= 0) {
+                continue;
+            }
+
+            configuracionesEfectivas.put(
+                configuracion.getTipoEvaluacion().getId(),
+                new ConfiguracionFuente(
+                    configuracion.getTipoEvaluacion(),
+                    configuracion.getCantidadEvaluaciones(),
+                    Boolean.TRUE.equals(configuracion.getCalcularEnPromedio())
+                )
+            );
+        }
+
+        List<ConfiguracionEvaluacionCurso> configuracionesCurso = configuracionEvaluacionCursoRepositorio
+            .findByPeriodoAcademicoIdAndCursoIdOrderByTipoEvaluacionOrdenAsc(periodoAcademicoId, cursoId)
+            .stream()
+            .filter(configuracion -> configuracion.getEstado() == EstadoRegistro.ACTIVO)
+            .toList();
+
+        for (ConfiguracionEvaluacionCurso configuracion : configuracionesCurso) {
+            Long tipoEvaluacionId = configuracion.getTipoEvaluacion().getId();
+
+            if (configuracion.getCantidadEvaluaciones() == null || configuracion.getCantidadEvaluaciones() <= 0) {
+                configuracionesEfectivas.remove(tipoEvaluacionId);
+                continue;
+            }
+
+            configuracionesEfectivas.put(
+                tipoEvaluacionId,
+                new ConfiguracionFuente(
+                    configuracion.getTipoEvaluacion(),
+                    configuracion.getCantidadEvaluaciones(),
+                    Boolean.TRUE.equals(configuracion.getCalcularEnPromedio())
+                )
+            );
+        }
+
+        List<ConfiguracionEvaluacion> existentes = configuracionEvaluacionRepositorio.findByPeriodoAcademicoIdAndCursoId(
+            periodoAcademicoId,
+            cursoId
+        );
+        Map<String, ConfiguracionEvaluacion> existentesPorClave = new LinkedHashMap<>();
+        for (ConfiguracionEvaluacion configuracion : existentes) {
+            existentesPorClave.put(
+                construirClave(
+                    configuracion.getPeriodoEvaluacion().getId(),
+                    configuracion.getTipoEvaluacion().getId()
+                ),
+                configuracion
+            );
+        }
+
+        List<ConfiguracionEvaluacion> cambios = new ArrayList<>();
+        List<ConfiguracionEvaluacion> resultado = new ArrayList<>();
+
+        periodoEvaluacionRepositorio.findByPeriodoAcademicoId(periodoAcademicoId)
+            .stream()
+            .sorted(Comparator.comparingInt(periodo -> periodo.getNumero() != null ? periodo.getNumero() : 0))
+            .forEach(periodoEvaluacion -> {
+                for (ConfiguracionFuente configuracionFuente : configuracionesEfectivas.values()) {
+                    String clave = construirClave(periodoEvaluacion.getId(), configuracionFuente.tipoEvaluacion().getId());
+                    ConfiguracionEvaluacion configuracion = existentesPorClave.get(clave);
+
+                    if (configuracion == null) {
+                        configuracion = new ConfiguracionEvaluacion();
+                        configuracion.setPeriodoAcademico(asignacion.getPeriodoAcademico());
+                        configuracion.setPeriodoEvaluacion(periodoEvaluacion);
+                        configuracion.setCurso(asignacion.getCurso());
+                    }
+
+                    configuracion.setTipoEvaluacion(configuracionFuente.tipoEvaluacion());
+                    configuracion.setCantidadEvaluaciones(configuracionFuente.cantidadEvaluaciones());
+                    configuracion.setCalcularEnPromedio(configuracionFuente.calcularEnPromedio());
+                    configuracion.setEstado(EstadoRegistro.ACTIVO);
+                    cambios.add(configuracion);
+                    resultado.add(configuracion);
+                }
+            });
+
+        for (ConfiguracionEvaluacion configuracion : existentes) {
+            String clave = construirClave(
+                configuracion.getPeriodoEvaluacion().getId(),
+                configuracion.getTipoEvaluacion().getId()
+            );
+
+            if (!contieneConfiguracion(resultado, clave)) {
+                configuracion.setEstado(EstadoRegistro.INACTIVO);
+                cambios.add(configuracion);
+            }
+        }
+
+        if (!cambios.isEmpty()) {
+            configuracionEvaluacionRepositorio.saveAll(cambios);
+        }
+
+        return resultado.stream()
+            .sorted(
+                Comparator
+                    .comparing((ConfiguracionEvaluacion configuracion) -> configuracion.getPeriodoEvaluacion().getNumero())
+                    .thenComparing(configuracion -> configuracion.getTipoEvaluacion().getOrden())
+            )
+            .toList();
+    }
+
+    private boolean contieneConfiguracion(List<ConfiguracionEvaluacion> configuraciones, String clave) {
+        return configuraciones.stream().anyMatch(configuracion ->
+            construirClave(configuracion.getPeriodoEvaluacion().getId(), configuracion.getTipoEvaluacion().getId()).equals(clave)
+        );
+    }
+
+    private String construirClave(Long periodoEvaluacionId, Long tipoEvaluacionId) {
+        return periodoEvaluacionId + "-" + tipoEvaluacionId;
+    }
+
+    private record ConfiguracionFuente(
+        TipoEvaluacion tipoEvaluacion,
+        Integer cantidadEvaluaciones,
+        Boolean calcularEnPromedio
+    ) {}
 
     private PeriodoAcademico obtenerPeriodo(Long periodoAcademicoId) {
         return periodoAcademicoRepositorio.findById(periodoAcademicoId)

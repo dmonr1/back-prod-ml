@@ -2,6 +2,9 @@ package com.tp1.proyecto.evaluacion.controlador;
 
 import com.tp1.proyecto.evaluacion.dto.ConfiguracionEvaluacionRespuestaDto;
 import com.tp1.proyecto.evaluacion.dto.ConfiguracionEvaluacionSolicitudDto;
+import com.tp1.proyecto.evaluacion.dto.ConfiguracionEvaluacionCursoDetalleDto;
+import com.tp1.proyecto.evaluacion.dto.ConfiguracionEvaluacionCursoGuardarSolicitudDto;
+import com.tp1.proyecto.evaluacion.dto.ConfiguracionEvaluacionCursoResumenDto;
 import com.tp1.proyecto.evaluacion.servicio.ConfiguracionEvaluacionServicio;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -39,5 +42,28 @@ public class ConfiguracionEvaluacionControlador {
         @RequestParam Long cursoId
     ) {
         return configuracionEvaluacionServicio.listarPorPeriodoEvaluacionYCurso(periodoEvaluacionId, cursoId);
+    }
+
+    @GetMapping("/cursos-periodo")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<ConfiguracionEvaluacionCursoResumenDto> listarCursosPorPeriodo(@RequestParam Long periodoAcademicoId) {
+        return configuracionEvaluacionServicio.listarCursosPorPeriodo(periodoAcademicoId);
+    }
+
+    @GetMapping("/cursos-periodo/detalle")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ConfiguracionEvaluacionCursoDetalleDto obtenerDetalleCurso(
+        @RequestParam Long periodoAcademicoId,
+        @RequestParam Long cursoId
+    ) {
+        return configuracionEvaluacionServicio.obtenerDetalleCurso(periodoAcademicoId, cursoId);
+    }
+
+    @PostMapping("/cursos-periodo")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ConfiguracionEvaluacionCursoDetalleDto guardarConfiguracionCurso(
+        @Valid @RequestBody ConfiguracionEvaluacionCursoGuardarSolicitudDto solicitud
+    ) {
+        return configuracionEvaluacionServicio.guardarConfiguracionCurso(solicitud);
     }
 }

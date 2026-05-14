@@ -6,6 +6,8 @@ public class PeriodoAcademicoConPeriodosRespuestaDto {
 
     private PeriodoAcademicoRespuestaDto periodoAcademico;
     private List<PeriodoEvaluacionRespuestaDto> periodosEvaluacion;
+    private List<ConfiguracionEvaluacionDefaultSolicitudDto> configuracionesEvaluacionDefault;
+    private List<CursoPeriodoAcademicoRespuestaDto> cursosPeriodoAcademico;
 
     public PeriodoAcademicoRespuestaDto getPeriodoAcademico() {
         return periodoAcademico;
@@ -21,5 +23,23 @@ public class PeriodoAcademicoConPeriodosRespuestaDto {
 
     public void setPeriodosEvaluacion(List<PeriodoEvaluacionRespuestaDto> periodosEvaluacion) {
         this.periodosEvaluacion = periodosEvaluacion;
+    }
+
+    public List<ConfiguracionEvaluacionDefaultSolicitudDto> getConfiguracionesEvaluacionDefault() {
+        return configuracionesEvaluacionDefault;
+    }
+
+    public void setConfiguracionesEvaluacionDefault(
+        List<ConfiguracionEvaluacionDefaultSolicitudDto> configuracionesEvaluacionDefault
+    ) {
+        this.configuracionesEvaluacionDefault = configuracionesEvaluacionDefault;
+    }
+
+    public List<CursoPeriodoAcademicoRespuestaDto> getCursosPeriodoAcademico() {
+        return cursosPeriodoAcademico;
+    }
+
+    public void setCursosPeriodoAcademico(List<CursoPeriodoAcademicoRespuestaDto> cursosPeriodoAcademico) {
+        this.cursosPeriodoAcademico = cursosPeriodoAcademico;
     }
 }

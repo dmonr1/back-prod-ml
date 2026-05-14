@@ -10,10 +10,6 @@ public class AsistenciaPeriodoEvaluacionSolicitudDto {
 
     @NotNull
     @Min(0)
-    private Integer clasesProgramadas;
-
-    @NotNull
-    @Min(0)
     private Integer clasesAsistidas;
 
     private String observacion;
@@ -24,14 +20,6 @@ public class AsistenciaPeriodoEvaluacionSolicitudDto {
 
     public void setMatriculaId(Long matriculaId) {
         this.matriculaId = matriculaId;
-    }
-
-    public Integer getClasesProgramadas() {
-        return clasesProgramadas;
-    }
-
-    public void setClasesProgramadas(Integer clasesProgramadas) {
-        this.clasesProgramadas = clasesProgramadas;
     }
 
     public Integer getClasesAsistidas() {
