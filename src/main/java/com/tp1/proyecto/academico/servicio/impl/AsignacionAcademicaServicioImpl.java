@@ -4,6 +4,7 @@ import com.tp1.proyecto.academico.dto.AlumnoSeccionRespuestaDto;
 import com.tp1.proyecto.academico.dto.AsignacionDocenteSolicitudDto;
 import com.tp1.proyecto.academico.dto.AsignacionDocenteRespuestaDto;
 import com.tp1.proyecto.academico.dto.TutoriaRespuestaDto;
+import com.tp1.proyecto.academico.dto.TutoriaResumenAcademicoRespuestaDto;
 import com.tp1.proyecto.academico.dto.TutoriaSolicitudDto;
 import com.tp1.proyecto.academico.entidad.Curso;
 import com.tp1.proyecto.academico.entidad.CursoPeriodoAcademico;
@@ -27,14 +28,18 @@ import com.tp1.proyecto.docente.repositorio.DocenteRepositorio;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionCurso;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionPeriodo;
+import com.tp1.proyecto.evaluacion.entidad.DetalleNotaEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
 import com.tp1.proyecto.evaluacion.entidad.TipoEvaluacion;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionCursoRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionPeriodoRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.DetalleNotaEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -60,6 +65,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     private final ConfiguracionEvaluacionCursoRepositorio configuracionEvaluacionCursoRepositorio;
     private final ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio;
     private final EvaluacionRepositorio evaluacionRepositorio;
+    private final DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio;
 
     public AsignacionAcademicaServicioImpl(
         DocenteRepositorio docenteRepositorio,
@@ -74,7 +80,8 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         ConfiguracionEvaluacionPeriodoRepositorio configuracionEvaluacionPeriodoRepositorio,
         ConfiguracionEvaluacionCursoRepositorio configuracionEvaluacionCursoRepositorio,
         ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio,
-        EvaluacionRepositorio evaluacionRepositorio
+        EvaluacionRepositorio evaluacionRepositorio,
+        DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio
     ) {
         this.docenteRepositorio = docenteRepositorio;
         this.cursoPeriodoAcademicoRepositorio = cursoPeriodoAcademicoRepositorio;
@@ -89,6 +96,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         this.configuracionEvaluacionCursoRepositorio = configuracionEvaluacionCursoRepositorio;
         this.configuracionEvaluacionRepositorio = configuracionEvaluacionRepositorio;
         this.evaluacionRepositorio = evaluacionRepositorio;
+        this.detalleNotaEvaluacionRepositorio = detalleNotaEvaluacionRepositorio;
     }
 
     @Override
@@ -173,11 +181,13 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             throw new ReglaNegocioException("La seccion seleccionada no pertenece al periodo academico indicado.");
         }
 
-        if (tutoriaRepositorio.existsByDocenteIdAndPeriodoAcademicoId(docente.getId(), periodoAcademico.getId())) {
-            throw new ReglaNegocioException("El docente ya tiene una tutoria registrada en este periodo.");
-        }
-
-        if (tutoriaRepositorio.existsBySeccionIdAndPeriodoAcademicoId(seccion.getId(), periodoAcademico.getId())) {
+        if (
+            tutoriaRepositorio.existsBySeccionIdAndPeriodoAcademicoIdAndEstado(
+                seccion.getId(),
+                periodoAcademico.getId(),
+                EstadoRegistro.ACTIVO
+            )
+        ) {
             throw new ReglaNegocioException("La seccion ya tiene una tutoria asignada en este periodo.");
         }
 
@@ -202,11 +212,130 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
 
     @Override
     @Transactional(readOnly = true)
+    public List<TutoriaRespuestaDto> listarTutoriasDocente(Long docenteId, Long periodoAcademicoId) {
+        obtenerPeriodo(periodoAcademicoId);
+
+        return tutoriaRepositorio.findByDocenteIdAndPeriodoAcademicoId(docenteId, periodoAcademicoId)
+            .stream()
+            .map(this::mapearTutoria)
+            .toList();
+    }
+
+    @Override
+    public TutoriaRespuestaDto actualizarEstadoTutoria(Long tutoriaId, boolean activo) {
+        Tutoria tutoria = tutoriaRepositorio.findById(tutoriaId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Tutoria no encontrada con id: " + tutoriaId));
+
+        tutoria.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
+        return mapearTutoria(tutoriaRepositorio.save(tutoria));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<AlumnoSeccionRespuestaDto> listarAlumnosPorSeccion(Long seccionId, Long periodoAcademicoId) {
         return matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(seccionId, periodoAcademicoId)
             .stream()
             .map(this::mapearAlumno)
             .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TutoriaResumenAcademicoRespuestaDto obtenerResumenAcademicoTutoria(
+        Long tutoriaId,
+        Long periodoEvaluacionId
+    ) {
+        Tutoria tutoria = tutoriaRepositorio.findById(tutoriaId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Tutoria no encontrada con id: " + tutoriaId));
+
+        var periodoEvaluacion = periodoEvaluacionRepositorio.findById(periodoEvaluacionId)
+            .orElseThrow(() ->
+                new RecursoNoEncontradoException(
+                    "Periodo de evaluacion no encontrado con id: " + periodoEvaluacionId
+                )
+            );
+
+        if (!periodoEvaluacion.getPeriodoAcademico().getId().equals(tutoria.getPeriodoAcademico().getId())) {
+            throw new ReglaNegocioException(
+                "El periodo de evaluacion no pertenece al periodo academico de la tutoria seleccionada."
+            );
+        }
+
+        List<Matricula> matriculas = matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(
+            tutoria.getSeccion().getId(),
+            tutoria.getPeriodoAcademico().getId()
+        );
+        List<DocenteCursoSeccion> asignaciones = docenteCursoSeccionRepositorio.findBySeccionIdAndPeriodoAcademicoId(
+            tutoria.getSeccion().getId(),
+            tutoria.getPeriodoAcademico().getId()
+        ).stream()
+            .sorted(Comparator.comparing(asignacion -> asignacion.getCurso().getNombre()))
+            .toList();
+
+        List<Evaluacion> evaluaciones = new ArrayList<>();
+        for (DocenteCursoSeccion asignacion : asignaciones) {
+            evaluaciones.addAll(
+                evaluacionRepositorio.findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+                    asignacion.getId(),
+                    periodoEvaluacionId
+                )
+            );
+        }
+
+        Map<Long, List<DetalleNotaEvaluacion>> detallesPorEvaluacionId = new LinkedHashMap<>();
+        if (!evaluaciones.isEmpty()) {
+            List<Long> evaluacionIds = evaluaciones.stream().map(Evaluacion::getId).toList();
+            for (DetalleNotaEvaluacion detalle : detalleNotaEvaluacionRepositorio.findByEvaluacionIdIn(evaluacionIds)) {
+                detallesPorEvaluacionId
+                    .computeIfAbsent(detalle.getEvaluacion().getId(), key -> new ArrayList<>())
+                    .add(detalle);
+            }
+        }
+
+        Map<String, List<BigDecimal>> notasPorMatriculaCurso = new LinkedHashMap<>();
+        for (Evaluacion evaluacion : evaluaciones) {
+            List<DetalleNotaEvaluacion> detalles = detallesPorEvaluacionId.getOrDefault(evaluacion.getId(), List.of());
+            Long cursoId = evaluacion.getDocenteCursoSeccion().getCurso().getId();
+
+            for (DetalleNotaEvaluacion detalle : detalles) {
+                String clave = construirClaveResumen(detalle.getMatricula().getId(), cursoId);
+                notasPorMatriculaCurso.computeIfAbsent(clave, key -> new ArrayList<>()).add(detalle.getNota());
+            }
+        }
+
+        TutoriaResumenAcademicoRespuestaDto respuesta = new TutoriaResumenAcademicoRespuestaDto();
+        respuesta.setTutoriaId(tutoria.getId());
+        respuesta.setDocenteTutorId(tutoria.getDocente().getId());
+        respuesta.setDocenteTutorNombreCompleto(
+            tutoria.getDocente().getNombres() + " " + tutoria.getDocente().getApellidos()
+        );
+        respuesta.setSeccionId(tutoria.getSeccion().getId());
+        respuesta.setSeccion(tutoria.getSeccion().getNombre());
+        respuesta.setGrado(tutoria.getSeccion().getGrado().getNombre());
+        respuesta.setNivel(tutoria.getSeccion().getGrado().getNivel().getNombre());
+        respuesta.setPeriodoAcademicoId(tutoria.getPeriodoAcademico().getId());
+        respuesta.setPeriodoAcademico(tutoria.getPeriodoAcademico().getNombre());
+        respuesta.setAnioAcademico(tutoria.getPeriodoAcademico().getAnio());
+        respuesta.setPeriodoEvaluacionId(periodoEvaluacion.getId());
+        respuesta.setPeriodoEvaluacion(periodoEvaluacion.getNombre());
+        respuesta.setPeriodoEvaluacionFechaInicio(periodoEvaluacion.getFechaInicio());
+        respuesta.setPeriodoEvaluacionFechaFin(periodoEvaluacion.getFechaFin());
+        respuesta.setCursos(
+            asignaciones.stream()
+                .map(this::mapearCursoTutoriaResumen)
+                .toList()
+        );
+        respuesta.setAlumnos(
+            matriculas.stream()
+                .sorted(
+                    Comparator.comparing(
+                        matricula -> matricula.getAlumno().getApellidos() + " " + matricula.getAlumno().getNombres()
+                    )
+                )
+                .map(matricula -> mapearAlumnoTutoriaResumen(matricula, asignaciones, notasPorMatriculaCurso))
+                .toList()
+        );
+        return respuesta;
     }
 
     private AsignacionDocenteRespuestaDto mapearAsignacion(DocenteCursoSeccion asignacion) {
@@ -240,6 +369,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         dto.setPeriodoAcademicoId(tutoria.getPeriodoAcademico().getId());
         dto.setPeriodoAcademico(tutoria.getPeriodoAcademico().getNombre());
         dto.setAnioAcademico(tutoria.getPeriodoAcademico().getAnio());
+        dto.setEstado(tutoria.getEstado() != null ? tutoria.getEstado().name() : EstadoRegistro.ACTIVO.name());
         return dto;
     }
 
@@ -254,6 +384,65 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         dto.setSeccion(matricula.getSeccion().getNombre());
         dto.setPeriodoAcademicoId(matricula.getPeriodoAcademico().getId());
         dto.setAnioAcademico(matricula.getPeriodoAcademico().getAnio());
+        return dto;
+    }
+
+    private TutoriaResumenAcademicoRespuestaDto.CursoTutoriaResumenDto mapearCursoTutoriaResumen(
+        DocenteCursoSeccion asignacion
+    ) {
+        TutoriaResumenAcademicoRespuestaDto.CursoTutoriaResumenDto dto =
+            new TutoriaResumenAcademicoRespuestaDto.CursoTutoriaResumenDto();
+        dto.setAsignacionId(asignacion.getId());
+        dto.setCursoId(asignacion.getCurso().getId());
+        dto.setCurso(asignacion.getCurso().getNombre());
+        dto.setDocenteId(asignacion.getDocente().getId());
+        dto.setDocenteNombreCompleto(
+            asignacion.getDocente().getNombres() + " " + asignacion.getDocente().getApellidos()
+        );
+        return dto;
+    }
+
+    private TutoriaResumenAcademicoRespuestaDto.AlumnoTutoriaResumenDto mapearAlumnoTutoriaResumen(
+        Matricula matricula,
+        List<DocenteCursoSeccion> asignaciones,
+        Map<String, List<BigDecimal>> notasPorMatriculaCurso
+    ) {
+        TutoriaResumenAcademicoRespuestaDto.AlumnoTutoriaResumenDto dto =
+            new TutoriaResumenAcademicoRespuestaDto.AlumnoTutoriaResumenDto();
+        dto.setMatriculaId(matricula.getId());
+        dto.setAlumnoId(matricula.getAlumno().getId());
+        dto.setCodigoAlumno(matricula.getAlumno().getCodigo());
+        dto.setAlumnoNombreCompleto(matricula.getAlumno().getNombres() + " " + matricula.getAlumno().getApellidos());
+
+        List<TutoriaResumenAcademicoRespuestaDto.CursoAlumnoTutoriaResumenDto> cursos = new ArrayList<>();
+        List<BigDecimal> promediosCurso = new ArrayList<>();
+
+        for (DocenteCursoSeccion asignacion : asignaciones) {
+            String clave = construirClaveResumen(matricula.getId(), asignacion.getCurso().getId());
+            List<BigDecimal> notas = notasPorMatriculaCurso.getOrDefault(clave, List.of());
+            BigDecimal promedio = calcularPromedio(notas);
+
+            TutoriaResumenAcademicoRespuestaDto.CursoAlumnoTutoriaResumenDto cursoDto =
+                new TutoriaResumenAcademicoRespuestaDto.CursoAlumnoTutoriaResumenDto();
+            cursoDto.setAsignacionId(asignacion.getId());
+            cursoDto.setCursoId(asignacion.getCurso().getId());
+            cursoDto.setCurso(asignacion.getCurso().getNombre());
+            cursoDto.setDocenteId(asignacion.getDocente().getId());
+            cursoDto.setDocenteNombreCompleto(
+                asignacion.getDocente().getNombres() + " " + asignacion.getDocente().getApellidos()
+            );
+            cursoDto.setEvaluacionesRegistradas(notas.size());
+            cursoDto.setPromedio(promedio);
+            cursoDto.setNotas(new ArrayList<>(notas));
+            cursos.add(cursoDto);
+
+            if (promedio != null) {
+                promediosCurso.add(promedio);
+            }
+        }
+
+        dto.setCursos(cursos);
+        dto.setPromedioGeneral(calcularPromedio(promediosCurso));
         return dto;
     }
 
@@ -430,6 +619,21 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
 
     private String construirClave(Long periodoEvaluacionId, Long tipoEvaluacionId) {
         return periodoEvaluacionId + "-" + tipoEvaluacionId;
+    }
+
+    private String construirClaveResumen(Long matriculaId, Long cursoId) {
+        return matriculaId + "-" + cursoId;
+    }
+
+    private BigDecimal calcularPromedio(List<BigDecimal> valores) {
+        if (valores.isEmpty()) {
+            return null;
+        }
+
+        BigDecimal suma = valores.stream()
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return suma.divide(BigDecimal.valueOf(valores.size()), 2, RoundingMode.HALF_UP);
     }
 
     private record ConfiguracionFuente(
