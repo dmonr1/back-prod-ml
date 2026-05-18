@@ -28,9 +28,11 @@ import com.tp1.proyecto.docente.repositorio.DocenteRepositorio;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionCurso;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionPeriodo;
+import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.DetalleNotaEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
 import com.tp1.proyecto.evaluacion.entidad.TipoEvaluacion;
+import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionCursoRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionPeriodoRepositorio;
@@ -66,6 +68,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     private final ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio;
     private final EvaluacionRepositorio evaluacionRepositorio;
     private final DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio;
+    private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
 
     public AsignacionAcademicaServicioImpl(
         DocenteRepositorio docenteRepositorio,
@@ -81,7 +84,8 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         ConfiguracionEvaluacionCursoRepositorio configuracionEvaluacionCursoRepositorio,
         ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio,
         EvaluacionRepositorio evaluacionRepositorio,
-        DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio
+        DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
+        AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio
     ) {
         this.docenteRepositorio = docenteRepositorio;
         this.cursoPeriodoAcademicoRepositorio = cursoPeriodoAcademicoRepositorio;
@@ -97,6 +101,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         this.configuracionEvaluacionRepositorio = configuracionEvaluacionRepositorio;
         this.evaluacionRepositorio = evaluacionRepositorio;
         this.detalleNotaEvaluacionRepositorio = detalleNotaEvaluacionRepositorio;
+        this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
     }
 
     @Override
@@ -332,7 +337,15 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
                         matricula -> matricula.getAlumno().getApellidos() + " " + matricula.getAlumno().getNombres()
                     )
                 )
-                .map(matricula -> mapearAlumnoTutoriaResumen(matricula, asignaciones, notasPorMatriculaCurso))
+                .map(
+                    matricula ->
+                        mapearAlumnoTutoriaResumen(
+                            matricula,
+                            asignaciones,
+                            notasPorMatriculaCurso,
+                            periodoEvaluacion.getId()
+                        )
+                )
                 .toList()
         );
         return respuesta;
@@ -405,7 +418,8 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     private TutoriaResumenAcademicoRespuestaDto.AlumnoTutoriaResumenDto mapearAlumnoTutoriaResumen(
         Matricula matricula,
         List<DocenteCursoSeccion> asignaciones,
-        Map<String, List<BigDecimal>> notasPorMatriculaCurso
+        Map<String, List<BigDecimal>> notasPorMatriculaCurso,
+        Long periodoEvaluacionId
     ) {
         TutoriaResumenAcademicoRespuestaDto.AlumnoTutoriaResumenDto dto =
             new TutoriaResumenAcademicoRespuestaDto.AlumnoTutoriaResumenDto();
@@ -413,6 +427,15 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         dto.setAlumnoId(matricula.getAlumno().getId());
         dto.setCodigoAlumno(matricula.getAlumno().getCodigo());
         dto.setAlumnoNombreCompleto(matricula.getAlumno().getNombres() + " " + matricula.getAlumno().getApellidos());
+
+        AsistenciaPeriodoEvaluacion asistencia = asistenciaPeriodoEvaluacionRepositorio
+            .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
+            .orElse(null);
+        int clasesProgramadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
+        int clasesAsistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
+        dto.setClasesProgramadas(clasesProgramadas);
+        dto.setClasesAsistidas(clasesAsistidas);
+        dto.setPorcentajeAsistencia(calcularPorcentajeAsistencia(clasesProgramadas, clasesAsistidas));
 
         List<TutoriaResumenAcademicoRespuestaDto.CursoAlumnoTutoriaResumenDto> cursos = new ArrayList<>();
         List<BigDecimal> promediosCurso = new ArrayList<>();
@@ -444,6 +467,16 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         dto.setCursos(cursos);
         dto.setPromedioGeneral(calcularPromedio(promediosCurso));
         return dto;
+    }
+
+    private BigDecimal calcularPorcentajeAsistencia(int clasesProgramadas, int clasesAsistidas) {
+        if (clasesProgramadas <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return BigDecimal.valueOf(clasesAsistidas)
+            .multiply(BigDecimal.valueOf(100))
+            .divide(BigDecimal.valueOf(clasesProgramadas), 2, RoundingMode.HALF_UP);
     }
 
     private Docente obtenerDocente(Long docenteId) {

@@ -11,6 +11,8 @@ public interface PrediccionRiesgoServicio {
 
     void generarPrediccionGlobalPorMatricula(Long matriculaId, Long periodoEvaluacionId);
 
+    int recalcularPrediccionesPorSeccionYPeriodo(Long seccionId, Long periodoEvaluacionId);
+
     List<PrediccionRiesgoRespuestaDto> listarPrediccionesGlobales(Long periodoEvaluacionId, Long seccionId);
 
     List<PrediccionRiesgoRespuestaDto> listarPrediccionesCurso(Long periodoEvaluacionId, Long seccionId);

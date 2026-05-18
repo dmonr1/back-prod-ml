@@ -157,6 +157,41 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
     }
 
     @Override
+    public int recalcularPrediccionesPorSeccionYPeriodo(Long seccionId, Long periodoEvaluacionId) {
+        var periodoEvaluacion = periodoEvaluacionRepositorio.findById(periodoEvaluacionId)
+            .orElseThrow(() -> new IllegalArgumentException("Periodo de evaluacion no encontrado: " + periodoEvaluacionId));
+
+        Long periodoAcademicoId = periodoEvaluacion.getPeriodoAcademico().getId();
+        List<Matricula> matriculas = matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(seccionId, periodoAcademicoId);
+
+        int procesadas = 0;
+        for (Matricula matricula : matriculas) {
+            List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio
+                .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId);
+
+            if (notasConsolidadas.isEmpty()) {
+                continue;
+            }
+
+            AsistenciaPeriodoEvaluacion asistenciaConsolidada = asistenciaPeriodoEvaluacionRepositorio
+                .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
+                .orElse(null);
+
+            PrediccionMlRequestDto request = construirRequestConsolidado(
+                matricula,
+                periodoEvaluacionId,
+                notasConsolidadas,
+                asistenciaConsolidada
+            );
+
+            procesarRespuestaPrediccion(matricula, periodoEvaluacionId, null, request);
+            procesadas++;
+        }
+
+        return procesadas;
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<PrediccionRiesgoRespuestaDto> listarPrediccionesGlobales(Long periodoEvaluacionId, Long seccionId) {
         return prediccionRiesgoRepositorio.findByPeriodoEvaluacionIdAndMatriculaSeccionId(periodoEvaluacionId, seccionId)
@@ -270,7 +305,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         global.setPorcentajeAsistencia(porcentajeAsistencia);
 
         PrediccionMlRequestDto request = new PrediccionMlRequestDto();
-        request.setModeloVersion("v1");
+        request.setModeloVersion("v2-fracaso");
         request.setGlobalFeatures(global);
         request.setCourseFeatures(new ArrayList<>());
         return request;
@@ -308,7 +343,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         global.setPorcentajeAsistencia(porcentajeAsistencia);
 
         PrediccionMlRequestDto request = new PrediccionMlRequestDto();
-        request.setModeloVersion("v1");
+        request.setModeloVersion("v2-fracaso");
         request.setGlobalFeatures(global);
         request.setCourseFeatures(construirFeaturesCurso(matricula, periodoEvaluacionId, notas, promedio.doubleValue(), cursosDesaprobados, porcentajeAsistencia));
         return request;
@@ -407,15 +442,15 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             alerta.setPrediccionGlobal(prediccionGlobal);
             alerta.setTipoAlerta("RIESGO_GLOBAL");
             alerta.setNivelRiesgo(prediccionGlobal.getNivelRiesgo());
-            alerta.setMensaje("El alumno presenta riesgo academico global " + prediccionGlobal.getNivelRiesgo());
+            alerta.setMensaje("El alumno presenta riesgo de fracaso academico global " + prediccionGlobal.getNivelRiesgo());
             alerta.setAtendida(Boolean.FALSE);
             alertaRepositorio.save(alerta);
 
             Recomendacion recomendacion = new Recomendacion();
             recomendacion.setMatricula(prediccionGlobal.getMatricula());
             recomendacion.setPrediccionGlobal(prediccionGlobal);
-            recomendacion.setTitulo("Seguimiento academico global");
-            recomendacion.setDescripcion("Revisar el consolidado general del alumno y coordinar acciones de acompanamiento con el docente tutor.");
+            recomendacion.setTitulo("Seguimiento de riesgo academico global");
+            recomendacion.setDescripcion("Revisar la probabilidad de fracaso academico del alumno y coordinar acciones de acompanamiento con el docente tutor.");
             recomendacion.setFuente("MODELO_ML");
             recomendacionRepositorio.save(recomendacion);
         }
@@ -432,7 +467,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             alerta.setPrediccionCurso(prediccionCurso);
             alerta.setTipoAlerta("RIESGO_CURSO");
             alerta.setNivelRiesgo(prediccionCurso.getNivelRiesgo());
-            alerta.setMensaje("El alumno presenta riesgo " + prediccionCurso.getNivelRiesgo() + " en el curso " + prediccionCurso.getCurso().getNombre());
+            alerta.setMensaje("El alumno presenta riesgo de fracaso " + prediccionCurso.getNivelRiesgo() + " en el curso " + prediccionCurso.getCurso().getNombre());
             alerta.setAtendida(Boolean.FALSE);
             alertaRepositorio.save(alerta);
 
@@ -441,7 +476,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             recomendacion.setCurso(prediccionCurso.getCurso());
             recomendacion.setPrediccionCurso(prediccionCurso);
             recomendacion.setTitulo("Refuerzo en " + prediccionCurso.getCurso().getNombre());
-            recomendacion.setDescripcion("Aplicar seguimiento y refuerzo academico focalizado en el curso con riesgo detectado.");
+            recomendacion.setDescripcion("Aplicar seguimiento y refuerzo academico focalizado en el curso con riesgo de fracaso detectado.");
             recomendacion.setFuente("MODELO_ML");
             recomendacionRepositorio.save(recomendacion);
         }

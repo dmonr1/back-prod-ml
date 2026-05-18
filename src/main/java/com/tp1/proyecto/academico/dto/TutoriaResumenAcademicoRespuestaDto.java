@@ -207,6 +207,9 @@ public class TutoriaResumenAcademicoRespuestaDto {
         private Long alumnoId;
         private String codigoAlumno;
         private String alumnoNombreCompleto;
+        private Integer clasesProgramadas;
+        private Integer clasesAsistidas;
+        private BigDecimal porcentajeAsistencia;
         private BigDecimal promedioGeneral;
         private List<CursoAlumnoTutoriaResumenDto> cursos = new ArrayList<>();
 
@@ -240,6 +243,30 @@ public class TutoriaResumenAcademicoRespuestaDto {
 
         public void setAlumnoNombreCompleto(String alumnoNombreCompleto) {
             this.alumnoNombreCompleto = alumnoNombreCompleto;
+        }
+
+        public Integer getClasesProgramadas() {
+            return clasesProgramadas;
+        }
+
+        public void setClasesProgramadas(Integer clasesProgramadas) {
+            this.clasesProgramadas = clasesProgramadas;
+        }
+
+        public Integer getClasesAsistidas() {
+            return clasesAsistidas;
+        }
+
+        public void setClasesAsistidas(Integer clasesAsistidas) {
+            this.clasesAsistidas = clasesAsistidas;
+        }
+
+        public BigDecimal getPorcentajeAsistencia() {
+            return porcentajeAsistencia;
+        }
+
+        public void setPorcentajeAsistencia(BigDecimal porcentajeAsistencia) {
+            this.porcentajeAsistencia = porcentajeAsistencia;
         }
 
         public BigDecimal getPromedioGeneral() {

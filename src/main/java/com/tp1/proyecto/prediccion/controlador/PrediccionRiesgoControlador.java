@@ -4,9 +4,11 @@ import com.tp1.proyecto.prediccion.dto.PrediccionRiesgoRespuestaDto;
 import com.tp1.proyecto.prediccion.dto.ResumenPrediccionDto;
 import com.tp1.proyecto.prediccion.servicio.PrediccionRiesgoServicio;
 import java.util.List;
+import java.util.Map;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -49,5 +51,25 @@ public class PrediccionRiesgoControlador {
         @RequestParam Long seccionId
     ) {
         return prediccionRiesgoServicio.obtenerResumenPredicciones(periodoEvaluacionId, seccionId);
+    }
+
+    @PostMapping("/recalcular")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE_TUTOR')")
+    public Map<String, Object> recalcularPredicciones(
+        @RequestParam Long periodoEvaluacionId,
+        @RequestParam Long seccionId
+    ) {
+        int procesadas = prediccionRiesgoServicio.recalcularPrediccionesPorSeccionYPeriodo(
+            seccionId,
+            periodoEvaluacionId
+        );
+
+        return Map.of(
+            "mensaje", "Predicciones recalculadas con el modelo v2-fracaso.",
+            "periodoEvaluacionId", periodoEvaluacionId,
+            "seccionId", seccionId,
+            "matriculasProcesadas", procesadas,
+            "modeloVersion", "v2-fracaso"
+        );
     }
 }
