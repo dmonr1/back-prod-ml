@@ -28,6 +28,9 @@ public class PrediccionCursoMlDto {
     @JsonProperty("porcentaje_asistencia")
     private Double porcentajeAsistencia;
 
+    @JsonProperty("cantidad_evaluaciones_registradas")
+    private Integer cantidadEvaluacionesRegistradas;
+
     public Long getMatriculaId() {
         return matriculaId;
     }
@@ -90,5 +93,13 @@ public class PrediccionCursoMlDto {
 
     public void setPorcentajeAsistencia(Double porcentajeAsistencia) {
         this.porcentajeAsistencia = porcentajeAsistencia;
+    }
+
+    public Integer getCantidadEvaluacionesRegistradas() {
+        return cantidadEvaluacionesRegistradas;
+    }
+
+    public void setCantidadEvaluacionesRegistradas(Integer cantidadEvaluacionesRegistradas) {
+        this.cantidadEvaluacionesRegistradas = cantidadEvaluacionesRegistradas;
     }
 }

@@ -296,6 +296,7 @@ public class TutoriaResumenAcademicoRespuestaDto {
         private Integer evaluacionesRegistradas;
         private BigDecimal promedio;
         private List<BigDecimal> notas = new ArrayList<>();
+        private List<NotaEvaluacionTutoriaDto> detalleNotas = new ArrayList<>();
 
         public Long getAsignacionId() {
             return asignacionId;
@@ -359,6 +360,36 @@ public class TutoriaResumenAcademicoRespuestaDto {
 
         public void setNotas(List<BigDecimal> notas) {
             this.notas = notas;
+        }
+
+        public List<NotaEvaluacionTutoriaDto> getDetalleNotas() {
+            return detalleNotas;
+        }
+
+        public void setDetalleNotas(List<NotaEvaluacionTutoriaDto> detalleNotas) {
+            this.detalleNotas = detalleNotas;
+        }
+    }
+
+    public static class NotaEvaluacionTutoriaDto {
+
+        private String etiqueta;
+        private BigDecimal nota;
+
+        public String getEtiqueta() {
+            return etiqueta;
+        }
+
+        public void setEtiqueta(String etiqueta) {
+            this.etiqueta = etiqueta;
+        }
+
+        public BigDecimal getNota() {
+            return nota;
+        }
+
+        public void setNota(BigDecimal nota) {
+            this.nota = nota;
         }
     }
 }

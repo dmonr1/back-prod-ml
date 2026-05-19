@@ -35,3 +35,26 @@ create table predicciones_riesgo_curso_backup_20260518 as
 select *
 from predicciones_riesgo_curso
 where modelo_version = 'v1';
+
+ALTER TABLE hallazgos_data_mining
+ADD COLUMN seccion_id BIGINT,
+ADD COLUMN nivel_relevancia VARCHAR(20) NOT NULL DEFAULT 'MEDIO',
+ADD COLUMN fuente VARCHAR(30) NOT NULL DEFAULT 'AGREGACION',
+ADD COLUMN codigo VARCHAR(50);
+
+ALTER TABLE hallazgos_data_mining
+ADD CONSTRAINT fk_hallazgos_seccion
+FOREIGN KEY (seccion_id) REFERENCES secciones(id);
+
+ALTER TABLE hallazgos_data_mining
+ADD CONSTRAINT chk_hallazgos_estado
+CHECK (estado IN ('ACTIVO', 'INACTIVO'));
+
+ALTER TABLE hallazgos_data_mining
+ADD CONSTRAINT chk_hallazgos_relevancia
+CHECK (nivel_relevancia IN ('ALTO', 'MEDIO', 'BAJO'));
+
+ALTER TABLE hallazgos_data_mining
+ADD CONSTRAINT chk_hallazgos_fuente
+CHECK (fuente IN ('ML', 'REGLA', 'AGREGACION', 'PATRON'));
+

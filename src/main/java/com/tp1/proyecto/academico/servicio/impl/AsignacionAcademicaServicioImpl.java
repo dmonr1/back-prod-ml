@@ -298,13 +298,21 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         }
 
         Map<String, List<BigDecimal>> notasPorMatriculaCurso = new LinkedHashMap<>();
+        Map<String, List<TutoriaResumenAcademicoRespuestaDto.NotaEvaluacionTutoriaDto>> detalleNotasPorMatriculaCurso =
+            new LinkedHashMap<>();
         for (Evaluacion evaluacion : evaluaciones) {
             List<DetalleNotaEvaluacion> detalles = detallesPorEvaluacionId.getOrDefault(evaluacion.getId(), List.of());
             Long cursoId = evaluacion.getDocenteCursoSeccion().getCurso().getId();
+            String etiquetaEvaluacion = construirEtiquetaEvaluacion(evaluacion);
 
             for (DetalleNotaEvaluacion detalle : detalles) {
                 String clave = construirClaveResumen(detalle.getMatricula().getId(), cursoId);
                 notasPorMatriculaCurso.computeIfAbsent(clave, key -> new ArrayList<>()).add(detalle.getNota());
+                TutoriaResumenAcademicoRespuestaDto.NotaEvaluacionTutoriaDto notaDto =
+                    new TutoriaResumenAcademicoRespuestaDto.NotaEvaluacionTutoriaDto();
+                notaDto.setEtiqueta(etiquetaEvaluacion);
+                notaDto.setNota(detalle.getNota());
+                detalleNotasPorMatriculaCurso.computeIfAbsent(clave, key -> new ArrayList<>()).add(notaDto);
             }
         }
 
@@ -343,6 +351,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
                             matricula,
                             asignaciones,
                             notasPorMatriculaCurso,
+                            detalleNotasPorMatriculaCurso,
                             periodoEvaluacion.getId()
                         )
                 )
@@ -419,6 +428,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         Matricula matricula,
         List<DocenteCursoSeccion> asignaciones,
         Map<String, List<BigDecimal>> notasPorMatriculaCurso,
+        Map<String, List<TutoriaResumenAcademicoRespuestaDto.NotaEvaluacionTutoriaDto>> detalleNotasPorMatriculaCurso,
         Long periodoEvaluacionId
     ) {
         TutoriaResumenAcademicoRespuestaDto.AlumnoTutoriaResumenDto dto =
@@ -443,6 +453,8 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         for (DocenteCursoSeccion asignacion : asignaciones) {
             String clave = construirClaveResumen(matricula.getId(), asignacion.getCurso().getId());
             List<BigDecimal> notas = notasPorMatriculaCurso.getOrDefault(clave, List.of());
+            List<TutoriaResumenAcademicoRespuestaDto.NotaEvaluacionTutoriaDto> detalleNotas =
+                detalleNotasPorMatriculaCurso.getOrDefault(clave, List.of());
             BigDecimal promedio = calcularPromedio(notas);
 
             TutoriaResumenAcademicoRespuestaDto.CursoAlumnoTutoriaResumenDto cursoDto =
@@ -457,6 +469,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             cursoDto.setEvaluacionesRegistradas(notas.size());
             cursoDto.setPromedio(promedio);
             cursoDto.setNotas(new ArrayList<>(notas));
+            cursoDto.setDetalleNotas(new ArrayList<>(detalleNotas));
             cursos.add(cursoDto);
 
             if (promedio != null) {
@@ -656,6 +669,37 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
 
     private String construirClaveResumen(Long matriculaId, Long cursoId) {
         return matriculaId + "-" + cursoId;
+    }
+
+    private String construirEtiquetaEvaluacion(Evaluacion evaluacion) {
+        String tipo = evaluacion.getTipoEvaluacion() != null ? evaluacion.getTipoEvaluacion().getNombre() : "EV";
+        String abreviatura;
+        switch (tipo) {
+            case "EXAMEN_DIARIO":
+                abreviatura = "ED";
+                break;
+            case "REVISION_CUADERNO":
+                abreviatura = "RC";
+                break;
+            case "REVISION_LIBRO":
+                abreviatura = "RL";
+                break;
+            case "TAREA_TRABAJO":
+                abreviatura = "TT";
+                break;
+            case "EXPOSICION_PARTICIPACION":
+                abreviatura = "EP";
+                break;
+            case "EXAMEN":
+                abreviatura = "EX";
+                break;
+            default:
+                abreviatura = "EV";
+                break;
+        }
+
+        Integer numero = evaluacion.getNumeroEvaluacion() != null ? evaluacion.getNumeroEvaluacion() : 1;
+        return abreviatura + numero;
     }
 
     private BigDecimal calcularPromedio(List<BigDecimal> valores) {

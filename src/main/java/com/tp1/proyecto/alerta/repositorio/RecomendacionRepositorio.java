@@ -14,19 +14,24 @@ public interface RecomendacionRepositorio extends JpaRepository<Recomendacion, L
 
     void deleteByPrediccionCursoId(Long prediccionCursoId);
 
-    @Query("""
-        SELECT r
-        FROM Recomendacion r
-        WHERE (
-            r.prediccionGlobal IS NOT NULL
-            AND r.prediccionGlobal.periodoEvaluacion.id = :periodoEvaluacionId
-            AND r.matricula.seccion.id = :seccionId
-        ) OR (
-            r.prediccionCurso IS NOT NULL
-            AND r.prediccionCurso.periodoEvaluacion.id = :periodoEvaluacionId
-            AND r.matricula.seccion.id = :seccionId
-        )
-        ORDER BY r.fechaRegistro DESC
-        """)
+    @Query(
+        value =
+            "SELECT r.* " +
+            "FROM db_tp1.recomendaciones r " +
+            "LEFT JOIN db_tp1.predicciones_riesgo_global pg ON pg.id = r.prediccion_global_id " +
+            "LEFT JOIN db_tp1.predicciones_riesgo_curso pc ON pc.id = r.prediccion_curso_id " +
+            "JOIN db_tp1.matriculas m ON m.id = r.matricula_id " +
+            "WHERE ( " +
+            "pg.id IS NOT NULL " +
+            "AND pg.periodo_evaluacion_id = :periodoEvaluacionId " +
+            "AND m.seccion_id = :seccionId " +
+            ") OR ( " +
+            "pc.id IS NOT NULL " +
+            "AND pc.periodo_evaluacion_id = :periodoEvaluacionId " +
+            "AND m.seccion_id = :seccionId " +
+            ") " +
+            "ORDER BY r.fecha_registro DESC",
+        nativeQuery = true
+    )
     List<Recomendacion> findByPeriodoEvaluacionIdAndSeccionId(@Param("periodoEvaluacionId") Long periodoEvaluacionId, @Param("seccionId") Long seccionId);
 }

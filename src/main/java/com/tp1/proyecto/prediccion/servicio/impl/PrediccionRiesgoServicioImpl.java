@@ -9,6 +9,7 @@ import com.tp1.proyecto.alerta.entidad.Alerta;
 import com.tp1.proyecto.alerta.entidad.Recomendacion;
 import com.tp1.proyecto.alerta.repositorio.AlertaRepositorio;
 import com.tp1.proyecto.alerta.repositorio.RecomendacionRepositorio;
+import com.tp1.proyecto.alerta.servicio.HallazgoDataMiningServicio;
 import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.NotaCursoPeriodoEvaluacion;
 import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
@@ -56,6 +57,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
     private final PrediccionRiesgoCursoRepositorio prediccionRiesgoCursoRepositorio;
     private final AlertaRepositorio alertaRepositorio;
     private final RecomendacionRepositorio recomendacionRepositorio;
+    private final HallazgoDataMiningServicio hallazgoDataMiningServicio;
     private final ClientePrediccionPython clientePrediccionPython;
     private final ObjectMapper objectMapper;
 
@@ -70,6 +72,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         PrediccionRiesgoCursoRepositorio prediccionRiesgoCursoRepositorio,
         AlertaRepositorio alertaRepositorio,
         RecomendacionRepositorio recomendacionRepositorio,
+        HallazgoDataMiningServicio hallazgoDataMiningServicio,
         ClientePrediccionPython clientePrediccionPython,
         ObjectMapper objectMapper
     ) {
@@ -83,6 +86,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         this.prediccionRiesgoCursoRepositorio = prediccionRiesgoCursoRepositorio;
         this.alertaRepositorio = alertaRepositorio;
         this.recomendacionRepositorio = recomendacionRepositorio;
+        this.hallazgoDataMiningServicio = hallazgoDataMiningServicio;
         this.clientePrediccionPython = clientePrediccionPython;
         this.objectMapper = objectMapper;
     }
@@ -136,6 +140,11 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             PrediccionMlRequestDto request = construirRequestLegado(matricula, cargaExcel, notas, asistenciaOpt.orElse(null));
             procesarRespuestaPrediccion(matricula, cargaExcel.getPeriodoEvaluacion().getId(), cargaExcel.getId(), request);
         }
+
+        hallazgoDataMiningServicio.generarHallazgos(
+            cargaExcel.getPeriodoEvaluacion().getId(),
+            cargaExcel.getSeccion().getId()
+        );
     }
 
     @Override
@@ -187,6 +196,8 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             procesarRespuestaPrediccion(matricula, periodoEvaluacionId, null, request);
             procesadas++;
         }
+
+        hallazgoDataMiningServicio.generarHallazgos(periodoEvaluacionId, seccionId);
 
         return procesadas;
     }
@@ -325,6 +336,10 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         BigDecimal notaMaxima = notas.stream().map(NotaCursoPeriodoEvaluacion::getPromedioCurso).max(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
         BigDecimal notaMinima = notas.stream().map(NotaCursoPeriodoEvaluacion::getPromedioCurso).min(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
         int cursosDesaprobados = (int) notas.stream().filter(nota -> nota.getPromedioCurso().compareTo(BigDecimal.valueOf(11)) < 0).count();
+        int cantidadEvaluacionesRegistradas = notas.stream()
+            .map(NotaCursoPeriodoEvaluacion::getCantidadEvaluacionesRegistradas)
+            .filter(valor -> valor != null && valor > 0)
+            .reduce(0, Integer::sum);
 
         int clasesProgramadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
         int clasesAsistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
@@ -341,6 +356,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         global.setClasesProgramadas(clasesProgramadas);
         global.setClasesAsistidas(clasesAsistidas);
         global.setPorcentajeAsistencia(porcentajeAsistencia);
+        global.setCantidadEvaluacionesRegistradas(cantidadEvaluacionesRegistradas);
 
         PrediccionMlRequestDto request = new PrediccionMlRequestDto();
         request.setModeloVersion("v2-fracaso");
@@ -368,6 +384,9 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             dto.setPromedioGeneral(promedioGeneral);
             dto.setCantidadCursosDesaprobados(cursosDesaprobados);
             dto.setPorcentajeAsistencia(porcentajeAsistencia);
+            dto.setCantidadEvaluacionesRegistradas(
+                nota.getCantidadEvaluacionesRegistradas() != null ? nota.getCantidadEvaluacionesRegistradas() : 0
+            );
             courseFeatures.add(dto);
         }
         return courseFeatures;

@@ -16,19 +16,19 @@ public interface AlertaRepositorio extends JpaRepository<Alerta, Long> {
 
     void deleteByPrediccionCursoId(Long prediccionCursoId);
 
-    @Query("""
-        SELECT a
-        FROM Alerta a
-        WHERE (
-            a.prediccionGlobal IS NOT NULL
-            AND a.prediccionGlobal.periodoEvaluacion.id = :periodoEvaluacionId
-            AND a.matricula.seccion.id = :seccionId
-        ) OR (
-            a.prediccionCurso IS NOT NULL
-            AND a.prediccionCurso.periodoEvaluacion.id = :periodoEvaluacionId
-            AND a.matricula.seccion.id = :seccionId
-        )
-        ORDER BY a.fechaRegistro DESC
-        """)
+    @Query(
+        "SELECT a " +
+        "FROM Alerta a " +
+        "WHERE ( " +
+        "a.prediccionGlobal IS NOT NULL " +
+        "AND a.prediccionGlobal.periodoEvaluacion.id = :periodoEvaluacionId " +
+        "AND a.matricula.seccion.id = :seccionId " +
+        ") OR ( " +
+        "a.prediccionCurso IS NOT NULL " +
+        "AND a.prediccionCurso.periodoEvaluacion.id = :periodoEvaluacionId " +
+        "AND a.matricula.seccion.id = :seccionId " +
+        ") " +
+        "ORDER BY a.fechaRegistro DESC"
+    )
     List<Alerta> findByPeriodoEvaluacionIdAndSeccionId(@Param("periodoEvaluacionId") Long periodoEvaluacionId, @Param("seccionId") Long seccionId);
 }
