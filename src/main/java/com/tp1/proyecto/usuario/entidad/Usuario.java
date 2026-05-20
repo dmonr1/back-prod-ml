@@ -41,6 +41,9 @@ public class Usuario extends AuditoriaEntidad {
     @Column(name = "password_hash", nullable = false, columnDefinition = "TEXT")
     private String passwordHash;
 
+    @Column(name = "debe_cambiar_password", nullable = false)
+    private Boolean debeCambiarPassword = Boolean.FALSE;
+
     @Column(name = "ultimo_login")
     private LocalDateTime ultimoLogin;
 
@@ -82,6 +85,14 @@ public class Usuario extends AuditoriaEntidad {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public Boolean getDebeCambiarPassword() {
+        return debeCambiarPassword;
+    }
+
+    public void setDebeCambiarPassword(Boolean debeCambiarPassword) {
+        this.debeCambiarPassword = debeCambiarPassword;
     }
 
     public LocalDateTime getUltimoLogin() {

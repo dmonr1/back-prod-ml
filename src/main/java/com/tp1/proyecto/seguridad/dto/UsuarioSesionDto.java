@@ -10,6 +10,7 @@ public class UsuarioSesionDto {
     private String correo;
     private List<String> roles;
     private Boolean esTutor;
+    private Boolean debeCambiarPassword;
     private List<String> permisos;
 
     public Long getUsuarioId() {
@@ -58,6 +59,14 @@ public class UsuarioSesionDto {
 
     public void setEsTutor(Boolean esTutor) {
         this.esTutor = esTutor;
+    }
+
+    public Boolean getDebeCambiarPassword() {
+        return debeCambiarPassword;
+    }
+
+    public void setDebeCambiarPassword(Boolean debeCambiarPassword) {
+        this.debeCambiarPassword = debeCambiarPassword;
     }
 
     public List<String> getPermisos() {

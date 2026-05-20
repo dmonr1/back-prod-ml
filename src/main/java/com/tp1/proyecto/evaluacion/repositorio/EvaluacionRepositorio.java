@@ -13,10 +13,23 @@ public interface EvaluacionRepositorio extends JpaRepository<Evaluacion, Long> {
         Long periodoEvaluacionId
     );
 
+    List<Evaluacion> findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndEstadoOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+        Long docenteCursoSeccionId,
+        Long periodoEvaluacionId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
+    );
+
     List<Evaluacion> findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndTipoEvaluacionIdOrderByNumeroEvaluacionAsc(
         Long docenteCursoSeccionId,
         Long periodoEvaluacionId,
         Long tipoEvaluacionId
+    );
+
+    List<Evaluacion> findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndTipoEvaluacionIdAndEstadoOrderByNumeroEvaluacionAsc(
+        Long docenteCursoSeccionId,
+        Long periodoEvaluacionId,
+        Long tipoEvaluacionId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
     );
 
     boolean existsByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndTipoEvaluacionIdAndNumeroEvaluacion(

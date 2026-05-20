@@ -99,10 +99,12 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         );
 
         for (Matricula matricula : matriculas) {
-            List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(
-                matricula.getId(),
-                cargaExcel.getPeriodoEvaluacion().getId()
-            );
+            List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio
+                .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
+                    matricula.getId(),
+                    cargaExcel.getPeriodoEvaluacion().getId(),
+                    com.tp1.proyecto.comun.enumeracion.EstadoRegistro.ACTIVO
+                );
 
             if (!notasConsolidadas.isEmpty()) {
                 AsistenciaPeriodoEvaluacion asistenciaConsolidada = asistenciaPeriodoEvaluacionRepositorio
@@ -152,7 +154,12 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         Matricula matricula = matriculaRepositorio.findById(matriculaId)
             .orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada: " + matriculaId));
 
-        List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(matriculaId, periodoEvaluacionId);
+        List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio
+            .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
+                matriculaId,
+                periodoEvaluacionId,
+                com.tp1.proyecto.comun.enumeracion.EstadoRegistro.ACTIVO
+            );
         if (notasConsolidadas.isEmpty()) {
             return;
         }
@@ -176,7 +183,11 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         int procesadas = 0;
         for (Matricula matricula : matriculas) {
             List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio
-                .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId);
+                .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
+                    matricula.getId(),
+                    periodoEvaluacionId,
+                    com.tp1.proyecto.comun.enumeracion.EstadoRegistro.ACTIVO
+                );
 
             if (notasConsolidadas.isEmpty()) {
                 continue;

@@ -1,5 +1,6 @@
 package com.tp1.proyecto.seguridad.controlador;
 
+import com.tp1.proyecto.seguridad.dto.CambiarPasswordInicialSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.LoginRespuestaDto;
 import com.tp1.proyecto.seguridad.dto.LoginSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.UsuarioSesionDto;
@@ -36,5 +37,14 @@ public class AuthControlador {
     @PreAuthorize("isAuthenticated()")
     public UsuarioSesionDto me(@AuthenticationPrincipal UsuarioAutenticado usuarioAutenticado) {
         return authServicio.obtenerSesionActual(usuarioAutenticado);
+    }
+
+    @PostMapping("/cambiar-password-inicial")
+    @PreAuthorize("isAuthenticated()")
+    public UsuarioSesionDto cambiarPasswordInicial(
+        @AuthenticationPrincipal UsuarioAutenticado usuarioAutenticado,
+        @RequestBody CambiarPasswordInicialSolicitudDto solicitud
+    ) {
+        return authServicio.cambiarPasswordInicial(usuarioAutenticado, solicitud);
     }
 }

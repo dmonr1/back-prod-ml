@@ -102,7 +102,11 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
     @Transactional(readOnly = true)
     public List<EvaluacionRespuestaDto> listarPorAsignacionYPeriodoEvaluacion(Long docenteCursoSeccionId, Long periodoEvaluacionId) {
         return evaluacionRepositorio
-            .findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(docenteCursoSeccionId, periodoEvaluacionId)
+            .findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndEstadoOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+                docenteCursoSeccionId,
+                periodoEvaluacionId,
+                EstadoRegistro.ACTIVO
+            )
             .stream()
             .map(this::mapearEvaluacion)
             .toList();
@@ -178,9 +182,10 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
 
     private void recalcularNotaCursoPeriodoEvaluacion(Evaluacion evaluacion, Matricula matricula) {
         List<Evaluacion> evaluacionesRelacionadas = evaluacionRepositorio
-            .findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+            .findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndEstadoOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
                 evaluacion.getDocenteCursoSeccion().getId(),
-                evaluacion.getPeriodoEvaluacion().getId()
+                evaluacion.getPeriodoEvaluacion().getId(),
+                EstadoRegistro.ACTIVO
             );
 
         List<BigDecimal> notasConsideradas = new ArrayList<>();

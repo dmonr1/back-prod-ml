@@ -40,6 +40,10 @@ import com.tp1.proyecto.evaluacion.repositorio.DetalleNotaEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import com.tp1.proyecto.usuario.entidad.Rol;
+import com.tp1.proyecto.usuario.entidad.Usuario;
+import com.tp1.proyecto.usuario.repositorio.RolRepositorio;
+import com.tp1.proyecto.usuario.repositorio.UsuarioRepositorio;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -69,6 +73,8 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     private final EvaluacionRepositorio evaluacionRepositorio;
     private final DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio;
     private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
+    private final RolRepositorio rolRepositorio;
+    private final UsuarioRepositorio usuarioRepositorio;
 
     public AsignacionAcademicaServicioImpl(
         DocenteRepositorio docenteRepositorio,
@@ -85,7 +91,9 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio,
         EvaluacionRepositorio evaluacionRepositorio,
         DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
-        AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio
+        AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
+        RolRepositorio rolRepositorio,
+        UsuarioRepositorio usuarioRepositorio
     ) {
         this.docenteRepositorio = docenteRepositorio;
         this.cursoPeriodoAcademicoRepositorio = cursoPeriodoAcademicoRepositorio;
@@ -102,6 +110,8 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         this.evaluacionRepositorio = evaluacionRepositorio;
         this.detalleNotaEvaluacionRepositorio = detalleNotaEvaluacionRepositorio;
         this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
+        this.rolRepositorio = rolRepositorio;
+        this.usuarioRepositorio = usuarioRepositorio;
     }
 
     @Override
@@ -200,8 +210,9 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         tutoria.setDocente(docente);
         tutoria.setSeccion(seccion);
         tutoria.setPeriodoAcademico(periodoAcademico);
-
-        return mapearTutoria(tutoriaRepositorio.save(tutoria));
+        Tutoria guardada = tutoriaRepositorio.save(tutoria);
+        sincronizarRolTutor(docente);
+        return mapearTutoria(guardada);
     }
 
     @Override
@@ -232,7 +243,9 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             .orElseThrow(() -> new RecursoNoEncontradoException("Tutoria no encontrada con id: " + tutoriaId));
 
         tutoria.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
-        return mapearTutoria(tutoriaRepositorio.save(tutoria));
+        Tutoria guardada = tutoriaRepositorio.save(tutoria);
+        sincronizarRolTutor(guardada.getDocente());
+        return mapearTutoria(guardada);
     }
 
     @Override
@@ -724,5 +737,30 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             .orElseThrow(() ->
                 new RecursoNoEncontradoException("Periodo academico no encontrado con id: " + periodoAcademicoId)
             );
+    }
+
+    private void sincronizarRolTutor(Docente docente) {
+        Usuario usuario = docente.getUsuario();
+        if (usuario == null) {
+            return;
+        }
+
+        Rol rolTutor = rolRepositorio.findByNombre("DOCENTE_TUTOR")
+            .orElseThrow(() -> new ReglaNegocioException("No se encontro el rol DOCENTE_TUTOR."));
+
+        boolean tieneTutoriaActiva = tutoriaRepositorio.existsByDocenteIdAndEstado(docente.getId(), EstadoRegistro.ACTIVO);
+        boolean yaTieneRolTutor = usuario.getRoles().stream()
+            .anyMatch(rol -> "DOCENTE_TUTOR".equals(rol.getNombre()));
+
+        if (tieneTutoriaActiva && !yaTieneRolTutor) {
+            usuario.getRoles().add(rolTutor);
+            usuarioRepositorio.save(usuario);
+            return;
+        }
+
+        if (!tieneTutoriaActiva && yaTieneRolTutor) {
+            usuario.getRoles().removeIf(rol -> "DOCENTE_TUTOR".equals(rol.getNombre()));
+            usuarioRepositorio.save(usuario);
+        }
     }
 }

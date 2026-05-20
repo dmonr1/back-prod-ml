@@ -10,4 +10,17 @@ public interface NotaCursoPeriodoEvaluacionRepositorio extends JpaRepository<Not
     Optional<NotaCursoPeriodoEvaluacion> findByMatriculaIdAndCursoIdAndPeriodoEvaluacionId(Long matriculaId, Long cursoId, Long periodoEvaluacionId);
 
     List<NotaCursoPeriodoEvaluacion> findByMatriculaIdAndPeriodoEvaluacionId(Long matriculaId, Long periodoEvaluacionId);
+
+    Optional<NotaCursoPeriodoEvaluacion> findByMatriculaIdAndCursoIdAndPeriodoEvaluacionIdAndEstado(
+        Long matriculaId,
+        Long cursoId,
+        Long periodoEvaluacionId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
+    );
+
+    List<NotaCursoPeriodoEvaluacion> findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
+        Long matriculaId,
+        Long periodoEvaluacionId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
+    );
 }

@@ -4,10 +4,12 @@ import com.tp1.proyecto.academico.entidad.CursoPeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.DocenteCursoSeccion;
 import com.tp1.proyecto.academico.entidad.Curso;
 import com.tp1.proyecto.academico.entidad.Grado;
+import com.tp1.proyecto.academico.entidad.Matricula;
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.repositorio.CursoPeriodoAcademicoRepositorio;
 import com.tp1.proyecto.academico.repositorio.DocenteCursoSeccionRepositorio;
+import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
 import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.CursoRepositorio;
 import com.tp1.proyecto.academico.repositorio.GradoRepositorio;
@@ -23,16 +25,23 @@ import com.tp1.proyecto.evaluacion.dto.ConfiguracionEvaluacionSolicitudDto;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionCurso;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionPeriodo;
+import com.tp1.proyecto.evaluacion.entidad.DetalleNotaEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
+import com.tp1.proyecto.evaluacion.entidad.NotaCursoPeriodoEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.TipoEvaluacion;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionCursoRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionPeriodoRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.DetalleNotaEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.NotaCursoPeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.TipoEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.servicio.ConfiguracionEvaluacionServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import com.tp1.proyecto.prediccion.servicio.PrediccionRiesgoServicio;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -56,6 +65,10 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
     private final ConfiguracionEvaluacionPeriodoRepositorio configuracionEvaluacionPeriodoRepositorio;
     private final ConfiguracionEvaluacionCursoRepositorio configuracionEvaluacionCursoRepositorio;
     private final EvaluacionRepositorio evaluacionRepositorio;
+    private final DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio;
+    private final NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio;
+    private final MatriculaRepositorio matriculaRepositorio;
+    private final PrediccionRiesgoServicio prediccionRiesgoServicio;
 
     public ConfiguracionEvaluacionServicioImpl(
         ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio,
@@ -68,7 +81,11 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         TipoEvaluacionRepositorio tipoEvaluacionRepositorio,
         ConfiguracionEvaluacionPeriodoRepositorio configuracionEvaluacionPeriodoRepositorio,
         ConfiguracionEvaluacionCursoRepositorio configuracionEvaluacionCursoRepositorio,
-        EvaluacionRepositorio evaluacionRepositorio
+        EvaluacionRepositorio evaluacionRepositorio,
+        DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
+        NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio,
+        MatriculaRepositorio matriculaRepositorio,
+        PrediccionRiesgoServicio prediccionRiesgoServicio
     ) {
         this.configuracionEvaluacionRepositorio = configuracionEvaluacionRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
@@ -81,6 +98,10 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         this.configuracionEvaluacionPeriodoRepositorio = configuracionEvaluacionPeriodoRepositorio;
         this.configuracionEvaluacionCursoRepositorio = configuracionEvaluacionCursoRepositorio;
         this.evaluacionRepositorio = evaluacionRepositorio;
+        this.detalleNotaEvaluacionRepositorio = detalleNotaEvaluacionRepositorio;
+        this.notaCursoPeriodoEvaluacionRepositorio = notaCursoPeriodoEvaluacionRepositorio;
+        this.matriculaRepositorio = matriculaRepositorio;
+        this.prediccionRiesgoServicio = prediccionRiesgoServicio;
     }
 
     @Override
@@ -413,6 +434,7 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
 
         for (DocenteCursoSeccion asignacion : asignaciones) {
             resincronizarEvaluacionesAsignacion(asignacion, activas);
+            recalcularConsolidadosYPredicciones(asignacion, activas);
         }
     }
 
@@ -484,6 +506,89 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         if (!cambios.isEmpty()) {
             evaluacionRepositorio.saveAll(cambios);
         }
+    }
+
+    private void recalcularConsolidadosYPredicciones(
+        DocenteCursoSeccion asignacion,
+        List<ConfiguracionEvaluacion> configuraciones
+    ) {
+        List<Matricula> matriculas = matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(
+            asignacion.getSeccion().getId(),
+            asignacion.getPeriodoAcademico().getId()
+        );
+
+        List<Long> periodosEvaluacionIds = configuraciones.stream()
+            .map(configuracion -> configuracion.getPeriodoEvaluacion().getId())
+            .distinct()
+            .toList();
+
+        for (Long periodoEvaluacionId : periodosEvaluacionIds) {
+            List<Evaluacion> evaluacionesActivas = evaluacionRepositorio
+                .findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndEstadoOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+                    asignacion.getId(),
+                    periodoEvaluacionId,
+                    EstadoRegistro.ACTIVO
+                );
+
+            for (Matricula matricula : matriculas) {
+                recalcularConsolidadoCurso(asignacion, matricula, periodoEvaluacionId, evaluacionesActivas);
+                prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(matricula.getId(), periodoEvaluacionId);
+            }
+        }
+    }
+
+    private void recalcularConsolidadoCurso(
+        DocenteCursoSeccion asignacion,
+        Matricula matricula,
+        Long periodoEvaluacionId,
+        List<Evaluacion> evaluacionesActivas
+    ) {
+        List<BigDecimal> notasConsideradas = new ArrayList<>();
+        for (Evaluacion evaluacion : evaluacionesActivas) {
+            if (!Boolean.TRUE.equals(evaluacion.getConfiguracionEvaluacion().getCalcularEnPromedio())) {
+                continue;
+            }
+
+            detalleNotaEvaluacionRepositorio.findByEvaluacionIdAndMatriculaId(evaluacion.getId(), matricula.getId())
+                .map(DetalleNotaEvaluacion::getNota)
+                .ifPresent(notasConsideradas::add);
+        }
+
+        NotaCursoPeriodoEvaluacion consolidado = notaCursoPeriodoEvaluacionRepositorio
+            .findByMatriculaIdAndCursoIdAndPeriodoEvaluacionId(
+                matricula.getId(),
+                asignacion.getCurso().getId(),
+                periodoEvaluacionId
+            )
+            .orElseGet(NotaCursoPeriodoEvaluacion::new);
+
+        consolidado.setMatricula(matricula);
+        consolidado.setCurso(asignacion.getCurso());
+        consolidado.setPeriodoEvaluacion(
+            periodoEvaluacionRepositorio.findById(periodoEvaluacionId).orElseThrow()
+        );
+
+        if (notasConsideradas.isEmpty()) {
+            consolidado.setPromedioCurso(BigDecimal.ZERO);
+            consolidado.setCantidadEvaluacionesRegistradas(0);
+            consolidado.setObservacion("Sin evaluaciones activas registradas para el curso.");
+            consolidado.setEstado(EstadoRegistro.INACTIVO);
+            notaCursoPeriodoEvaluacionRepositorio.save(consolidado);
+            return;
+        }
+
+        BigDecimal suma = notasConsideradas.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal promedio = suma.divide(
+            BigDecimal.valueOf(notasConsideradas.size()),
+            2,
+            RoundingMode.HALF_UP
+        );
+
+        consolidado.setPromedioCurso(promedio);
+        consolidado.setCantidadEvaluacionesRegistradas(notasConsideradas.size());
+        consolidado.setObservacion("Promedio recalculado desde evaluaciones activas.");
+        consolidado.setEstado(EstadoRegistro.ACTIVO);
+        notaCursoPeriodoEvaluacionRepositorio.save(consolidado);
     }
 
     private String construirClave(Long periodoEvaluacionId, Long tipoEvaluacionId) {
