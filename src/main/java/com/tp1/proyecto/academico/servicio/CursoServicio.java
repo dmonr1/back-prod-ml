@@ -13,4 +13,6 @@ public interface CursoServicio {
     CursoRespuestaDto crear(CursoSolicitudDto solicitud);
 
     CursoRespuestaDto actualizar(Long id, CursoSolicitudDto solicitud);
+
+    CursoRespuestaDto actualizarEstado(Long cursoId, boolean activo);
 }

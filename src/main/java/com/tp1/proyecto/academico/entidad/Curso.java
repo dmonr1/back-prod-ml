@@ -25,6 +25,15 @@ public class Curso extends AuditoriaEntidad {
     @Column(name = "descripcion", length = 255)
     private String descripcion;
 
+    @Column(name = "portada_color", length = 30)
+    private String portadaColor;
+
+    @Column(name = "portada_icono", length = 80)
+    private String portadaIcono;
+
+    @Column(name = "portada_imagen", length = 255)
+    private String portadaImagen;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "nivel_id", nullable = false)
     private Nivel nivel;
@@ -51,6 +60,30 @@ public class Curso extends AuditoriaEntidad {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    public String getPortadaColor() {
+        return portadaColor;
+    }
+
+    public void setPortadaColor(String portadaColor) {
+        this.portadaColor = portadaColor;
+    }
+
+    public String getPortadaIcono() {
+        return portadaIcono;
+    }
+
+    public void setPortadaIcono(String portadaIcono) {
+        this.portadaIcono = portadaIcono;
+    }
+
+    public String getPortadaImagen() {
+        return portadaImagen;
+    }
+
+    public void setPortadaImagen(String portadaImagen) {
+        this.portadaImagen = portadaImagen;
     }
 
     public Nivel getNivel() {

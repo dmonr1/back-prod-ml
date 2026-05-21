@@ -7,6 +7,7 @@ import com.tp1.proyecto.academico.entidad.Nivel;
 import com.tp1.proyecto.academico.repositorio.CursoRepositorio;
 import com.tp1.proyecto.academico.repositorio.NivelRepositorio;
 import com.tp1.proyecto.academico.servicio.CursoServicio;
+import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
 import java.util.List;
@@ -48,7 +49,10 @@ public class CursoServicioImpl implements CursoServicio {
 
         Curso curso = new Curso();
         curso.setNombre(normalizarTexto(solicitud.getNombre()));
-        curso.setDescripcion(solicitud.getDescripcion());
+        curso.setDescripcion(normalizarDescripcion(solicitud.getDescripcion()));
+        curso.setPortadaColor(normalizarPortadaColor(solicitud.getPortadaColor()));
+        curso.setPortadaIcono(normalizarPortadaIcono(solicitud.getPortadaIcono()));
+        curso.setPortadaImagen(normalizarPortadaImagen(solicitud.getPortadaImagen()));
         curso.setNivel(nivel);
 
         return mapearRespuesta(cursoRepositorio.save(curso));
@@ -61,9 +65,19 @@ public class CursoServicioImpl implements CursoServicio {
         validarDuplicado(solicitud.getNombre(), nivel.getId(), curso.getId());
 
         curso.setNombre(normalizarTexto(solicitud.getNombre()));
-        curso.setDescripcion(solicitud.getDescripcion());
+        curso.setDescripcion(normalizarDescripcion(solicitud.getDescripcion()));
+        curso.setPortadaColor(normalizarPortadaColor(solicitud.getPortadaColor()));
+        curso.setPortadaIcono(normalizarPortadaIcono(solicitud.getPortadaIcono()));
+        curso.setPortadaImagen(normalizarPortadaImagen(solicitud.getPortadaImagen()));
         curso.setNivel(nivel);
 
+        return mapearRespuesta(cursoRepositorio.save(curso));
+    }
+
+    @Override
+    public CursoRespuestaDto actualizarEstado(Long cursoId, boolean activo) {
+        Curso curso = buscarCurso(cursoId);
+        curso.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
         return mapearRespuesta(cursoRepositorio.save(curso));
     }
 
@@ -94,6 +108,9 @@ public class CursoServicioImpl implements CursoServicio {
         dto.setId(curso.getId());
         dto.setNombre(curso.getNombre());
         dto.setDescripcion(curso.getDescripcion());
+        dto.setPortadaColor(curso.getPortadaColor());
+        dto.setPortadaIcono(curso.getPortadaIcono());
+        dto.setPortadaImagen(curso.getPortadaImagen());
         dto.setEstado(curso.getEstado() != null ? curso.getEstado().name() : null);
         if (curso.getNivel() != null) {
             dto.setNivelId(curso.getNivel().getId());
@@ -104,5 +121,25 @@ public class CursoServicioImpl implements CursoServicio {
 
     private String normalizarTexto(String texto) {
         return texto == null ? null : texto.trim().toUpperCase();
+    }
+
+    private String normalizarDescripcion(String texto) {
+        String valor = texto == null ? null : texto.trim();
+        return valor == null || valor.isBlank() ? null : valor;
+    }
+
+    private String normalizarPortadaColor(String valor) {
+        String color = valor == null ? null : valor.trim();
+        return color == null || color.isBlank() ? null : color;
+    }
+
+    private String normalizarPortadaIcono(String valor) {
+        String icono = valor == null ? null : valor.trim();
+        return icono == null || icono.isBlank() ? null : icono;
+    }
+
+    private String normalizarPortadaImagen(String valor) {
+        String imagen = valor == null ? null : valor.trim();
+        return imagen == null || imagen.isBlank() ? null : imagen;
     }
 }

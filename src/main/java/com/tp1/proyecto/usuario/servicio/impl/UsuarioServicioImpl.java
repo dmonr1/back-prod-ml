@@ -1,5 +1,6 @@
 package com.tp1.proyecto.usuario.servicio.impl;
 
+import com.tp1.proyecto.academico.repositorio.TutoriaRepositorio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.docente.entidad.Docente;
 import com.tp1.proyecto.docente.repositorio.DocenteRepositorio;
@@ -26,15 +27,18 @@ public class UsuarioServicioImpl implements UsuarioServicio {
     private final UsuarioRepositorio usuarioRepositorio;
     private final RolRepositorio rolRepositorio;
     private final DocenteRepositorio docenteRepositorio;
+    private final TutoriaRepositorio tutoriaRepositorio;
 
     public UsuarioServicioImpl(
         UsuarioRepositorio usuarioRepositorio,
         RolRepositorio rolRepositorio,
-        DocenteRepositorio docenteRepositorio
+        DocenteRepositorio docenteRepositorio,
+        TutoriaRepositorio tutoriaRepositorio
     ) {
         this.usuarioRepositorio = usuarioRepositorio;
         this.rolRepositorio = rolRepositorio;
         this.docenteRepositorio = docenteRepositorio;
+        this.tutoriaRepositorio = tutoriaRepositorio;
     }
 
     @Override
@@ -76,6 +80,21 @@ public class UsuarioServicioImpl implements UsuarioServicio {
             roles.add(rol);
         }
 
+        Docente docenteVinculado = docenteRepositorio.findByUsuarioId(usuario.getId()).orElse(null);
+        if (docenteVinculado != null) {
+            roles.add(obtenerRol("DOCENTE"));
+
+            boolean tieneTutoriaActiva = tutoriaRepositorio.existsByDocenteIdAndEstado(
+                docenteVinculado.getId(),
+                EstadoRegistro.ACTIVO
+            );
+            if (tieneTutoriaActiva) {
+                roles.add(obtenerRol("DOCENTE_TUTOR"));
+            } else {
+                roles.removeIf(rol -> "DOCENTE_TUTOR".equalsIgnoreCase(rol.getNombre()));
+            }
+        }
+
         if (roles.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuario debe conservar al menos un rol.");
         }
@@ -91,7 +110,29 @@ public class UsuarioServicioImpl implements UsuarioServicio {
         Usuario usuario = usuarioRepositorio.findById(usuarioId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado."));
 
-        usuario.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
+        if (!activo && tieneRol(usuario, "ADMIN")) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Las cuentas con rol ADMIN no pueden inactivarse desde esta gestion."
+            );
+        }
+
+        Docente docenteVinculado = docenteRepositorio.findByUsuarioId(usuario.getId()).orElse(null);
+        if (!activo && docenteVinculado != null && tutoriaRepositorio.existsByDocenteIdAndEstado(docenteVinculado.getId(), EstadoRegistro.ACTIVO)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "No puedes inactivar un docente que mantiene una tutoria activa."
+            );
+        }
+
+        EstadoRegistro nuevoEstado = activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO;
+        usuario.setEstado(nuevoEstado);
+
+        if (docenteVinculado != null) {
+            docenteVinculado.setEstado(nuevoEstado);
+            docenteRepositorio.save(docenteVinculado);
+        }
+
         return mapear(usuarioRepositorio.save(usuario));
     }
 
@@ -111,6 +152,15 @@ public class UsuarioServicioImpl implements UsuarioServicio {
         }
 
         return dto;
+    }
+
+    private Rol obtenerRol(String nombreRol) {
+        return rolRepositorio.findByNombre(nombreRol)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rol no valido: " + nombreRol));
+    }
+
+    private boolean tieneRol(Usuario usuario, String nombreRol) {
+        return usuario.getRoles().stream().anyMatch(rol -> nombreRol.equalsIgnoreCase(rol.getNombre()));
     }
 
     private String limpiar(String valor) {
