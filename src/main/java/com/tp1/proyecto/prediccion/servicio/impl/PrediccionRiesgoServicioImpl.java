@@ -3,16 +3,21 @@ package com.tp1.proyecto.prediccion.servicio.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tp1.proyecto.academico.entidad.Matricula;
-import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
+import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.alerta.entidad.Alerta;
 import com.tp1.proyecto.alerta.entidad.Recomendacion;
 import com.tp1.proyecto.alerta.repositorio.AlertaRepositorio;
 import com.tp1.proyecto.alerta.repositorio.RecomendacionRepositorio;
 import com.tp1.proyecto.alerta.servicio.HallazgoDataMiningServicio;
+import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
+import com.tp1.proyecto.evaluacion.entidad.DetalleNotaEvaluacion;
+import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
 import com.tp1.proyecto.evaluacion.entidad.NotaCursoPeriodoEvaluacion;
 import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.DetalleNotaEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.NotaCursoPeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.notas.entidad.Asistencia;
 import com.tp1.proyecto.notas.entidad.CargaExcel;
@@ -38,7 +43,9 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,10 +54,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
+    private static final BigDecimal NOTA_APROBATORIA = BigDecimal.valueOf(11);
+    private static final BigDecimal NOTA_CRITICA = BigDecimal.valueOf(10);
+
     private final MatriculaRepositorio matriculaRepositorio;
     private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio;
     private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
+    private final EvaluacionRepositorio evaluacionRepositorio;
+    private final DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio;
     private final NotaRepositorio notaRepositorio;
     private final AsistenciaRepositorio asistenciaRepositorio;
     private final PrediccionRiesgoRepositorio prediccionRiesgoRepositorio;
@@ -66,6 +78,8 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio,
         AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
+        EvaluacionRepositorio evaluacionRepositorio,
+        DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
         NotaRepositorio notaRepositorio,
         AsistenciaRepositorio asistenciaRepositorio,
         PrediccionRiesgoRepositorio prediccionRiesgoRepositorio,
@@ -80,6 +94,8 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.notaCursoPeriodoEvaluacionRepositorio = notaCursoPeriodoEvaluacionRepositorio;
         this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
+        this.evaluacionRepositorio = evaluacionRepositorio;
+        this.detalleNotaEvaluacionRepositorio = detalleNotaEvaluacionRepositorio;
         this.notaRepositorio = notaRepositorio;
         this.asistenciaRepositorio = asistenciaRepositorio;
         this.prediccionRiesgoRepositorio = prediccionRiesgoRepositorio;
@@ -103,7 +119,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
                 .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
                     matricula.getId(),
                     cargaExcel.getPeriodoEvaluacion().getId(),
-                    com.tp1.proyecto.comun.enumeracion.EstadoRegistro.ACTIVO
+                    EstadoRegistro.ACTIVO
                 );
 
             if (!notasConsolidadas.isEmpty()) {
@@ -122,9 +138,6 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
                 continue;
             }
 
-            // Compatibilidad temporal con el flujo antiguo de notas/asistencias por Excel.
-            // El flujo principal del sistema debe llegar aqui ya consolidado desde
-            // evaluaciones parciales y asistencias bimestrales.
             List<Nota> notas = notaRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(
                 matricula.getId(),
                 cargaExcel.getPeriodoEvaluacion().getId()
@@ -158,7 +171,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
                 matriculaId,
                 periodoEvaluacionId,
-                com.tp1.proyecto.comun.enumeracion.EstadoRegistro.ACTIVO
+                EstadoRegistro.ACTIVO
             );
         if (notasConsolidadas.isEmpty()) {
             return;
@@ -186,7 +199,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
                 .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
                     matricula.getId(),
                     periodoEvaluacionId,
-                    com.tp1.proyecto.comun.enumeracion.EstadoRegistro.ACTIVO
+                    EstadoRegistro.ACTIVO
                 );
 
             if (notasConsolidadas.isEmpty()) {
@@ -308,7 +321,12 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         BigDecimal promedio = suma.divide(BigDecimal.valueOf(notas.size()), 2, RoundingMode.HALF_UP);
         BigDecimal notaMaxima = notas.stream().map(Nota::getNota).max(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
         BigDecimal notaMinima = notas.stream().map(Nota::getNota).min(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
-        int cursosDesaprobados = (int) notas.stream().filter(nota -> nota.getNota().compareTo(BigDecimal.valueOf(11)) < 0).count();
+        int cursosDesaprobados = (int) notas.stream().filter(nota -> nota.getNota().compareTo(NOTA_APROBATORIA) < 0).count();
+        int cantidadNotasCriticas = (int) notas.stream().filter(nota -> nota.getNota().compareTo(NOTA_CRITICA) <= 0).count();
+        int cantidadCursosC = (int) notas.stream().filter(nota -> esCategoriaC(nota.getNota())).count();
+        int cantidadCursosB = (int) notas.stream().filter(nota -> esCategoriaB(nota.getNota())).count();
+        int cantidadCursosA = (int) notas.stream().filter(nota -> esCategoriaA(nota.getNota())).count();
+        int cantidadCursosAd = (int) notas.stream().filter(nota -> esCategoriaAd(nota.getNota())).count();
 
         int clasesProgramadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
         int clasesAsistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
@@ -325,9 +343,17 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         global.setClasesProgramadas(clasesProgramadas);
         global.setClasesAsistidas(clasesAsistidas);
         global.setPorcentajeAsistencia(porcentajeAsistencia);
+        global.setCantidadEvaluacionesRegistradas(notas.size());
+        global.setCantidadNotasDesaprobadasTotal(cursosDesaprobados);
+        global.setCantidadNotasCriticasTotal(cantidadNotasCriticas);
+        global.setPeorNotaPeriodo(notaMinima.doubleValue());
+        global.setCantidadCursosC(cantidadCursosC);
+        global.setCantidadCursosB(cantidadCursosB);
+        global.setCantidadCursosA(cantidadCursosA);
+        global.setCantidadCursosAd(cantidadCursosAd);
 
         PrediccionMlRequestDto request = new PrediccionMlRequestDto();
-        request.setModeloVersion("v2-fracaso");
+        request.setModeloVersion("v3-fracaso");
         request.setGlobalFeatures(global);
         request.setCourseFeatures(new ArrayList<>());
         return request;
@@ -346,11 +372,39 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         BigDecimal promedio = suma.divide(BigDecimal.valueOf(notas.size()), 2, RoundingMode.HALF_UP);
         BigDecimal notaMaxima = notas.stream().map(NotaCursoPeriodoEvaluacion::getPromedioCurso).max(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
         BigDecimal notaMinima = notas.stream().map(NotaCursoPeriodoEvaluacion::getPromedioCurso).min(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
-        int cursosDesaprobados = (int) notas.stream().filter(nota -> nota.getPromedioCurso().compareTo(BigDecimal.valueOf(11)) < 0).count();
+        int cursosDesaprobados = (int) notas.stream().filter(nota -> nota.getPromedioCurso().compareTo(NOTA_APROBATORIA) < 0).count();
         int cantidadEvaluacionesRegistradas = notas.stream()
             .map(NotaCursoPeriodoEvaluacion::getCantidadEvaluacionesRegistradas)
             .filter(valor -> valor != null && valor > 0)
             .reduce(0, Integer::sum);
+
+        Map<Long, MetricasCursoDetalle> metricasPorCurso = new HashMap<>();
+        int cantidadNotasDesaprobadasTotal = 0;
+        int cantidadNotasCriticasTotal = 0;
+        int cantidadCursosC = 0;
+        int cantidadCursosB = 0;
+        int cantidadCursosA = 0;
+        int cantidadCursosAd = 0;
+        BigDecimal peorNotaPeriodo = notaMinima;
+
+        for (NotaCursoPeriodoEvaluacion nota : notas) {
+            MetricasCursoDetalle metricas = construirMetricasCursoDetalle(matricula, periodoEvaluacionId, nota);
+            metricasPorCurso.put(nota.getCurso().getId(), metricas);
+            cantidadNotasDesaprobadasTotal += metricas.getCantidadNotasDesaprobadas();
+            cantidadNotasCriticasTotal += metricas.getCantidadNotasCriticas();
+            if (esCategoriaC(nota.getPromedioCurso())) {
+                cantidadCursosC++;
+            } else if (esCategoriaB(nota.getPromedioCurso())) {
+                cantidadCursosB++;
+            } else if (esCategoriaA(nota.getPromedioCurso())) {
+                cantidadCursosA++;
+            } else if (esCategoriaAd(nota.getPromedioCurso())) {
+                cantidadCursosAd++;
+            }
+            if (metricas.getNotaMinimaCurso().compareTo(peorNotaPeriodo) < 0) {
+                peorNotaPeriodo = metricas.getNotaMinimaCurso();
+            }
+        }
 
         int clasesProgramadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
         int clasesAsistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
@@ -368,11 +422,20 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         global.setClasesAsistidas(clasesAsistidas);
         global.setPorcentajeAsistencia(porcentajeAsistencia);
         global.setCantidadEvaluacionesRegistradas(cantidadEvaluacionesRegistradas);
+        global.setCantidadNotasDesaprobadasTotal(cantidadNotasDesaprobadasTotal);
+        global.setCantidadNotasCriticasTotal(cantidadNotasCriticasTotal);
+        global.setPeorNotaPeriodo(peorNotaPeriodo.doubleValue());
+        global.setCantidadCursosC(cantidadCursosC);
+        global.setCantidadCursosB(cantidadCursosB);
+        global.setCantidadCursosA(cantidadCursosA);
+        global.setCantidadCursosAd(cantidadCursosAd);
 
         PrediccionMlRequestDto request = new PrediccionMlRequestDto();
-        request.setModeloVersion("v2-fracaso");
+        request.setModeloVersion("v3-fracaso");
         request.setGlobalFeatures(global);
-        request.setCourseFeatures(construirFeaturesCurso(matricula, periodoEvaluacionId, notas, promedio.doubleValue(), cursosDesaprobados, porcentajeAsistencia));
+        request.setCourseFeatures(
+            construirFeaturesCurso(matricula, periodoEvaluacionId, notas, promedio.doubleValue(), cursosDesaprobados, porcentajeAsistencia, metricasPorCurso)
+        );
         return request;
     }
 
@@ -382,10 +445,16 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         List<NotaCursoPeriodoEvaluacion> notas,
         Double promedioGeneral,
         Integer cursosDesaprobados,
-        Double porcentajeAsistencia
+        Double porcentajeAsistencia,
+        Map<Long, MetricasCursoDetalle> metricasPorCurso
     ) {
         List<PrediccionCursoMlDto> courseFeatures = new ArrayList<>();
         for (NotaCursoPeriodoEvaluacion nota : notas) {
+            MetricasCursoDetalle metricas = metricasPorCurso.getOrDefault(
+                nota.getCurso().getId(),
+                MetricasCursoDetalle.desdePromedio(nota.getPromedioCurso())
+            );
+
             PrediccionCursoMlDto dto = new PrediccionCursoMlDto();
             dto.setMatriculaId(matricula.getId());
             dto.setCursoId(nota.getCurso().getId());
@@ -398,9 +467,139 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             dto.setCantidadEvaluacionesRegistradas(
                 nota.getCantidadEvaluacionesRegistradas() != null ? nota.getCantidadEvaluacionesRegistradas() : 0
             );
+            dto.setNotaMinimaCurso(metricas.getNotaMinimaCurso().doubleValue());
+            dto.setNotaMaximaCurso(metricas.getNotaMaximaCurso().doubleValue());
+            dto.setCantidadNotasDesaprobadas(metricas.getCantidadNotasDesaprobadas());
+            dto.setCantidadNotasCriticas(metricas.getCantidadNotasCriticas());
+            dto.setNotaExamenPrincipal(metricas.getNotaExamenPrincipal().doubleValue());
+            dto.setCantidadNotasC(metricas.getCantidadNotasC());
+            dto.setCantidadNotasB(metricas.getCantidadNotasB());
+            dto.setCantidadNotasA(metricas.getCantidadNotasA());
+            dto.setCantidadNotasAd(metricas.getCantidadNotasAd());
             courseFeatures.add(dto);
         }
         return courseFeatures;
+    }
+
+    private MetricasCursoDetalle construirMetricasCursoDetalle(
+        Matricula matricula,
+        Long periodoEvaluacionId,
+        NotaCursoPeriodoEvaluacion notaCurso
+    ) {
+        List<Evaluacion> evaluaciones = evaluacionRepositorio
+            .findByDocenteCursoSeccionCursoIdAndDocenteCursoSeccionSeccionIdAndPeriodoEvaluacionIdAndEstadoOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+                notaCurso.getCurso().getId(),
+                matricula.getSeccion().getId(),
+                periodoEvaluacionId,
+                EstadoRegistro.ACTIVO
+            );
+
+        if (evaluaciones.isEmpty()) {
+            return MetricasCursoDetalle.desdePromedio(notaCurso.getPromedioCurso());
+        }
+
+        List<Long> evaluacionIds = evaluaciones.stream().map(Evaluacion::getId).toList();
+        Map<Long, DetalleNotaEvaluacion> detallesPorEvaluacion = new HashMap<>();
+        for (DetalleNotaEvaluacion detalle : detalleNotaEvaluacionRepositorio.findByEvaluacionIdIn(evaluacionIds)) {
+            if (detalle.getMatricula() != null && matricula.getId().equals(detalle.getMatricula().getId())) {
+                detallesPorEvaluacion.put(detalle.getEvaluacion().getId(), detalle);
+            }
+        }
+
+        if (detallesPorEvaluacion.isEmpty()) {
+            return MetricasCursoDetalle.desdePromedio(notaCurso.getPromedioCurso());
+        }
+
+        BigDecimal notaMinimaCurso = null;
+        BigDecimal notaMaximaCurso = null;
+        int cantidadNotasDesaprobadas = 0;
+        int cantidadNotasCriticas = 0;
+        int cantidadNotasC = 0;
+        int cantidadNotasB = 0;
+        int cantidadNotasA = 0;
+        int cantidadNotasAd = 0;
+        BigDecimal notaExamenPrincipal = null;
+
+        for (Evaluacion evaluacion : evaluaciones) {
+            DetalleNotaEvaluacion detalle = detallesPorEvaluacion.get(evaluacion.getId());
+            if (detalle == null || detalle.getNota() == null) {
+                continue;
+            }
+
+            BigDecimal nota = detalle.getNota();
+            if (notaMinimaCurso == null || nota.compareTo(notaMinimaCurso) < 0) {
+                notaMinimaCurso = nota;
+            }
+            if (notaMaximaCurso == null || nota.compareTo(notaMaximaCurso) > 0) {
+                notaMaximaCurso = nota;
+            }
+            if (nota.compareTo(NOTA_APROBATORIA) < 0) {
+                cantidadNotasDesaprobadas++;
+            }
+            if (nota.compareTo(NOTA_CRITICA) <= 0) {
+                cantidadNotasCriticas++;
+            }
+            if (esCategoriaC(nota)) {
+                cantidadNotasC++;
+            } else if (esCategoriaB(nota)) {
+                cantidadNotasB++;
+            } else if (esCategoriaA(nota)) {
+                cantidadNotasA++;
+            } else if (esCategoriaAd(nota)) {
+                cantidadNotasAd++;
+            }
+            if (notaExamenPrincipal == null && esEvaluacionExamen(evaluacion)) {
+                notaExamenPrincipal = nota;
+            }
+        }
+
+        BigDecimal promedioCurso = notaCurso.getPromedioCurso() != null ? notaCurso.getPromedioCurso() : BigDecimal.ZERO;
+        if (notaMinimaCurso == null) {
+            notaMinimaCurso = promedioCurso;
+        }
+        if (notaMaximaCurso == null) {
+            notaMaximaCurso = promedioCurso;
+        }
+        if (notaExamenPrincipal == null) {
+            notaExamenPrincipal = promedioCurso;
+        }
+
+        return new MetricasCursoDetalle(
+            notaMinimaCurso,
+            notaMaximaCurso,
+            cantidadNotasDesaprobadas,
+            cantidadNotasCriticas,
+            notaExamenPrincipal,
+            cantidadNotasC,
+            cantidadNotasB,
+            cantidadNotasA,
+            cantidadNotasAd
+        );
+    }
+
+    private boolean esEvaluacionExamen(Evaluacion evaluacion) {
+        if (evaluacion.getTipoEvaluacion() == null || evaluacion.getTipoEvaluacion().getNombre() == null) {
+            return false;
+        }
+
+        String nombreTipo = evaluacion.getTipoEvaluacion().getNombre().trim().toUpperCase();
+        return nombreTipo.startsWith("EX") || nombreTipo.contains("EXAMEN");
+    }
+
+    private boolean esCategoriaC(BigDecimal nota) {
+        return nota != null && nota.compareTo(NOTA_APROBATORIA) < 0;
+    }
+
+    private boolean esCategoriaB(BigDecimal nota) {
+        return nota != null && nota.compareTo(NOTA_APROBATORIA) >= 0 && nota.compareTo(BigDecimal.valueOf(14)) < 0;
+    }
+
+    private boolean esCategoriaA(BigDecimal nota) {
+        return nota != null && nota.compareTo(BigDecimal.valueOf(14)) >= 0 && nota.compareTo(BigDecimal.valueOf(18)) < 0;
+    }
+
+    private boolean esCategoriaAd(BigDecimal nota) {
+        return nota != null && nota.compareTo(BigDecimal.valueOf(18)) >= 0;
     }
 
     private PrediccionRiesgo guardarPrediccionGlobal(
@@ -617,4 +816,84 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
         return dto;
     }
+
+    private static final class MetricasCursoDetalle {
+        private final BigDecimal notaMinimaCurso;
+        private final BigDecimal notaMaximaCurso;
+        private final int cantidadNotasDesaprobadas;
+        private final int cantidadNotasCriticas;
+        private final BigDecimal notaExamenPrincipal;
+        private final int cantidadNotasC;
+        private final int cantidadNotasB;
+        private final int cantidadNotasA;
+        private final int cantidadNotasAd;
+
+        private MetricasCursoDetalle(
+            BigDecimal notaMinimaCurso,
+            BigDecimal notaMaximaCurso,
+            int cantidadNotasDesaprobadas,
+            int cantidadNotasCriticas,
+            BigDecimal notaExamenPrincipal,
+            int cantidadNotasC,
+            int cantidadNotasB,
+            int cantidadNotasA,
+            int cantidadNotasAd
+        ) {
+            this.notaMinimaCurso = notaMinimaCurso;
+            this.notaMaximaCurso = notaMaximaCurso;
+            this.cantidadNotasDesaprobadas = cantidadNotasDesaprobadas;
+            this.cantidadNotasCriticas = cantidadNotasCriticas;
+            this.notaExamenPrincipal = notaExamenPrincipal;
+            this.cantidadNotasC = cantidadNotasC;
+            this.cantidadNotasB = cantidadNotasB;
+            this.cantidadNotasA = cantidadNotasA;
+            this.cantidadNotasAd = cantidadNotasAd;
+        }
+
+        private static MetricasCursoDetalle desdePromedio(BigDecimal promedioCurso) {
+            BigDecimal valor = promedioCurso != null ? promedioCurso : BigDecimal.ZERO;
+            int cantidadC = valor.compareTo(NOTA_APROBATORIA) < 0 ? 1 : 0;
+            int cantidadB = valor.compareTo(NOTA_APROBATORIA) >= 0 && valor.compareTo(BigDecimal.valueOf(14)) < 0 ? 1 : 0;
+            int cantidadA = valor.compareTo(BigDecimal.valueOf(14)) >= 0 && valor.compareTo(BigDecimal.valueOf(18)) < 0 ? 1 : 0;
+            int cantidadAd = valor.compareTo(BigDecimal.valueOf(18)) >= 0 ? 1 : 0;
+            return new MetricasCursoDetalle(valor, valor, cantidadC, cantidadC, valor, cantidadC, cantidadB, cantidadA, cantidadAd);
+        }
+
+        public BigDecimal getNotaMinimaCurso() {
+            return notaMinimaCurso;
+        }
+
+        public BigDecimal getNotaMaximaCurso() {
+            return notaMaximaCurso;
+        }
+
+        public int getCantidadNotasDesaprobadas() {
+            return cantidadNotasDesaprobadas;
+        }
+
+        public int getCantidadNotasCriticas() {
+            return cantidadNotasCriticas;
+        }
+
+        public BigDecimal getNotaExamenPrincipal() {
+            return notaExamenPrincipal;
+        }
+
+        public int getCantidadNotasC() {
+            return cantidadNotasC;
+        }
+
+        public int getCantidadNotasB() {
+            return cantidadNotasB;
+        }
+
+        public int getCantidadNotasA() {
+            return cantidadNotasA;
+        }
+
+        public int getCantidadNotasAd() {
+            return cantidadNotasAd;
+        }
+    }
 }
+

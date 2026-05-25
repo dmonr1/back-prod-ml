@@ -65,11 +65,12 @@ public class PrediccionRiesgoControlador {
         );
 
         return Map.of(
-            "mensaje", "Predicciones recalculadas con el modelo v2-fracaso.",
+            "mensaje", "Predicciones recalculadas con el modelo v3-fracaso.",
             "periodoEvaluacionId", periodoEvaluacionId,
             "seccionId", seccionId,
             "matriculasProcesadas", procesadas,
-            "modeloVersion", "v2-fracaso"
+            "modeloVersion", "v3-fracaso"
         );
     }
 }
+
