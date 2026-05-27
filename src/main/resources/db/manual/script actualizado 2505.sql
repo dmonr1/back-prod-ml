@@ -950,3 +950,26 @@ VALUES
 (2, 'INGLES', 'Curso de ingles', '#2563EB', 'fa-solid fa-language', 'assets/course-covers/cover-reading.svg', 'ACTIVO', NOW(), NOW()),
 (2, 'LIDERAZGO Y GESTION EMPRESARIAL', 'Curso de liderazgo y gestion empresarial', '#EA580C', 'fa-solid fa-briefcase', 'assets/course-covers/cover-art.svg', 'ACTIVO', NOW(), NOW()),
 (2, 'EDUCACION FISICA', 'Curso de educacion fisica', '#16A34A', 'fa-solid fa-dumbbell', 'assets/course-covers/cover-nature.svg', 'ACTIVO', NOW(), NOW());
+
+CREATE TABLE db_tp1.password_reset_tokens (
+  id BIGSERIAL PRIMARY KEY,
+  usuario_id BIGINT NOT NULL,
+  codigo VARCHAR(10) NOT NULL,
+  token_recuperacion VARCHAR(120),
+  expiracion TIMESTAMP NOT NULL,
+  usado BOOLEAN NOT NULL DEFAULT FALSE,
+  intentos INTEGER NOT NULL DEFAULT 0,
+  codigo_verificado BOOLEAN NOT NULL DEFAULT FALSE,
+  fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_password_reset_tokens_usuario
+    FOREIGN KEY (usuario_id) REFERENCES db_tp1.usuarios(id)
+);
+
+CREATE INDEX idx_password_reset_tokens_usuario
+  ON db_tp1.password_reset_tokens(usuario_id);
+
+CREATE INDEX idx_password_reset_tokens_token
+  ON db_tp1.password_reset_tokens(token_recuperacion);
+
+CREATE INDEX idx_password_reset_tokens_activo
+  ON db_tp1.password_reset_tokens(usuario_id, usado, fecha_creacion DESC);
