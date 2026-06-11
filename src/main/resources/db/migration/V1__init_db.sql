@@ -1,10 +1,9 @@
--- =========================================================
+﻿-- =========================================================
 -- SCRIPT MAESTRO LIMPIO
 -- SISTEMA TP1 - MODELO OPERATIVO ACTUAL
 -- PostgreSQL / esquema: db_tp1
 -- =========================================================
 
-BEGIN;
 
 DROP SCHEMA IF EXISTS db_tp1 CASCADE;
 CREATE SCHEMA db_tp1;
@@ -730,48 +729,15 @@ INSERT INTO db_tp1.tipos_evaluacion (nombre, descripcion, orden) VALUES
 ('EXPOSICION_PARTICIPACION', 'Exposicion y participacion', 5),
 ('EXAMEN', 'Evaluacion formal', 6);
 
-COMMIT;
 
 -- =========================================================
 -- SELECTS DE APOYO
 -- =========================================================
 
-SELECT * FROM db_tp1.roles ORDER BY id;
-SELECT * FROM db_tp1.usuarios ORDER BY id;
-SELECT * FROM db_tp1.usuarios_roles ORDER BY usuario_id, rol_id;
-SELECT * FROM db_tp1.docentes ORDER BY id;
-SELECT * FROM db_tp1.alumnos ORDER BY id;
-SELECT * FROM db_tp1.niveles ORDER BY id;
-SELECT * FROM db_tp1.grados ORDER BY id;
-SELECT * FROM db_tp1.periodos_academicos ORDER BY id;
-SELECT * FROM db_tp1.secciones ORDER BY id;
-SELECT * FROM db_tp1.periodos_evaluacion ORDER BY id;
-SELECT * FROM db_tp1.cursos ORDER BY id;
-SELECT * FROM db_tp1.cursos_periodo_academico ORDER BY id;
-SELECT * FROM db_tp1.matriculas ORDER BY id;
-SELECT * FROM db_tp1.docente_curso_seccion ORDER BY id;
-SELECT * FROM db_tp1.tutorias ORDER BY id;
-SELECT * FROM db_tp1.tipos_evaluacion ORDER BY orden, id;
-SELECT * FROM db_tp1.configuraciones_evaluacion_periodo ORDER BY id;
-SELECT * FROM db_tp1.configuraciones_evaluacion_curso ORDER BY id;
-SELECT * FROM db_tp1.configuraciones_evaluacion ORDER BY id;
-SELECT * FROM db_tp1.configuraciones_asistencia_periodo ORDER BY id;
-SELECT * FROM db_tp1.evaluaciones ORDER BY id;
-SELECT * FROM db_tp1.detalle_notas_evaluacion ORDER BY id;
-SELECT * FROM db_tp1.notas_curso_periodo_evaluacion ORDER BY id;
-SELECT * FROM db_tp1.asistencias_periodo_evaluacion ORDER BY id;
-SELECT * FROM db_tp1.cargas_archivos ORDER BY id;
-SELECT * FROM db_tp1.notas ORDER BY id;
-SELECT * FROM db_tp1.asistencias ORDER BY id;
-SELECT * FROM db_tp1.predicciones_riesgo_global ORDER BY id;
-SELECT * FROM db_tp1.predicciones_riesgo_curso ORDER BY id;
-SELECT * FROM db_tp1.alertas ORDER BY id;
-SELECT * FROM db_tp1.recomendaciones ORDER BY id;
-SELECT * FROM db_tp1.hallazgos_data_mining ORDER BY id;
 
 
 
-- =========================================================
+-- =========================================================
 -- INSERTS BASE
 -- INSERTS BASE + SEED OPERATIVO
 -- =========================================================
@@ -856,7 +822,6 @@ INSERT INTO db_tp1.tutorias (docente_id, seccion_id, periodo_academico_id, estad
 
 
 
-BEGIN;
 
 ALTER TABLE db_tp1.usuarios
 ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN NOT NULL DEFAULT FALSE;
@@ -865,8 +830,13 @@ UPDATE db_tp1.usuarios
 SET debe_cambiar_password = FALSE
 WHERE debe_cambiar_password IS NULL;
 
-COMMIT;
 
+ALTER TABLE db_tp1.cursos
+ADD COLUMN IF NOT EXISTS portada_color VARCHAR(30),
+ADD COLUMN IF NOT EXISTS portada_icono VARCHAR(80);
+
+ALTER TABLE db_tp1.cursos
+ADD COLUMN IF NOT EXISTS portada_imagen VARCHAR(255);
 UPDATE db_tp1.cursos
 SET
   portada_color = CASE id
@@ -889,13 +859,6 @@ SET
   END
 WHERE id IN (1, 2, 3);
 
-
-ALTER TABLE db_tp1.cursos
-ADD COLUMN IF NOT EXISTS portada_color VARCHAR(30),
-ADD COLUMN IF NOT EXISTS portada_icono VARCHAR(80);
-
-ALTER TABLE db_tp1.cursos
-ADD COLUMN IF NOT EXISTS portada_imagen VARCHAR(255);
 
 INSERT INTO db_tp1.cursos (
     nivel_id,
@@ -974,3 +937,5 @@ CREATE INDEX idx_password_reset_tokens_token
 
 CREATE INDEX idx_password_reset_tokens_activo
   ON db_tp1.password_reset_tokens(usuario_id, usado, fecha_creacion DESC);
+
+

@@ -1,6 +1,8 @@
-package com.tp1.proyecto.seguridad.config;
+﻿package com.tp1.proyecto.seguridad.config;
 
 import com.tp1.proyecto.seguridad.filtro.JwtAutenticacionFiltro;
+import com.tp1.proyecto.seguridad.servicio.UsuarioDetalleServicio;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,10 +18,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import com.tp1.proyecto.seguridad.servicio.UsuarioDetalleServicio;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -29,15 +32,21 @@ public class SeguridadConfig {
     private final JwtAutenticacionFiltro jwtAutenticacionFiltro;
     private final UsuarioDetalleServicio usuarioDetalleServicio;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final List<String> allowedOrigins;
 
     public SeguridadConfig(
         JwtAutenticacionFiltro jwtAutenticacionFiltro,
         UsuarioDetalleServicio usuarioDetalleServicio,
-        RestAuthenticationEntryPoint restAuthenticationEntryPoint
+        RestAuthenticationEntryPoint restAuthenticationEntryPoint,
+        @Value("${app.cors.allowed-origins}") String allowedOrigins
     ) {
         this.jwtAutenticacionFiltro = jwtAutenticacionFiltro;
         this.usuarioDetalleServicio = usuarioDetalleServicio;
         this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
+        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .filter(origin -> !origin.isBlank())
+            .toList();
     }
 
     @Bean
@@ -87,12 +96,7 @@ public class SeguridadConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuracion = new CorsConfiguration();
-        configuracion.setAllowedOrigins(List.of(
-            "http://localhost:4200",
-            "http://127.0.0.1:4200",
-            "http://localhost:5100",
-            "http://127.0.0.1:5100"
-        ));
+        configuracion.setAllowedOrigins(allowedOrigins);
         configuracion.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuracion.setAllowedHeaders(List.of("*"));
         configuracion.setAllowCredentials(true);
