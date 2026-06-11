@@ -25,6 +25,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Configuration
 @EnableMethodSecurity
@@ -44,9 +45,16 @@ public class SeguridadConfig {
         this.jwtAutenticacionFiltro = jwtAutenticacionFiltro;
         this.usuarioDetalleServicio = usuarioDetalleServicio;
         this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
-        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
+        this.allowedOrigins = Stream.concat(
+                Arrays.stream(allowedOrigins.split(",")),
+                Stream.of(
+                    "https://front-prod-ml-production.up.railway.app",
+                    "https://*.up.railway.app"
+                )
+            )
             .map(String::trim)
             .filter(origin -> !origin.isBlank())
+            .distinct()
             .toList();
     }
 
