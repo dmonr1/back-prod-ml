@@ -6,6 +6,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -103,7 +104,7 @@ public class CorreoServicioImpl implements CorreoServicio {
         );
 
         try {
-            webClient.post()
+            ResponseEntity<Void> response = webClient.post()
                 .uri(SENDGRID_API_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .headers(headers -> headers.setBearerAuth(apiKey))
@@ -111,6 +112,14 @@ public class CorreoServicioImpl implements CorreoServicio {
                 .retrieve()
                 .toBodilessEntity()
                 .block();
+
+            String messageId = response == null ? "" : response.getHeaders().getFirst("x-message-id");
+            log.info(
+                "Codigo de recuperacion enviado por SendGrid API a {}. status={}, messageId={}",
+                destino,
+                response == null ? "sin-respuesta" : response.getStatusCode(),
+                messageId
+            );
         } catch (RuntimeException ex) {
             log.error("No se pudo enviar el codigo de recuperacion por SendGrid API a {}", destino, ex);
             throw ex;
