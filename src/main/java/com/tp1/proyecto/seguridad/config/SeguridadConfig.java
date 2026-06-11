@@ -1,4 +1,4 @@
-﻿package com.tp1.proyecto.seguridad.config;
+package com.tp1.proyecto.seguridad.config;
 
 import com.tp1.proyecto.seguridad.filtro.JwtAutenticacionFiltro;
 import com.tp1.proyecto.seguridad.servicio.UsuarioDetalleServicio;

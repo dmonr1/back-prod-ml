@@ -1,4 +1,4 @@
-﻿-- =========================================================
+-- =========================================================
 -- SCRIPT MAESTRO LIMPIO
 -- SISTEMA TP1 - MODELO OPERATIVO ACTUAL
 -- PostgreSQL / esquema: db_tp1
