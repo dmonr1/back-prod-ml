@@ -51,7 +51,7 @@ public class SeguridadConfig {
         this.allowedOrigins = Stream.concat(
                 Arrays.stream(allowedOrigins.split(",")),
                 Stream.of(
-                    "https://front-prod-ml-production.up.railway.app",
+                    "https://front-prod-ml-production-b3cd.up.railway.app",
                     "https://*.up.railway.app"
                 )
             )
