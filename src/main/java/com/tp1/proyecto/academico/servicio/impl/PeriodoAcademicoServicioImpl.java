@@ -24,6 +24,7 @@ import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionPeriodoRep
 import com.tp1.proyecto.evaluacion.repositorio.TipoEvaluacionRepositorio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.HashSet;
@@ -121,9 +122,12 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
     }
 
     private void validarPeriodoAcademico(PeriodoAcademicoSolicitudDto solicitud, Long periodoAcademicoActualId) {
-        if (solicitud.getFechaFin().isBefore(solicitud.getFechaInicio())) {
-            throw new ReglaNegocioException("La fecha de fin no puede ser menor que la fecha de inicio");
-        }
+        validarRangoFechas(
+            solicitud.getAnio(),
+            solicitud.getFechaInicio(),
+            solicitud.getFechaFin(),
+            "Las fechas del periodo academico"
+        );
 
         periodoAcademicoRepositorio.findByAnio(solicitud.getAnio())
             .ifPresent(periodoExistente -> {
@@ -157,13 +161,26 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         List<PeriodoEvaluacionInicialSolicitudDto> periodos = solicitud.getPeriodosEvaluacion();
 
         for (PeriodoEvaluacionInicialSolicitudDto periodo : periodos) {
-            if (periodo.getFechaFin().isBefore(periodo.getFechaInicio())) {
-                throw new ReglaNegocioException("La fecha de fin del periodo de evaluacion no puede ser menor que su fecha de inicio");
-            }
+            validarRangoFechas(
+                solicitud.getAnio(),
+                periodo.getFechaInicio(),
+                periodo.getFechaFin(),
+                "Las fechas del periodo de evaluacion"
+            );
 
             if (periodo.getFechaInicio().isBefore(solicitud.getFechaInicio()) || periodo.getFechaFin().isAfter(solicitud.getFechaFin())) {
                 throw new ReglaNegocioException("Los periodos de evaluacion deben estar dentro del periodo academico");
             }
+        }
+    }
+
+    private void validarRangoFechas(Integer anio, LocalDate fechaInicio, LocalDate fechaFin, String contexto) {
+        if (fechaFin.isBefore(fechaInicio)) {
+            throw new ReglaNegocioException(contexto + " deben tener una fecha de fin posterior o igual a la fecha de inicio");
+        }
+
+        if (!anio.equals(fechaInicio.getYear()) || !anio.equals(fechaFin.getYear())) {
+            throw new ReglaNegocioException(contexto + " deben pertenecer al anio academico seleccionado");
         }
     }
 

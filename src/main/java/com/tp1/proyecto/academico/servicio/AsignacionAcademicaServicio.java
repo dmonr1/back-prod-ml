@@ -18,6 +18,8 @@ public interface AsignacionAcademicaServicio {
 
     List<AsignacionDocenteRespuestaDto> listarAsignacionesDocente(Long docenteId, Long periodoAcademicoId);
 
+    AsignacionDocenteRespuestaDto actualizarEstadoAsignacion(Long asignacionId, boolean activo);
+
     List<TutoriaRespuestaDto> listarTutoriasPorPeriodo(Long periodoAcademicoId);
 
     List<TutoriaRespuestaDto> listarTutoriasDocente(Long docenteId, Long periodoAcademicoId);

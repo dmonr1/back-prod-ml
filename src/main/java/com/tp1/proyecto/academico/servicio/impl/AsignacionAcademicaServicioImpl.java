@@ -140,13 +140,15 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             throw new ReglaNegocioException("El curso seleccionado esta deshabilitado para el periodo academico indicado.");
         }
 
-        if (docenteCursoSeccionRepositorio.existsByDocenteIdAndCursoIdAndSeccionIdAndPeriodoAcademicoId(
-            docente.getId(),
+        if (docenteCursoSeccionRepositorio.existsByCursoIdAndSeccionIdAndPeriodoAcademicoIdAndEstado(
             curso.getId(),
             seccion.getId(),
-            periodoAcademico.getId()
+            periodoAcademico.getId(),
+            EstadoRegistro.ACTIVO
         )) {
-            throw new ReglaNegocioException("La asignacion docente ya existe para este curso, seccion y periodo.");
+            throw new ReglaNegocioException(
+                "El curso seleccionado ya tiene un docente asignado para esta seccion y periodo academico."
+            );
         }
 
         DocenteCursoSeccion asignacion = new DocenteCursoSeccion();
@@ -180,6 +182,27 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             .stream()
             .map(this::mapearAsignacion)
             .toList();
+    }
+
+    @Override
+    public AsignacionDocenteRespuestaDto actualizarEstadoAsignacion(Long asignacionId, boolean activo) {
+        DocenteCursoSeccion asignacion = docenteCursoSeccionRepositorio.findById(asignacionId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Asignacion docente no encontrada con id: " + asignacionId));
+
+        if (activo && asignacion.getEstado() != EstadoRegistro.ACTIVO &&
+            docenteCursoSeccionRepositorio.existsByCursoIdAndSeccionIdAndPeriodoAcademicoIdAndEstado(
+            asignacion.getCurso().getId(),
+            asignacion.getSeccion().getId(),
+            asignacion.getPeriodoAcademico().getId(),
+            EstadoRegistro.ACTIVO
+        )) {
+            throw new ReglaNegocioException(
+                "Ya existe un docente activo para este curso, seccion y periodo academico."
+            );
+        }
+
+        asignacion.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
+        return mapearAsignacion(docenteCursoSeccionRepositorio.save(asignacion));
     }
 
     @Override
@@ -241,6 +264,20 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     public TutoriaRespuestaDto actualizarEstadoTutoria(Long tutoriaId, boolean activo) {
         Tutoria tutoria = tutoriaRepositorio.findById(tutoriaId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Tutoria no encontrada con id: " + tutoriaId));
+
+        if (
+            activo &&
+            tutoria.getEstado() != EstadoRegistro.ACTIVO &&
+            tutoriaRepositorio.existsBySeccionIdAndPeriodoAcademicoIdAndEstado(
+                tutoria.getSeccion().getId(),
+                tutoria.getPeriodoAcademico().getId(),
+                EstadoRegistro.ACTIVO
+            )
+        ) {
+            throw new ReglaNegocioException(
+                "Ya existe un docente tutor activo para esta seccion y periodo academico."
+            );
+        }
 
         tutoria.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
         Tutoria guardada = tutoriaRepositorio.save(tutoria);
@@ -389,6 +426,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         dto.setPeriodoAcademicoId(asignacion.getPeriodoAcademico().getId());
         dto.setPeriodoAcademico(asignacion.getPeriodoAcademico().getNombre());
         dto.setAnioAcademico(asignacion.getPeriodoAcademico().getAnio());
+        dto.setEstado(asignacion.getEstado() != null ? asignacion.getEstado().name() : EstadoRegistro.ACTIVO.name());
         return dto;
     }
 

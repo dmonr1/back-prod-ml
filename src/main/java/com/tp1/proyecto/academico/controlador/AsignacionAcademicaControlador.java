@@ -49,6 +49,15 @@ public class AsignacionAcademicaControlador {
         return asignacionAcademicaServicio.listarAsignacionesDocente(docenteId, periodoAcademicoId);
     }
 
+    @PatchMapping("/asignaciones-docente/{asignacionId}/estado")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AsignacionDocenteRespuestaDto actualizarEstadoAsignacion(
+        @PathVariable Long asignacionId,
+        @RequestParam boolean activo
+    ) {
+        return asignacionAcademicaServicio.actualizarEstadoAsignacion(asignacionId, activo);
+    }
+
     @PostMapping("/tutorias")
     @PreAuthorize("hasRole('ADMIN')")
     public TutoriaRespuestaDto crearTutoria(@RequestBody TutoriaSolicitudDto solicitud) {

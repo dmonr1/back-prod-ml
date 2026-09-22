@@ -14,6 +14,7 @@ public class AsignacionDocenteRespuestaDto {
     private Long periodoAcademicoId;
     private String periodoAcademico;
     private Integer anioAcademico;
+    private String estado;
 
     public Long getId() {
         return id;
@@ -109,5 +110,13 @@ public class AsignacionDocenteRespuestaDto {
 
     public void setAnioAcademico(Integer anioAcademico) {
         this.anioAcademico = anioAcademico;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }
