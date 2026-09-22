@@ -72,6 +72,7 @@ public class SeguridadConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(
                     "/api/auth/login",
+                    "/api/auth/recuperacion/buscar-usuario",
                     "/api/auth/recuperacion/solicitar",
                     "/api/auth/recuperacion/verificar",
                     "/api/auth/recuperacion/cambiar-password",

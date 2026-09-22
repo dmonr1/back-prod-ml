@@ -4,6 +4,7 @@ import com.tp1.proyecto.seguridad.dto.CambiarPasswordInicialSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.LoginRespuestaDto;
 import com.tp1.proyecto.seguridad.dto.LoginSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.MensajeRespuestaDto;
+import com.tp1.proyecto.seguridad.dto.RecuperacionBuscarUsuarioRespuestaDto;
 import com.tp1.proyecto.seguridad.dto.RecuperacionCambiarPasswordSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.RecuperacionSolicitarSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.RecuperacionTokenRespuestaDto;
@@ -20,6 +21,8 @@ public interface AuthServicio {
         UsuarioAutenticado usuarioAutenticado,
         CambiarPasswordInicialSolicitudDto solicitud
     );
+
+    RecuperacionBuscarUsuarioRespuestaDto buscarUsuarioRecuperacion(String identificador);
 
     MensajeRespuestaDto solicitarRecuperacion(RecuperacionSolicitarSolicitudDto solicitud);
 

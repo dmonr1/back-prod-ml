@@ -7,6 +7,7 @@ import com.tp1.proyecto.seguridad.dto.CambiarPasswordInicialSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.LoginRespuestaDto;
 import com.tp1.proyecto.seguridad.dto.LoginSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.MensajeRespuestaDto;
+import com.tp1.proyecto.seguridad.dto.RecuperacionBuscarUsuarioRespuestaDto;
 import com.tp1.proyecto.seguridad.dto.RecuperacionCambiarPasswordSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.RecuperacionSolicitarSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.RecuperacionTokenRespuestaDto;
@@ -158,6 +159,22 @@ public class AuthServicioImpl implements AuthServicio {
     }
 
     @Override
+    public RecuperacionBuscarUsuarioRespuestaDto buscarUsuarioRecuperacion(String identificador) {
+        Usuario usuario = usuarioRepositorio.findByUsernameOrCorreo(identificador.trim(), identificador.trim())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado."));
+
+        String correo = valorSeguro(usuario.getCorreo());
+        if (correo.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cuenta no tiene un correo registrado.");
+        }
+
+        RecuperacionBuscarUsuarioRespuestaDto respuesta = new RecuperacionBuscarUsuarioRespuestaDto();
+        respuesta.setMensaje("Usuario encontrado.");
+        respuesta.setCorreoEnmascarado(enmascararCorreo(correo));
+        return respuesta;
+    }
+
+    @Override
     public MensajeRespuestaDto solicitarRecuperacion(RecuperacionSolicitarSolicitudDto solicitud) {
         String identificador = valorSeguro(solicitud.getIdentificador());
         String correo = valorSeguro(solicitud.getCorreo());
@@ -281,6 +298,22 @@ public class AuthServicioImpl implements AuthServicio {
     private String generarCodigoRecuperacion() {
         int numero = ThreadLocalRandom.current().nextInt(100000, 1000000);
         return String.valueOf(numero);
+    }
+
+    private String enmascararCorreo(String correo) {
+        int separador = correo.indexOf('@');
+        if (separador <= 0 || separador == correo.length() - 1) {
+            return "***";
+        }
+
+        String usuario = correo.substring(0, separador);
+        String dominio = correo.substring(separador + 1);
+        String inicioUsuario = usuario.substring(0, Math.min(2, usuario.length()));
+        int puntoDominio = dominio.lastIndexOf('.');
+        String extension = puntoDominio > 0 ? dominio.substring(puntoDominio) : "";
+        String inicioDominio = dominio.substring(0, Math.min(1, puntoDominio > 0 ? puntoDominio : dominio.length()));
+
+        return inicioUsuario + "***@" + inicioDominio + "***" + extension;
     }
 
     private String valorSeguro(String valor) {

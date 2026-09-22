@@ -4,6 +4,8 @@ import com.tp1.proyecto.seguridad.dto.CambiarPasswordInicialSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.LoginRespuestaDto;
 import com.tp1.proyecto.seguridad.dto.LoginSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.MensajeRespuestaDto;
+import com.tp1.proyecto.seguridad.dto.RecuperacionBuscarUsuarioRespuestaDto;
+import com.tp1.proyecto.seguridad.dto.RecuperacionBuscarUsuarioSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.RecuperacionCambiarPasswordSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.RecuperacionSolicitarSolicitudDto;
 import com.tp1.proyecto.seguridad.dto.RecuperacionTokenRespuestaDto;
@@ -42,6 +44,14 @@ public class AuthControlador {
     @ResponseStatus(HttpStatus.OK)
     public MensajeRespuestaDto solicitarRecuperacion(@Valid @RequestBody RecuperacionSolicitarSolicitudDto solicitud) {
         return authServicio.solicitarRecuperacion(solicitud);
+    }
+
+    @PostMapping("/recuperacion/buscar-usuario")
+    @ResponseStatus(HttpStatus.OK)
+    public RecuperacionBuscarUsuarioRespuestaDto buscarUsuarioRecuperacion(
+        @Valid @RequestBody RecuperacionBuscarUsuarioSolicitudDto solicitud
+    ) {
+        return authServicio.buscarUsuarioRecuperacion(solicitud.getIdentificador());
     }
 
     @PostMapping("/recuperacion/verificar")
