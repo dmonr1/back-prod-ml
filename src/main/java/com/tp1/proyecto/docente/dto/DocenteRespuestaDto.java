@@ -1,12 +1,16 @@
 package com.tp1.proyecto.docente.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 public class DocenteRespuestaDto {
 
     private Long id;
     private Long usuarioId;
     private String username;
     private String correo;
-    private String dni;
+    private Long tipoDocumentoId;
+    private String tipoDocumentoCodigo;
+    private String tipoDocumentoNombre;
+    private String numeroDocumento;
     private String nombres;
     private String apellidos;
     private String telefono;
@@ -45,12 +49,42 @@ public class DocenteRespuestaDto {
         this.correo = correo;
     }
 
-    public String getDni() {
-        return dni;
+    public Long getTipoDocumentoId() {
+        return tipoDocumentoId;
     }
 
-    public void setDni(String dni) {
-        this.dni = dni;
+    public void setTipoDocumentoId(Long tipoDocumentoId) {
+        this.tipoDocumentoId = tipoDocumentoId;
+    }
+
+    public String getTipoDocumentoCodigo() {
+        return tipoDocumentoCodigo;
+    }
+
+    public void setTipoDocumentoCodigo(String tipoDocumentoCodigo) {
+        this.tipoDocumentoCodigo = tipoDocumentoCodigo;
+    }
+
+    public String getTipoDocumentoNombre() {
+        return tipoDocumentoNombre;
+    }
+
+    public void setTipoDocumentoNombre(String tipoDocumentoNombre) {
+        this.tipoDocumentoNombre = tipoDocumentoNombre;
+    }
+
+    public String getNumeroDocumento() {
+        return numeroDocumento;
+    }
+
+    public void setNumeroDocumento(String numeroDocumento) {
+        this.numeroDocumento = numeroDocumento;
+    }
+
+    @Deprecated
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    public String getDni() {
+        return numeroDocumento;
     }
 
     public String getNombres() {

@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DocenteRepositorio extends JpaRepository<Docente, Long> {
 
-    Optional<Docente> findByDni(String dni);
+    Optional<Docente> findByTipoDocumentoIdAndNumeroDocumento(Long tipoDocumentoId, String numeroDocumento);
 
     Optional<Docente> findByUsuarioId(Long usuarioId);
 }

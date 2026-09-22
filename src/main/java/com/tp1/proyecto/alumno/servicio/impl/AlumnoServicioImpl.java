@@ -9,6 +9,8 @@ import com.tp1.proyecto.alumno.dto.AlumnoSolicitudDto;
 import com.tp1.proyecto.alumno.entidad.Alumno;
 import com.tp1.proyecto.alumno.repositorio.AlumnoRepositorio;
 import com.tp1.proyecto.alumno.servicio.AlumnoServicio;
+import com.tp1.proyecto.documento.entidad.TipoDocumento;
+import com.tp1.proyecto.documento.servicio.TipoDocumentoServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
 import java.time.LocalDate;
@@ -22,10 +24,16 @@ public class AlumnoServicioImpl implements AlumnoServicio {
 
     private final AlumnoRepositorio alumnoRepositorio;
     private final MatriculaServicio matriculaServicio;
+    private final TipoDocumentoServicio tipoDocumentoServicio;
 
-    public AlumnoServicioImpl(AlumnoRepositorio alumnoRepositorio, MatriculaServicio matriculaServicio) {
+    public AlumnoServicioImpl(
+        AlumnoRepositorio alumnoRepositorio,
+        MatriculaServicio matriculaServicio,
+        TipoDocumentoServicio tipoDocumentoServicio
+    ) {
         this.alumnoRepositorio = alumnoRepositorio;
         this.matriculaServicio = matriculaServicio;
+        this.tipoDocumentoServicio = tipoDocumentoServicio;
     }
 
     @Override
@@ -46,10 +54,14 @@ public class AlumnoServicioImpl implements AlumnoServicio {
     @Override
     public AlumnoRespuestaDto crear(AlumnoSolicitudDto solicitud) {
         solicitud.setCodigo(resolverCodigo(solicitud.getCodigo(), null));
-        validarDuplicados(solicitud.getCodigo(), solicitud.getDni(), null);
+        TipoDocumento tipoDocumento = tipoDocumentoServicio.obtenerTipoDocumentoActivo(solicitud.getTipoDocumentoId());
+        String numeroDocumento = tipoDocumentoServicio.validarNumeroDocumento(
+            tipoDocumento, solicitud.getNumeroDocumento(), false
+        );
+        validarDuplicados(solicitud.getCodigo(), tipoDocumento.getId(), numeroDocumento, null);
 
         Alumno alumno = new Alumno();
-        asignarCampos(alumno, solicitud);
+        asignarCampos(alumno, solicitud, tipoDocumento, numeroDocumento);
 
         return mapearRespuesta(alumnoRepositorio.save(alumno));
     }
@@ -58,9 +70,13 @@ public class AlumnoServicioImpl implements AlumnoServicio {
     public AlumnoRespuestaDto actualizar(Long id, AlumnoSolicitudDto solicitud) {
         Alumno alumno = buscarAlumno(id);
         solicitud.setCodigo(resolverCodigo(solicitud.getCodigo(), alumno.getCodigo()));
-        validarDuplicados(solicitud.getCodigo(), solicitud.getDni(), alumno.getId());
+        TipoDocumento tipoDocumento = tipoDocumentoServicio.obtenerTipoDocumentoActivo(solicitud.getTipoDocumentoId());
+        String numeroDocumento = tipoDocumentoServicio.validarNumeroDocumento(
+            tipoDocumento, solicitud.getNumeroDocumento(), false
+        );
+        validarDuplicados(solicitud.getCodigo(), tipoDocumento.getId(), numeroDocumento, alumno.getId());
 
-        asignarCampos(alumno, solicitud);
+        asignarCampos(alumno, solicitud, tipoDocumento, numeroDocumento);
 
         return mapearRespuesta(alumnoRepositorio.save(alumno));
     }
@@ -69,10 +85,14 @@ public class AlumnoServicioImpl implements AlumnoServicio {
     public MatriculaRespuestaDto crearYMatricular(AlumnoMatriculaSolicitudDto solicitud) {
         AlumnoSolicitudDto alumnoSolicitud = solicitud.getAlumno();
         alumnoSolicitud.setCodigo(resolverCodigo(alumnoSolicitud.getCodigo(), null));
-        validarDuplicados(alumnoSolicitud.getCodigo(), alumnoSolicitud.getDni(), null);
+        TipoDocumento tipoDocumento = tipoDocumentoServicio.obtenerTipoDocumentoActivo(alumnoSolicitud.getTipoDocumentoId());
+        String numeroDocumento = tipoDocumentoServicio.validarNumeroDocumento(
+            tipoDocumento, alumnoSolicitud.getNumeroDocumento(), false
+        );
+        validarDuplicados(alumnoSolicitud.getCodigo(), tipoDocumento.getId(), numeroDocumento, null);
 
         Alumno alumno = new Alumno();
-        asignarCampos(alumno, alumnoSolicitud);
+        asignarCampos(alumno, alumnoSolicitud, tipoDocumento, numeroDocumento);
         Alumno alumnoGuardado = alumnoRepositorio.save(alumno);
 
         MatriculaSolicitudDto matriculaSolicitud = new MatriculaSolicitudDto();
@@ -88,7 +108,12 @@ public class AlumnoServicioImpl implements AlumnoServicio {
             .orElseThrow(() -> new RecursoNoEncontradoException("Alumno no encontrado con id: " + id));
     }
 
-    private void validarDuplicados(String codigo, String dni, Long alumnoActualId) {
+    private void validarDuplicados(
+        String codigo,
+        Long tipoDocumentoId,
+        String numeroDocumento,
+        Long alumnoActualId
+    ) {
         String codigoNormalizado = normalizarTextoOpcional(codigo);
         if (codigoNormalizado != null) {
             alumnoRepositorio.findByCodigo(codigoNormalizado)
@@ -100,12 +125,12 @@ public class AlumnoServicioImpl implements AlumnoServicio {
                 });
         }
 
-        if (dni != null && !dni.trim().isEmpty()) {
-            alumnoRepositorio.findByDni(dni.trim())
+        if (numeroDocumento != null) {
+            alumnoRepositorio.findByTipoDocumentoIdAndNumeroDocumento(tipoDocumentoId, numeroDocumento)
                 .ifPresent(alumnoExistente -> {
                     boolean esOtroAlumno = alumnoActualId == null || !alumnoExistente.getId().equals(alumnoActualId);
                     if (esOtroAlumno) {
-                        throw new ReglaNegocioException("Ya existe un alumno con ese DNI");
+                        throw new ReglaNegocioException("Ya existe un alumno con ese tipo y numero de documento.");
                     }
                 });
         }
@@ -146,9 +171,15 @@ public class AlumnoServicioImpl implements AlumnoServicio {
         }
     }
 
-    private void asignarCampos(Alumno alumno, AlumnoSolicitudDto solicitud) {
+    private void asignarCampos(
+        Alumno alumno,
+        AlumnoSolicitudDto solicitud,
+        TipoDocumento tipoDocumento,
+        String numeroDocumento
+    ) {
         alumno.setCodigo(normalizarTexto(solicitud.getCodigo()));
-        alumno.setDni(normalizarDni(solicitud.getDni()));
+        alumno.setTipoDocumento(tipoDocumento);
+        alumno.setNumeroDocumento(numeroDocumento);
         alumno.setNombres(normalizarTexto(solicitud.getNombres()));
         alumno.setApellidos(normalizarTexto(solicitud.getApellidos()));
         alumno.setFechaNacimiento(solicitud.getFechaNacimiento());
@@ -162,7 +193,12 @@ public class AlumnoServicioImpl implements AlumnoServicio {
         AlumnoRespuestaDto dto = new AlumnoRespuestaDto();
         dto.setId(alumno.getId());
         dto.setCodigo(alumno.getCodigo());
-        dto.setDni(alumno.getDni());
+        dto.setNumeroDocumento(alumno.getNumeroDocumento());
+        if (alumno.getTipoDocumento() != null) {
+            dto.setTipoDocumentoId(alumno.getTipoDocumento().getId());
+            dto.setTipoDocumentoCodigo(alumno.getTipoDocumento().getCodigo());
+            dto.setTipoDocumentoNombre(alumno.getTipoDocumento().getDescripcionCorta());
+        }
         dto.setNombres(alumno.getNombres());
         dto.setApellidos(alumno.getApellidos());
         dto.setFechaNacimiento(alumno.getFechaNacimiento());
@@ -185,10 +221,4 @@ public class AlumnoServicioImpl implements AlumnoServicio {
         return texto.trim().toUpperCase();
     }
 
-    private String normalizarDni(String dni) {
-        if (dni == null || dni.trim().isEmpty()) {
-            return null;
-        }
-        return dni.trim();
-    }
 }

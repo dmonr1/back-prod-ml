@@ -1,11 +1,15 @@
 package com.tp1.proyecto.alumno.entidad;
 
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
+import com.tp1.proyecto.documento.entidad.TipoDocumento;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 
@@ -20,8 +24,12 @@ public class Alumno extends AuditoriaEntidad {
     @Column(name = "codigo", nullable = false, unique = true, length = 30)
     private String codigo;
 
-    @Column(name = "dni", unique = true, length = 8)
-    private String dni;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "tipo_documento_id", nullable = false)
+    private TipoDocumento tipoDocumento;
+
+    @Column(name = "numero_documento", length = 15)
+    private String numeroDocumento;
 
     @Column(name = "nombres", nullable = false, length = 100)
     private String nombres;
@@ -60,12 +68,20 @@ public class Alumno extends AuditoriaEntidad {
         this.codigo = codigo;
     }
 
-    public String getDni() {
-        return dni;
+    public TipoDocumento getTipoDocumento() {
+        return tipoDocumento;
     }
 
-    public void setDni(String dni) {
-        this.dni = dni;
+    public void setTipoDocumento(TipoDocumento tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
+    }
+
+    public String getNumeroDocumento() {
+        return numeroDocumento;
+    }
+
+    public void setNumeroDocumento(String numeroDocumento) {
+        this.numeroDocumento = numeroDocumento;
     }
 
     public String getNombres() {

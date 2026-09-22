@@ -5,6 +5,8 @@ import com.tp1.proyecto.docente.dto.DocenteRespuestaDto;
 import com.tp1.proyecto.docente.entidad.Docente;
 import com.tp1.proyecto.docente.repositorio.DocenteRepositorio;
 import com.tp1.proyecto.docente.servicio.DocenteServicio;
+import com.tp1.proyecto.documento.entidad.TipoDocumento;
+import com.tp1.proyecto.documento.servicio.TipoDocumentoServicio;
 import com.tp1.proyecto.usuario.entidad.Rol;
 import com.tp1.proyecto.usuario.entidad.Usuario;
 import com.tp1.proyecto.usuario.repositorio.RolRepositorio;
@@ -27,17 +29,20 @@ public class DocenteServicioImpl implements DocenteServicio {
     private final UsuarioRepositorio usuarioRepositorio;
     private final RolRepositorio rolRepositorio;
     private final PasswordEncoder passwordEncoder;
+    private final TipoDocumentoServicio tipoDocumentoServicio;
 
     public DocenteServicioImpl(
         DocenteRepositorio docenteRepositorio,
         UsuarioRepositorio usuarioRepositorio,
         RolRepositorio rolRepositorio,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        TipoDocumentoServicio tipoDocumentoServicio
     ) {
         this.docenteRepositorio = docenteRepositorio;
         this.usuarioRepositorio = usuarioRepositorio;
         this.rolRepositorio = rolRepositorio;
         this.passwordEncoder = passwordEncoder;
+        this.tipoDocumentoServicio = tipoDocumentoServicio;
     }
 
     @Override
@@ -51,11 +56,14 @@ public class DocenteServicioImpl implements DocenteServicio {
 
     @Override
     public DocenteRespuestaDto crear(DocenteRegistroSolicitudDto solicitud) {
-        String dni = limpiar(solicitud.getDni());
+        TipoDocumento tipoDocumento = tipoDocumentoServicio.obtenerTipoDocumentoActivo(solicitud.getTipoDocumentoId());
+        String numeroDocumento = tipoDocumentoServicio.validarNumeroDocumento(
+            tipoDocumento, solicitud.getNumeroDocumento(), true
+        );
         String correo = limpiarCorreo(solicitud.getCorreo());
 
-        docenteRepositorio.findByDni(dni).ifPresent(docenteExistente -> {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un docente registrado con ese DNI.");
+        docenteRepositorio.findByTipoDocumentoIdAndNumeroDocumento(tipoDocumento.getId(), numeroDocumento).ifPresent(docenteExistente -> {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un docente registrado con ese documento.");
         });
 
         usuarioRepositorio.findByCorreo(correo).ifPresent(usuarioExistente -> {
@@ -66,16 +74,17 @@ public class DocenteServicioImpl implements DocenteServicio {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No se encontro el rol DOCENTE."));
 
         Usuario usuario = new Usuario();
-        usuario.setUsername(generarUsernameUnico(solicitud, dni));
+        usuario.setUsername(generarUsernameUnico(solicitud, numeroDocumento));
         usuario.setCorreo(correo);
-        usuario.setPasswordHash(passwordEncoder.encode(dni));
+        usuario.setPasswordHash(passwordEncoder.encode(numeroDocumento));
         usuario.setDebeCambiarPassword(true);
         usuario.setRoles(new LinkedHashSet<>(List.of(rolDocente)));
         usuario = usuarioRepositorio.save(usuario);
 
         Docente docente = new Docente();
         docente.setUsuario(usuario);
-        docente.setDni(dni);
+        docente.setTipoDocumento(tipoDocumento);
+        docente.setNumeroDocumento(numeroDocumento);
         docente.setNombres(limpiar(solicitud.getNombres()));
         docente.setApellidos(limpiar(solicitud.getApellidos()));
         docente.setTelefono(limpiarOpcional(solicitud.getTelefono()));
@@ -88,7 +97,12 @@ public class DocenteServicioImpl implements DocenteServicio {
     private DocenteRespuestaDto mapearRespuesta(Docente docente) {
         DocenteRespuestaDto dto = new DocenteRespuestaDto();
         dto.setId(docente.getId());
-        dto.setDni(docente.getDni());
+        dto.setNumeroDocumento(docente.getNumeroDocumento());
+        if (docente.getTipoDocumento() != null) {
+            dto.setTipoDocumentoId(docente.getTipoDocumento().getId());
+            dto.setTipoDocumentoCodigo(docente.getTipoDocumento().getCodigo());
+            dto.setTipoDocumentoNombre(docente.getTipoDocumento().getDescripcionCorta());
+        }
         dto.setNombres(docente.getNombres());
         dto.setApellidos(docente.getApellidos());
         dto.setTelefono(docente.getTelefono());
@@ -104,13 +118,13 @@ public class DocenteServicioImpl implements DocenteServicio {
         return dto;
     }
 
-    private String generarUsernameUnico(DocenteRegistroSolicitudDto solicitud, String dni) {
+    private String generarUsernameUnico(DocenteRegistroSolicitudDto solicitud, String numeroDocumento) {
         String base = normalizarUsername(
             extraerInicial(solicitud.getNombres()) + extraerPrimerApellido(solicitud.getApellidos())
         );
 
         if (base.isBlank()) {
-            base = "docente" + dni;
+            base = "docente" + numeroDocumento;
         }
 
         String candidato = base;

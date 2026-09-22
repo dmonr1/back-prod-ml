@@ -1,5 +1,6 @@
 package com.tp1.proyecto.alumno.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
@@ -10,8 +11,11 @@ public class AlumnoSolicitudDto {
     @Size(max = 30, message = "El codigo no debe exceder 30 caracteres")
     private String codigo;
 
-    @Size(max = 8, message = "El DNI no debe exceder 8 caracteres")
-    private String dni;
+    private Long tipoDocumentoId;
+
+    @Size(max = 15, message = "El numero de documento no debe exceder 15 caracteres")
+    @JsonAlias("dni")
+    private String numeroDocumento;
 
     @NotBlank(message = "Los nombres son obligatorios")
     @Size(max = 100, message = "Los nombres no deben exceder 100 caracteres")
@@ -44,12 +48,20 @@ public class AlumnoSolicitudDto {
         this.codigo = codigo;
     }
 
-    public String getDni() {
-        return dni;
+    public Long getTipoDocumentoId() {
+        return tipoDocumentoId;
     }
 
-    public void setDni(String dni) {
-        this.dni = dni;
+    public void setTipoDocumentoId(Long tipoDocumentoId) {
+        this.tipoDocumentoId = tipoDocumentoId;
+    }
+
+    public String getNumeroDocumento() {
+        return numeroDocumento;
+    }
+
+    public void setNumeroDocumento(String numeroDocumento) {
+        this.numeroDocumento = numeroDocumento;
     }
 
     public String getNombres() {

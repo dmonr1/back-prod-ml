@@ -1,15 +1,20 @@
 package com.tp1.proyecto.docente.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class DocenteRegistroSolicitudDto {
 
+    @NotNull
+    private Long tipoDocumentoId;
+
     @NotBlank
-    @Pattern(regexp = "\\d{8}", message = "El DNI debe tener 8 digitos")
-    private String dni;
+    @Size(max = 15)
+    @JsonAlias("dni")
+    private String numeroDocumento;
 
     @NotBlank
     @Size(max = 100)
@@ -30,12 +35,20 @@ public class DocenteRegistroSolicitudDto {
     @Size(max = 120)
     private String correo;
 
-    public String getDni() {
-        return dni;
+    public Long getTipoDocumentoId() {
+        return tipoDocumentoId;
     }
 
-    public void setDni(String dni) {
-        this.dni = dni;
+    public void setTipoDocumentoId(Long tipoDocumentoId) {
+        this.tipoDocumentoId = tipoDocumentoId;
+    }
+
+    public String getNumeroDocumento() {
+        return numeroDocumento;
+    }
+
+    public void setNumeroDocumento(String numeroDocumento) {
+        this.numeroDocumento = numeroDocumento;
     }
 
     public String getNombres() {
