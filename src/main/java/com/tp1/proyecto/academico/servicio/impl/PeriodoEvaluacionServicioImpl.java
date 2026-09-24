@@ -9,6 +9,7 @@ import com.tp1.proyecto.academico.repositorio.PeriodoAcademicoRepositorio;
 import com.tp1.proyecto.academico.servicio.PeriodoEvaluacionServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import com.tp1.proyecto.seguridad.servicio.PermisoPeriodoServicio;
 import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -20,13 +21,16 @@ public class PeriodoEvaluacionServicioImpl implements PeriodoEvaluacionServicio 
 
     private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final PeriodoAcademicoRepositorio periodoAcademicoRepositorio;
+    private final PermisoPeriodoServicio permisoPeriodoServicio;
 
     public PeriodoEvaluacionServicioImpl(
         PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
-        PeriodoAcademicoRepositorio periodoAcademicoRepositorio
+        PeriodoAcademicoRepositorio periodoAcademicoRepositorio,
+        PermisoPeriodoServicio permisoPeriodoServicio
     ) {
         this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
+        this.permisoPeriodoServicio = permisoPeriodoServicio;
     }
 
     @Override
@@ -46,6 +50,7 @@ public class PeriodoEvaluacionServicioImpl implements PeriodoEvaluacionServicio 
     public PeriodoEvaluacionRespuestaDto crear(PeriodoEvaluacionSolicitudDto solicitud) {
         PeriodoAcademico periodoAcademico = periodoAcademicoRepositorio.findById(solicitud.getPeriodoAcademicoId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Periodo academico no encontrado con id: " + solicitud.getPeriodoAcademicoId()));
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
 
         if (solicitud.getFechaFin().isBefore(solicitud.getFechaInicio())) {
             throw new ReglaNegocioException("La fecha de fin no puede ser menor que la fecha de inicio");

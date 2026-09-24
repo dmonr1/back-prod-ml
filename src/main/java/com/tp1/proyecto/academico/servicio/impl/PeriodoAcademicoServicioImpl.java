@@ -24,6 +24,7 @@ import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionPeriodoRep
 import com.tp1.proyecto.evaluacion.repositorio.TipoEvaluacionRepositorio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import com.tp1.proyecto.seguridad.servicio.PermisoPeriodoServicio;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -43,6 +44,7 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
     private final ConfiguracionEvaluacionPeriodoRepositorio configuracionEvaluacionPeriodoRepositorio;
     private final CursoRepositorio cursoRepositorio;
     private final CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio;
+    private final PermisoPeriodoServicio permisoPeriodoServicio;
 
     public PeriodoAcademicoServicioImpl(
         PeriodoAcademicoRepositorio periodoAcademicoRepositorio,
@@ -50,7 +52,8 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         TipoEvaluacionRepositorio tipoEvaluacionRepositorio,
         ConfiguracionEvaluacionPeriodoRepositorio configuracionEvaluacionPeriodoRepositorio,
         CursoRepositorio cursoRepositorio,
-        CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio
+        CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio,
+        PermisoPeriodoServicio permisoPeriodoServicio
     ) {
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
         this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
@@ -58,6 +61,7 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         this.configuracionEvaluacionPeriodoRepositorio = configuracionEvaluacionPeriodoRepositorio;
         this.cursoRepositorio = cursoRepositorio;
         this.cursoPeriodoAcademicoRepositorio = cursoPeriodoAcademicoRepositorio;
+        this.permisoPeriodoServicio = permisoPeriodoServicio;
     }
 
     @Override
@@ -72,6 +76,7 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
 
     @Override
     public PeriodoAcademicoRespuestaDto crear(PeriodoAcademicoSolicitudDto solicitud) {
+        permisoPeriodoServicio.validarCreacion(solicitud.getAnio());
         validarPeriodoAcademico(solicitud, null);
 
         PeriodoAcademico periodoAcademico = construirPeriodoAcademico(solicitud);
@@ -89,6 +94,7 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
 
     @Override
     public PeriodoAcademicoConPeriodosRespuestaDto crearConPeriodosEvaluacion(PeriodoAcademicoConPeriodosSolicitudDto solicitud) {
+        permisoPeriodoServicio.validarCreacion(solicitud.getAnio());
         validarPeriodoAcademico(solicitud, null);
         validarPeriodosEvaluacion(solicitud);
         validarConfiguracionesEvaluacionDefault(solicitud);
@@ -107,6 +113,7 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         PeriodoAcademicoConPeriodosSolicitudDto solicitud
     ) {
         PeriodoAcademico periodoAcademico = obtenerPeriodoAcademico(periodoAcademicoId);
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
         validarPeriodoAcademico(solicitud, periodoAcademicoId);
         validarPeriodosEvaluacion(solicitud);
         validarConfiguracionesEvaluacionDefault(solicitud);

@@ -139,9 +139,7 @@ public class AuthServicioImpl implements AuthServicio {
         String nuevaPassword = solicitud.getNuevaPassword() == null ? "" : solicitud.getNuevaPassword().trim();
         String confirmarPassword = solicitud.getConfirmarPassword() == null ? "" : solicitud.getConfirmarPassword().trim();
 
-        if (nuevaPassword.length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La nueva password debe tener al menos 8 caracteres.");
-        }
+        validarSeguridadPassword(nuevaPassword);
 
         if (!nuevaPassword.equals(confirmarPassword)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La confirmacion de password no coincide.");
@@ -252,9 +250,7 @@ public class AuthServicioImpl implements AuthServicio {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Primero debes validar el codigo de recuperacion.");
         }
 
-        if (nuevaPassword.length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La nueva contrasena debe tener al menos 8 caracteres.");
-        }
+        validarSeguridadPassword(nuevaPassword);
 
         if (!nuevaPassword.equals(confirmarPassword)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La confirmacion de contrasena no coincide.");
@@ -318,5 +314,20 @@ public class AuthServicioImpl implements AuthServicio {
 
     private String valorSeguro(String valor) {
         return valor == null ? "" : valor.trim();
+    }
+
+    private void validarSeguridadPassword(String password) {
+        boolean cumpleRequisitos = password.length() >= 8
+            && password.matches(".*[A-Z].*")
+            && password.matches(".*[a-z].*")
+            && password.matches(".*\\d.*")
+            && password.matches(".*[^A-Za-z0-9].*");
+
+        if (!cumpleRequisitos) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "La contrasena debe tener al menos 8 caracteres, una mayuscula, una minuscula, un numero y un caracter especial."
+            );
+        }
     }
 }

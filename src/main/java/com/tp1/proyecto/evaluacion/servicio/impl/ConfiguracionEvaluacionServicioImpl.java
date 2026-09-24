@@ -40,6 +40,7 @@ import com.tp1.proyecto.evaluacion.servicio.ConfiguracionEvaluacionServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
 import com.tp1.proyecto.prediccion.servicio.PrediccionRiesgoServicio;
+import com.tp1.proyecto.seguridad.servicio.PermisoPeriodoServicio;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -69,6 +70,7 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
     private final NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio;
     private final MatriculaRepositorio matriculaRepositorio;
     private final PrediccionRiesgoServicio prediccionRiesgoServicio;
+    private final PermisoPeriodoServicio permisoPeriodoServicio;
 
     public ConfiguracionEvaluacionServicioImpl(
         ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio,
@@ -85,7 +87,8 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
         NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio,
         MatriculaRepositorio matriculaRepositorio,
-        PrediccionRiesgoServicio prediccionRiesgoServicio
+        PrediccionRiesgoServicio prediccionRiesgoServicio,
+        PermisoPeriodoServicio permisoPeriodoServicio
     ) {
         this.configuracionEvaluacionRepositorio = configuracionEvaluacionRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
@@ -102,12 +105,14 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         this.notaCursoPeriodoEvaluacionRepositorio = notaCursoPeriodoEvaluacionRepositorio;
         this.matriculaRepositorio = matriculaRepositorio;
         this.prediccionRiesgoServicio = prediccionRiesgoServicio;
+        this.permisoPeriodoServicio = permisoPeriodoServicio;
     }
 
     @Override
     public ConfiguracionEvaluacionRespuestaDto crear(ConfiguracionEvaluacionSolicitudDto solicitud) {
         PeriodoAcademico periodoAcademico = periodoAcademicoRepositorio.findById(solicitud.getPeriodoAcademicoId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Periodo academico no encontrado con id: " + solicitud.getPeriodoAcademicoId()));
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
 
         PeriodoEvaluacion periodoEvaluacion = periodoEvaluacionRepositorio.findById(solicitud.getPeriodoEvaluacionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("PeriodoEvaluacion no encontrado con id: " + solicitud.getPeriodoEvaluacionId()));
@@ -218,6 +223,7 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         ConfiguracionEvaluacionCursoGuardarSolicitudDto solicitud
     ) {
         PeriodoAcademico periodoAcademico = obtenerPeriodoAcademico(solicitud.getPeriodoAcademicoId());
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
         Curso curso = obtenerCursoHabilitado(solicitud.getPeriodoAcademicoId(), solicitud.getCursoId());
         Map<Long, ConfiguracionEvaluacionPeriodo> basePeriodo = configuracionEvaluacionPeriodoRepositorio
             .findByPeriodoAcademicoIdOrderByTipoEvaluacionOrdenAsc(periodoAcademico.getId())

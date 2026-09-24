@@ -4,6 +4,7 @@ import com.tp1.proyecto.usuario.entidad.Usuario;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,8 +16,15 @@ public class UsuarioAutenticado implements UserDetails {
 
     public UsuarioAutenticado(Usuario usuario) {
         this.usuario = usuario;
-        this.authorities = usuario.getRoles().stream()
-            .map(rol -> new SimpleGrantedAuthority("ROLE_" + rol.getNombre()))
+        this.authorities = Stream.concat(
+                usuario.getRoles().stream().map(rol -> rol.getNombre()),
+                usuario.getRoles().stream()
+                    .map(rol -> rol.getNombre())
+                    .filter("DIRECTOR_ACADEMICO"::equals)
+                    .map(rol -> "ADMIN")
+            )
+            .distinct()
+            .map(rol -> new SimpleGrantedAuthority("ROLE_" + rol))
             .collect(Collectors.toList());
     }
 

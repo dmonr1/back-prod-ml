@@ -13,6 +13,7 @@ import com.tp1.proyecto.alumno.entidad.Alumno;
 import com.tp1.proyecto.alumno.repositorio.AlumnoRepositorio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import com.tp1.proyecto.seguridad.servicio.PermisoPeriodoServicio;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -26,17 +27,20 @@ public class MatriculaServicioImpl implements MatriculaServicio {
     private final AlumnoRepositorio alumnoRepositorio;
     private final SeccionRepositorio seccionRepositorio;
     private final PeriodoAcademicoRepositorio periodoAcademicoRepositorio;
+    private final PermisoPeriodoServicio permisoPeriodoServicio;
 
     public MatriculaServicioImpl(
         MatriculaRepositorio matriculaRepositorio,
         AlumnoRepositorio alumnoRepositorio,
         SeccionRepositorio seccionRepositorio,
-        PeriodoAcademicoRepositorio periodoAcademicoRepositorio
+        PeriodoAcademicoRepositorio periodoAcademicoRepositorio,
+        PermisoPeriodoServicio permisoPeriodoServicio
     ) {
         this.matriculaRepositorio = matriculaRepositorio;
         this.alumnoRepositorio = alumnoRepositorio;
         this.seccionRepositorio = seccionRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
+        this.permisoPeriodoServicio = permisoPeriodoServicio;
     }
 
     @Override
@@ -60,6 +64,7 @@ public class MatriculaServicioImpl implements MatriculaServicio {
         Seccion seccion = seccionRepositorio.findById(solicitud.getSeccionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
         PeriodoAcademico periodoAcademico = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
 
         matriculaRepositorio.findByAlumnoIdAndPeriodoAcademicoId(alumno.getId(), periodoAcademico.getId())
             .ifPresent(matriculaExistente -> {

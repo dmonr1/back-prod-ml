@@ -92,15 +92,14 @@ public class CursoServicioImpl implements CursoServicio {
     }
 
     private void validarDuplicado(String nombre, Long nivelId, Long cursoActualId) {
-        cursoRepositorio.findByNombre(normalizarTexto(nombre))
-            .ifPresent(cursoExistente -> {
-                boolean mismoNivel = cursoExistente.getNivel() != null
-                    && cursoExistente.getNivel().getId().equals(nivelId);
-                boolean esOtroCurso = cursoActualId == null || !cursoExistente.getId().equals(cursoActualId);
-                if (mismoNivel && esOtroCurso) {
-                    throw new ReglaNegocioException("Ya existe un curso con ese nombre para el nivel seleccionado");
-                }
-            });
+        String nombreNormalizado = normalizarTexto(nombre);
+        boolean existeOtroCurso = cursoActualId == null
+            ? cursoRepositorio.existsByNombreAndNivelId(nombreNormalizado, nivelId)
+            : cursoRepositorio.existsByNombreAndNivelIdAndIdNot(nombreNormalizado, nivelId, cursoActualId);
+
+        if (existeOtroCurso) {
+            throw new ReglaNegocioException("Ya existe un curso con ese nombre para el nivel seleccionado");
+        }
     }
 
     private CursoRespuestaDto mapearRespuesta(Curso curso) {

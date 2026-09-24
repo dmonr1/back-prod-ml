@@ -7,13 +7,11 @@ import com.tp1.proyecto.academico.dto.TutoriaRespuestaDto;
 import com.tp1.proyecto.academico.dto.TutoriaResumenAcademicoRespuestaDto;
 import com.tp1.proyecto.academico.dto.TutoriaSolicitudDto;
 import com.tp1.proyecto.academico.entidad.Curso;
-import com.tp1.proyecto.academico.entidad.CursoPeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.DocenteCursoSeccion;
 import com.tp1.proyecto.academico.entidad.Matricula;
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.Seccion;
 import com.tp1.proyecto.academico.entidad.Tutoria;
-import com.tp1.proyecto.academico.repositorio.CursoPeriodoAcademicoRepositorio;
 import com.tp1.proyecto.academico.repositorio.CursoRepositorio;
 import com.tp1.proyecto.academico.repositorio.DocenteCursoSeccionRepositorio;
 import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
@@ -40,6 +38,7 @@ import com.tp1.proyecto.evaluacion.repositorio.DetalleNotaEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import com.tp1.proyecto.seguridad.servicio.PermisoPeriodoServicio;
 import com.tp1.proyecto.usuario.entidad.Rol;
 import com.tp1.proyecto.usuario.entidad.Usuario;
 import com.tp1.proyecto.usuario.repositorio.RolRepositorio;
@@ -59,7 +58,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServicio {
 
     private final DocenteRepositorio docenteRepositorio;
-    private final CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio;
     private final CursoRepositorio cursoRepositorio;
     private final SeccionRepositorio seccionRepositorio;
     private final PeriodoAcademicoRepositorio periodoAcademicoRepositorio;
@@ -75,10 +73,10 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
     private final RolRepositorio rolRepositorio;
     private final UsuarioRepositorio usuarioRepositorio;
+    private final PermisoPeriodoServicio permisoPeriodoServicio;
 
     public AsignacionAcademicaServicioImpl(
         DocenteRepositorio docenteRepositorio,
-        CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio,
         CursoRepositorio cursoRepositorio,
         SeccionRepositorio seccionRepositorio,
         PeriodoAcademicoRepositorio periodoAcademicoRepositorio,
@@ -93,10 +91,10 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
         AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
         RolRepositorio rolRepositorio,
-        UsuarioRepositorio usuarioRepositorio
+        UsuarioRepositorio usuarioRepositorio,
+        PermisoPeriodoServicio permisoPeriodoServicio
     ) {
         this.docenteRepositorio = docenteRepositorio;
-        this.cursoPeriodoAcademicoRepositorio = cursoPeriodoAcademicoRepositorio;
         this.cursoRepositorio = cursoRepositorio;
         this.seccionRepositorio = seccionRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
@@ -112,6 +110,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
         this.rolRepositorio = rolRepositorio;
         this.usuarioRepositorio = usuarioRepositorio;
+        this.permisoPeriodoServicio = permisoPeriodoServicio;
     }
 
     @Override
@@ -122,6 +121,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         Seccion seccion = seccionRepositorio.findById(solicitud.getSeccionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
         PeriodoAcademico periodoAcademico = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
 
         if (
             seccion.getPeriodoAcademico() == null ||
@@ -130,14 +130,12 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             throw new ReglaNegocioException("La seccion seleccionada no pertenece al periodo academico indicado.");
         }
 
-        CursoPeriodoAcademico cursoPeriodo = cursoPeriodoAcademicoRepositorio
-            .findByPeriodoAcademicoIdAndCursoId(periodoAcademico.getId(), curso.getId())
-            .orElseThrow(() ->
-                new ReglaNegocioException("El curso seleccionado no esta habilitado para el periodo academico indicado.")
-            );
+        if (curso.getEstado() != EstadoRegistro.ACTIVO) {
+            throw new ReglaNegocioException("El curso seleccionado se encuentra deshabilitado.");
+        }
 
-        if (cursoPeriodo.getEstado() != EstadoRegistro.ACTIVO) {
-            throw new ReglaNegocioException("El curso seleccionado esta deshabilitado para el periodo academico indicado.");
+        if (!curso.getNivel().getId().equals(seccion.getGrado().getNivel().getId())) {
+            throw new ReglaNegocioException("El curso seleccionado no pertenece al nivel de la seccion indicada.");
         }
 
         if (docenteCursoSeccionRepositorio.existsByCursoIdAndSeccionIdAndPeriodoAcademicoIdAndEstado(
@@ -188,6 +186,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     public AsignacionDocenteRespuestaDto actualizarEstadoAsignacion(Long asignacionId, boolean activo) {
         DocenteCursoSeccion asignacion = docenteCursoSeccionRepositorio.findById(asignacionId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Asignacion docente no encontrada con id: " + asignacionId));
+        permisoPeriodoServicio.validarEdicion(asignacion.getPeriodoAcademico());
 
         if (activo && asignacion.getEstado() != EstadoRegistro.ACTIVO &&
             docenteCursoSeccionRepositorio.existsByCursoIdAndSeccionIdAndPeriodoAcademicoIdAndEstado(
@@ -211,6 +210,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         Seccion seccion = seccionRepositorio.findById(solicitud.getSeccionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
         PeriodoAcademico periodoAcademico = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
 
         if (
             seccion.getPeriodoAcademico() == null ||
@@ -264,6 +264,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     public TutoriaRespuestaDto actualizarEstadoTutoria(Long tutoriaId, boolean activo) {
         Tutoria tutoria = tutoriaRepositorio.findById(tutoriaId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Tutoria no encontrada con id: " + tutoriaId));
+        permisoPeriodoServicio.validarEdicion(tutoria.getPeriodoAcademico());
 
         if (
             activo &&
@@ -324,6 +325,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             tutoria.getSeccion().getId(),
             tutoria.getPeriodoAcademico().getId()
         ).stream()
+            .filter(asignacion -> asignacion.getEstado() == EstadoRegistro.ACTIVO)
             .sorted(Comparator.comparing(asignacion -> asignacion.getCurso().getNombre()))
             .toList();
 

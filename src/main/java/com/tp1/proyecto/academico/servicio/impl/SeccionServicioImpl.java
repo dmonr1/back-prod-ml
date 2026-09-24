@@ -13,6 +13,7 @@ import com.tp1.proyecto.academico.servicio.SeccionServicio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import com.tp1.proyecto.seguridad.servicio.PermisoPeriodoServicio;
 import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -25,15 +26,18 @@ public class SeccionServicioImpl implements SeccionServicio {
     private final SeccionRepositorio seccionRepositorio;
     private final GradoRepositorio gradoRepositorio;
     private final PeriodoAcademicoRepositorio periodoAcademicoRepositorio;
+    private final PermisoPeriodoServicio permisoPeriodoServicio;
 
     public SeccionServicioImpl(
         SeccionRepositorio seccionRepositorio,
         GradoRepositorio gradoRepositorio,
-        PeriodoAcademicoRepositorio periodoAcademicoRepositorio
+        PeriodoAcademicoRepositorio periodoAcademicoRepositorio,
+        PermisoPeriodoServicio permisoPeriodoServicio
     ) {
         this.seccionRepositorio = seccionRepositorio;
         this.gradoRepositorio = gradoRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
+        this.permisoPeriodoServicio = permisoPeriodoServicio;
     }
 
     @Override
@@ -59,6 +63,7 @@ public class SeccionServicioImpl implements SeccionServicio {
             .orElseThrow(() -> new RecursoNoEncontradoException("Grado no encontrado con id: " + solicitud.getGradoId()));
         PeriodoAcademico periodoAcademico = periodoAcademicoRepositorio.findById(solicitud.getPeriodoAcademicoId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Periodo academico no encontrado con id: " + solicitud.getPeriodoAcademicoId()));
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
 
         String nombreNormalizado = normalizarTexto(solicitud.getNombre());
         validarReglasSeccion(grado.getId(), periodoAcademico.getId(), nombreNormalizado);
@@ -76,6 +81,7 @@ public class SeccionServicioImpl implements SeccionServicio {
     public List<SeccionRespuestaDto> copiarDesdePeriodoAnterior(SeccionPeriodoAnteriorSolicitudDto solicitud) {
         PeriodoAcademico periodoActual = periodoAcademicoRepositorio.findById(solicitud.getPeriodoAcademicoId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Periodo academico no encontrado con id: " + solicitud.getPeriodoAcademicoId()));
+        permisoPeriodoServicio.validarEdicion(periodoActual);
         Grado grado = gradoRepositorio.findById(solicitud.getGradoId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Grado no encontrado con id: " + solicitud.getGradoId()));
 
@@ -115,6 +121,7 @@ public class SeccionServicioImpl implements SeccionServicio {
     public SeccionRespuestaDto actualizarEstado(Long seccionId, boolean activa) {
         Seccion seccion = seccionRepositorio.findById(seccionId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + seccionId));
+        permisoPeriodoServicio.validarEdicion(seccion.getPeriodoAcademico());
 
         seccion.setEstado(activa ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
         return mapearRespuesta(seccionRepositorio.save(seccion));

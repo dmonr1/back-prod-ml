@@ -13,6 +13,7 @@ import com.tp1.proyecto.academico.servicio.CursoPeriodoAcademicoServicio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import com.tp1.proyecto.seguridad.servicio.PermisoPeriodoServicio;
 import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -25,15 +26,18 @@ public class CursoPeriodoAcademicoServicioImpl implements CursoPeriodoAcademicoS
     private final CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio;
     private final CursoRepositorio cursoRepositorio;
     private final PeriodoAcademicoRepositorio periodoAcademicoRepositorio;
+    private final PermisoPeriodoServicio permisoPeriodoServicio;
 
     public CursoPeriodoAcademicoServicioImpl(
         CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio,
         CursoRepositorio cursoRepositorio,
-        PeriodoAcademicoRepositorio periodoAcademicoRepositorio
+        PeriodoAcademicoRepositorio periodoAcademicoRepositorio,
+        PermisoPeriodoServicio permisoPeriodoServicio
     ) {
         this.cursoPeriodoAcademicoRepositorio = cursoPeriodoAcademicoRepositorio;
         this.cursoRepositorio = cursoRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
+        this.permisoPeriodoServicio = permisoPeriodoServicio;
     }
 
     @Override
@@ -57,6 +61,7 @@ public class CursoPeriodoAcademicoServicioImpl implements CursoPeriodoAcademicoS
     @Override
     public CursoPeriodoAcademicoRespuestaDto crear(CursoPeriodoAcademicoSolicitudDto solicitud) {
         PeriodoAcademico periodoAcademico = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
         Curso curso = cursoRepositorio.findById(solicitud.getCursoId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Curso no encontrado con id: " + solicitud.getCursoId()));
 
@@ -74,6 +79,7 @@ public class CursoPeriodoAcademicoServicioImpl implements CursoPeriodoAcademicoS
     @Override
     public List<CursoPeriodoAcademicoRespuestaDto> copiarDesdePeriodoAnterior(CursoPeriodoAnteriorSolicitudDto solicitud) {
         PeriodoAcademico periodoActual = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
+        permisoPeriodoServicio.validarEdicion(periodoActual);
         PeriodoAcademico periodoAnterior = periodoAcademicoRepositorio.findFirstByAnioLessThanOrderByAnioDesc(periodoActual.getAnio())
             .orElseThrow(() -> new ReglaNegocioException("No existe un periodo academico anterior para copiar cursos."));
 
@@ -112,6 +118,7 @@ public class CursoPeriodoAcademicoServicioImpl implements CursoPeriodoAcademicoS
     public CursoPeriodoAcademicoRespuestaDto actualizarEstado(Long cursoPeriodoAcademicoId, boolean activo) {
         CursoPeriodoAcademico cursoPeriodo = cursoPeriodoAcademicoRepositorio.findById(cursoPeriodoAcademicoId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Curso del periodo no encontrado con id: " + cursoPeriodoAcademicoId));
+        permisoPeriodoServicio.validarEdicion(cursoPeriodo.getPeriodoAcademico());
 
         cursoPeriodo.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
         return mapear(cursoPeriodoAcademicoRepositorio.save(cursoPeriodo));
