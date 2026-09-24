@@ -6,6 +6,9 @@ import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.DocenteCursoSeccionRepositorio;
 import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
+import com.tp1.proyecto.docente.entidad.Docente;
+import com.tp1.proyecto.docente.repositorio.DocenteRepositorio;
+import com.tp1.proyecto.evaluacion.dto.ActualizarFechaEvaluacionSolicitudDto;
 import com.tp1.proyecto.evaluacion.dto.DetalleNotaEvaluacionRespuestaDto;
 import com.tp1.proyecto.evaluacion.dto.DetalleNotaEvaluacionSolicitudDto;
 import com.tp1.proyecto.evaluacion.dto.EvaluacionRespuestaDto;
@@ -25,12 +28,15 @@ import com.tp1.proyecto.evaluacion.servicio.EvaluacionServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
 import com.tp1.proyecto.prediccion.servicio.PrediccionRiesgoServicio;
+import com.tp1.proyecto.seguridad.servicio.UsuarioAutenticado;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDate;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +53,7 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
     private final MatriculaRepositorio matriculaRepositorio;
     private final NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio;
     private final PrediccionRiesgoServicio prediccionRiesgoServicio;
+    private final DocenteRepositorio docenteRepositorio;
 
     public EvaluacionServicioImpl(
         EvaluacionRepositorio evaluacionRepositorio,
@@ -57,7 +64,8 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
         MatriculaRepositorio matriculaRepositorio,
         NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio,
-        PrediccionRiesgoServicio prediccionRiesgoServicio
+        PrediccionRiesgoServicio prediccionRiesgoServicio,
+        DocenteRepositorio docenteRepositorio
     ) {
         this.evaluacionRepositorio = evaluacionRepositorio;
         this.configuracionEvaluacionRepositorio = configuracionEvaluacionRepositorio;
@@ -68,6 +76,7 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         this.matriculaRepositorio = matriculaRepositorio;
         this.notaCursoPeriodoEvaluacionRepositorio = notaCursoPeriodoEvaluacionRepositorio;
         this.prediccionRiesgoServicio = prediccionRiesgoServicio;
+        this.docenteRepositorio = docenteRepositorio;
     }
 
     @Override
@@ -85,6 +94,7 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
             .orElseThrow(() -> new RecursoNoEncontradoException("Tipo de evaluacion no encontrado con id: " + solicitud.getTipoEvaluacionId()));
 
         validarCoherenciaConfiguracion(configuracion, docenteCursoSeccion, periodoEvaluacion.getId(), tipoEvaluacion.getId());
+        validarFechaEvaluacion(solicitud.getFechaEvaluacion(), periodoEvaluacion);
 
         Evaluacion evaluacion = new Evaluacion();
         evaluacion.setConfiguracionEvaluacion(configuracion);
@@ -96,6 +106,29 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         evaluacion.setFechaEvaluacion(solicitud.getFechaEvaluacion());
 
         return mapearEvaluacion(evaluacionRepositorio.save(evaluacion));
+    }
+
+    @Override
+    public EvaluacionRespuestaDto actualizarFecha(
+        Long evaluacionId,
+        ActualizarFechaEvaluacionSolicitudDto solicitud,
+        UsuarioAutenticado actor
+    ) {
+        Evaluacion evaluacion = evaluacionRepositorio.findById(evaluacionId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Evaluación no encontrada con id: " + evaluacionId));
+        validarAccesoEvaluacion(evaluacion, actor);
+        validarFechaEvaluacion(solicitud.getFechaEvaluacion(), evaluacion.getPeriodoEvaluacion());
+        evaluacion.setFechaEvaluacion(solicitud.getFechaEvaluacion());
+        Evaluacion guardada = evaluacionRepositorio.save(evaluacion);
+        if (guardada.getFechaEvaluacion() != null && !guardada.getFechaEvaluacion().isAfter(LocalDate.now())) {
+            matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(
+                guardada.getDocenteCursoSeccion().getSeccion().getId(),
+                guardada.getDocenteCursoSeccion().getPeriodoAcademico().getId()
+            ).forEach(matricula -> prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(
+                matricula.getId(), guardada.getPeriodoEvaluacion().getId()
+            ));
+        }
+        return mapearEvaluacion(guardada);
     }
 
     @Override
@@ -116,6 +149,13 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
     public List<DetalleNotaEvaluacionRespuestaDto> registrarNotas(Long evaluacionId, RegistroNotasEvaluacionSolicitudDto solicitud) {
         Evaluacion evaluacion = evaluacionRepositorio.findById(evaluacionId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Evaluacion no encontrada con id: " + evaluacionId));
+
+        if (evaluacion.getFechaEvaluacion() == null) {
+            throw new ReglaNegocioException("Registra la fecha de la evaluación antes de ingresar notas.");
+        }
+        if (evaluacion.getFechaEvaluacion().isAfter(LocalDate.now())) {
+            throw new ReglaNegocioException("No se pueden registrar notas antes de la fecha programada de evaluación.");
+        }
 
         Map<Long, Matricula> matriculasPorId = new LinkedHashMap<>();
         for (Matricula matricula : matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(
@@ -177,6 +217,29 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         }
         if (!configuracion.getTipoEvaluacion().getId().equals(tipoEvaluacionId)) {
             throw new ReglaNegocioException("El tipo de evaluacion no coincide con la configuracion");
+        }
+    }
+
+    private void validarFechaEvaluacion(
+        LocalDate fecha,
+        com.tp1.proyecto.academico.entidad.PeriodoEvaluacion periodo
+    ) {
+        if (fecha != null && (fecha.isBefore(periodo.getFechaInicio()) || fecha.isAfter(periodo.getFechaFin()))) {
+            throw new ReglaNegocioException("La fecha de evaluación debe estar dentro del período seleccionado.");
+        }
+    }
+
+    private void validarAccesoEvaluacion(Evaluacion evaluacion, UsuarioAutenticado actor) {
+        boolean esAdministrador = actor.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .anyMatch("ROLE_ADMIN"::equals);
+        if (esAdministrador) {
+            return;
+        }
+        Docente docente = docenteRepositorio.findByUsuarioId(actor.getUsuario().getId())
+            .orElseThrow(() -> new ReglaNegocioException("El usuario no está vinculado a un docente."));
+        if (!docente.getId().equals(evaluacion.getDocenteCursoSeccion().getDocente().getId())) {
+            throw new ReglaNegocioException("Solo puedes cambiar fechas de tus propias evaluaciones.");
         }
     }
 

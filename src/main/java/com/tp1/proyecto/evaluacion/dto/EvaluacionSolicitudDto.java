@@ -24,6 +24,7 @@ public class EvaluacionSolicitudDto {
     @NotBlank
     private String nombre;
 
+    @NotNull
     private LocalDate fechaEvaluacion;
 
     public Long getConfiguracionEvaluacionId() {

@@ -25,17 +25,21 @@ public class AlertaSeguimientoControlador {
 
     @GetMapping
     public List<AlertaRespuestaDto> listarAlertas(
-        @RequestParam Long periodoEvaluacionId,
+        @RequestParam(required = false) Long periodoEvaluacionId,
+        @RequestParam(required = false) Long corteSeguimientoId,
         @RequestParam Long seccionId
     ) {
+        if (corteSeguimientoId != null) return alertaSeguimientoServicio.listarAlertasPorCorte(corteSeguimientoId, seccionId);
         return alertaSeguimientoServicio.listarAlertas(periodoEvaluacionId, seccionId);
     }
 
     @GetMapping("/recomendaciones")
     public List<RecomendacionRespuestaDto> listarRecomendaciones(
-        @RequestParam Long periodoEvaluacionId,
+        @RequestParam(required = false) Long periodoEvaluacionId,
+        @RequestParam(required = false) Long corteSeguimientoId,
         @RequestParam Long seccionId
     ) {
+        if (corteSeguimientoId != null) return alertaSeguimientoServicio.listarRecomendacionesPorCorte(corteSeguimientoId, seccionId);
         return alertaSeguimientoServicio.listarRecomendaciones(periodoEvaluacionId, seccionId);
     }
 

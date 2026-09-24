@@ -2,9 +2,23 @@ package com.tp1.proyecto.evaluacion.repositorio;
 
 import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
 import java.util.List;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EvaluacionRepositorio extends JpaRepository<Evaluacion, Long> {
+
+    List<Evaluacion> findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+        Long seccionId,
+        Long periodoAcademicoId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
+    );
+
+    @EntityGraph(attributePaths = {"docenteCursoSeccion.curso", "periodoEvaluacion", "tipoEvaluacion"})
+    List<Evaluacion> findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndFechaEvaluacionIsNullAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+        Long seccionId,
+        Long periodoAcademicoId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
+    );
 
     List<Evaluacion> findByDocenteCursoSeccionId(Long docenteCursoSeccionId);
 

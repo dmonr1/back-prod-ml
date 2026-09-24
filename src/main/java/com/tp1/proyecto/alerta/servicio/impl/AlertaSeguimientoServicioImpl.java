@@ -46,6 +46,20 @@ public class AlertaSeguimientoServicioImpl implements AlertaSeguimientoServicio 
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<AlertaRespuestaDto> listarAlertasPorCorte(Long corteSeguimientoId, Long seccionId) {
+        return alertaRepositorio.findByCorteSeguimientoIdAndSeccionId(corteSeguimientoId, seccionId).stream()
+            .map(this::mapearAlerta).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecomendacionRespuestaDto> listarRecomendacionesPorCorte(Long corteSeguimientoId, Long seccionId) {
+        return recomendacionRepositorio.findByCorteSeguimientoIdAndSeccionId(corteSeguimientoId, seccionId).stream()
+            .map(this::mapearRecomendacion).toList();
+    }
+
+    @Override
     public AlertaRespuestaDto marcarAtendida(Long alertaId) {
         Alerta alerta = alertaRepositorio.findById(alertaId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Alerta no encontrada con id: " + alertaId));

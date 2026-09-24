@@ -20,4 +20,5 @@ public interface PrediccionRiesgoServicio {
     List<PrediccionRiesgoRespuestaDto> listarPrediccionesPorAlumno(Long alumnoId);
 
     ResumenPrediccionDto obtenerResumenPredicciones(Long periodoEvaluacionId, Long seccionId);
+
 }

@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 public class ResumenPrediccionDto {
 
     private Long periodoEvaluacionId;
+    private Long corteSeguimientoId;
+    private Integer semanaCorte;
+    private java.time.LocalDate fechaCorte;
     private Long seccionId;
     private String nivel;
     private String grado;
@@ -22,6 +25,13 @@ public class ResumenPrediccionDto {
     public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
         this.periodoEvaluacionId = periodoEvaluacionId;
     }
+
+    public Long getCorteSeguimientoId() { return corteSeguimientoId; }
+    public void setCorteSeguimientoId(Long corteSeguimientoId) { this.corteSeguimientoId = corteSeguimientoId; }
+    public Integer getSemanaCorte() { return semanaCorte; }
+    public void setSemanaCorte(Integer semanaCorte) { this.semanaCorte = semanaCorte; }
+    public java.time.LocalDate getFechaCorte() { return fechaCorte; }
+    public void setFechaCorte(java.time.LocalDate fechaCorte) { this.fechaCorte = fechaCorte; }
 
     public Long getSeccionId() {
         return seccionId;

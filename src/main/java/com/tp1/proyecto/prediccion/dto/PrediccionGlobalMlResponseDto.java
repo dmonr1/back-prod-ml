@@ -2,6 +2,7 @@ package com.tp1.proyecto.prediccion.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
+import java.time.LocalDate;
 
 public class PrediccionGlobalMlResponseDto {
 
@@ -10,6 +11,13 @@ public class PrediccionGlobalMlResponseDto {
 
     @JsonProperty("periodo_evaluacion_id")
     private Long periodoEvaluacionId;
+
+    @JsonProperty("corte_seguimiento_id")
+    private Long corteSeguimientoId;
+    @JsonProperty("semana_corte")
+    private Integer semanaCorte;
+    @JsonProperty("fecha_corte")
+    private LocalDate fechaCorte;
 
     @JsonProperty("puntaje_riesgo")
     private Double puntajeRiesgo;
@@ -38,6 +46,13 @@ public class PrediccionGlobalMlResponseDto {
     public void setPeriodoEvaluacionId(Long periodoEvaluacionId) {
         this.periodoEvaluacionId = periodoEvaluacionId;
     }
+
+    public Long getCorteSeguimientoId() { return corteSeguimientoId; }
+    public void setCorteSeguimientoId(Long corteSeguimientoId) { this.corteSeguimientoId = corteSeguimientoId; }
+    public Integer getSemanaCorte() { return semanaCorte; }
+    public void setSemanaCorte(Integer semanaCorte) { this.semanaCorte = semanaCorte; }
+    public LocalDate getFechaCorte() { return fechaCorte; }
+    public void setFechaCorte(LocalDate fechaCorte) { this.fechaCorte = fechaCorte; }
 
     public Double getPuntajeRiesgo() {
         return puntajeRiesgo;

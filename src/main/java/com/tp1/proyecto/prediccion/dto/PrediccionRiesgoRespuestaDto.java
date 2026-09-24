@@ -20,6 +20,9 @@ public class PrediccionRiesgoRespuestaDto {
     private Long periodoEvaluacionId;
     private Short numeroPeriodoEvaluacion;
     private String nombrePeriodoEvaluacion;
+    private Long corteSeguimientoId;
+    private Integer semanaCorte;
+    private java.time.LocalDate fechaCorte;
     private BigDecimal puntajeRiesgo;
     private String nivelRiesgo;
     private String modeloVersion;
@@ -145,6 +148,13 @@ public class PrediccionRiesgoRespuestaDto {
     public void setNombrePeriodoEvaluacion(String nombrePeriodoEvaluacion) {
         this.nombrePeriodoEvaluacion = nombrePeriodoEvaluacion;
     }
+
+    public Long getCorteSeguimientoId() { return corteSeguimientoId; }
+    public void setCorteSeguimientoId(Long corteSeguimientoId) { this.corteSeguimientoId = corteSeguimientoId; }
+    public Integer getSemanaCorte() { return semanaCorte; }
+    public void setSemanaCorte(Integer semanaCorte) { this.semanaCorte = semanaCorte; }
+    public java.time.LocalDate getFechaCorte() { return fechaCorte; }
+    public void setFechaCorte(java.time.LocalDate fechaCorte) { this.fechaCorte = fechaCorte; }
 
     public BigDecimal getPuntajeRiesgo() {
         return puntajeRiesgo;

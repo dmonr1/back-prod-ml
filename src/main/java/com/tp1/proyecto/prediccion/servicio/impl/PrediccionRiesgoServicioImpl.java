@@ -12,10 +12,13 @@ import com.tp1.proyecto.alerta.repositorio.RecomendacionRepositorio;
 import com.tp1.proyecto.alerta.servicio.HallazgoDataMiningServicio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
+import com.tp1.proyecto.evaluacion.entidad.AsistenciaSesion;
+import com.tp1.proyecto.evaluacion.enumeracion.EstadoAsistenciaSesion;
 import com.tp1.proyecto.evaluacion.entidad.DetalleNotaEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
 import com.tp1.proyecto.evaluacion.entidad.NotaCursoPeriodoEvaluacion;
 import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.AsistenciaSesionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.DetalleNotaEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.NotaCursoPeriodoEvaluacionRepositorio;
@@ -37,6 +40,7 @@ import com.tp1.proyecto.prediccion.entidad.PrediccionRiesgoCurso;
 import com.tp1.proyecto.prediccion.repositorio.PrediccionRiesgoCursoRepositorio;
 import com.tp1.proyecto.prediccion.repositorio.PrediccionRiesgoRepositorio;
 import com.tp1.proyecto.prediccion.servicio.ClientePrediccionPython;
+import com.tp1.proyecto.prediccion.servicio.CorteSeguimientoPrediccionServicio;
 import com.tp1.proyecto.prediccion.servicio.PrediccionRiesgoServicio;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -61,6 +65,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
     private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio;
     private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
+    private final AsistenciaSesionRepositorio asistenciaSesionRepositorio;
     private final EvaluacionRepositorio evaluacionRepositorio;
     private final DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio;
     private final NotaRepositorio notaRepositorio;
@@ -71,6 +76,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
     private final RecomendacionRepositorio recomendacionRepositorio;
     private final HallazgoDataMiningServicio hallazgoDataMiningServicio;
     private final ClientePrediccionPython clientePrediccionPython;
+    private final CorteSeguimientoPrediccionServicio corteSeguimientoPrediccionServicio;
     private final ObjectMapper objectMapper;
 
     public PrediccionRiesgoServicioImpl(
@@ -78,6 +84,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio,
         AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
+        AsistenciaSesionRepositorio asistenciaSesionRepositorio,
         EvaluacionRepositorio evaluacionRepositorio,
         DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
         NotaRepositorio notaRepositorio,
@@ -88,12 +95,14 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         RecomendacionRepositorio recomendacionRepositorio,
         HallazgoDataMiningServicio hallazgoDataMiningServicio,
         ClientePrediccionPython clientePrediccionPython,
+        CorteSeguimientoPrediccionServicio corteSeguimientoPrediccionServicio,
         ObjectMapper objectMapper
     ) {
         this.matriculaRepositorio = matriculaRepositorio;
         this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.notaCursoPeriodoEvaluacionRepositorio = notaCursoPeriodoEvaluacionRepositorio;
         this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
+        this.asistenciaSesionRepositorio = asistenciaSesionRepositorio;
         this.evaluacionRepositorio = evaluacionRepositorio;
         this.detalleNotaEvaluacionRepositorio = detalleNotaEvaluacionRepositorio;
         this.notaRepositorio = notaRepositorio;
@@ -104,6 +113,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         this.recomendacionRepositorio = recomendacionRepositorio;
         this.hallazgoDataMiningServicio = hallazgoDataMiningServicio;
         this.clientePrediccionPython = clientePrediccionPython;
+        this.corteSeguimientoPrediccionServicio = corteSeguimientoPrediccionServicio;
         this.objectMapper = objectMapper;
     }
 
@@ -164,6 +174,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     @Override
     public void generarPrediccionGlobalPorMatricula(Long matriculaId, Long periodoEvaluacionId) {
+        corteSeguimientoPrediccionServicio.actualizarPorMatricula(matriculaId);
         Matricula matricula = matriculaRepositorio.findById(matriculaId)
             .orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada: " + matriculaId));
 
@@ -328,9 +339,15 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         int cantidadCursosA = (int) notas.stream().filter(nota -> esCategoriaA(nota.getNota())).count();
         int cantidadCursosAd = (int) notas.stream().filter(nota -> esCategoriaAd(nota.getNota())).count();
 
-        int clasesProgramadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
-        int clasesAsistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
-        double porcentajeAsistencia = calcularPorcentajeAsistencia(clasesProgramadas, clasesAsistidas);
+        List<AsistenciaSesion> sesiones = asistenciaSesionRepositorio.findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
+            matricula.getId(), cargaExcel.getPeriodoEvaluacion().getId(), EstadoRegistro.ACTIVO
+        );
+        ResumenAsistencia resumen = sesiones.isEmpty()
+            ? ResumenAsistencia.desdeConsolidado(asistencia)
+            : resumirAsistencia(sesiones, null);
+        int clasesProgramadas = resumen.clasesProgramadas();
+        int clasesAsistidas = resumen.clasesAsistidas();
+        double porcentajeAsistencia = resumen.porcentaje();
 
         PrediccionGlobalMlRequestDto global = new PrediccionGlobalMlRequestDto();
         global.setMatriculaId(matricula.getId());
@@ -406,9 +423,15 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             }
         }
 
-        int clasesProgramadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
-        int clasesAsistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
-        double porcentajeAsistencia = calcularPorcentajeAsistencia(clasesProgramadas, clasesAsistidas);
+        List<AsistenciaSesion> sesiones = asistenciaSesionRepositorio.findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
+            matricula.getId(), periodoEvaluacionId, EstadoRegistro.ACTIVO
+        );
+        ResumenAsistencia resumen = sesiones.isEmpty()
+            ? ResumenAsistencia.desdeConsolidado(asistencia)
+            : resumirAsistencia(sesiones, null);
+        int clasesProgramadas = resumen.clasesProgramadas();
+        int clasesAsistidas = resumen.clasesAsistidas();
+        double porcentajeAsistencia = resumen.porcentaje();
 
         PrediccionGlobalMlRequestDto global = new PrediccionGlobalMlRequestDto();
         global.setMatriculaId(matricula.getId());
@@ -434,7 +457,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         request.setModeloVersion("v3-fracaso");
         request.setGlobalFeatures(global);
         request.setCourseFeatures(
-            construirFeaturesCurso(matricula, periodoEvaluacionId, notas, promedio.doubleValue(), cursosDesaprobados, porcentajeAsistencia, metricasPorCurso)
+            construirFeaturesCurso(matricula, periodoEvaluacionId, notas, promedio.doubleValue(), cursosDesaprobados, porcentajeAsistencia, metricasPorCurso, sesiones)
         );
         return request;
     }
@@ -446,7 +469,8 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         Double promedioGeneral,
         Integer cursosDesaprobados,
         Double porcentajeAsistencia,
-        Map<Long, MetricasCursoDetalle> metricasPorCurso
+        Map<Long, MetricasCursoDetalle> metricasPorCurso,
+        List<AsistenciaSesion> sesiones
     ) {
         List<PrediccionCursoMlDto> courseFeatures = new ArrayList<>();
         for (NotaCursoPeriodoEvaluacion nota : notas) {
@@ -463,7 +487,11 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             dto.setNotaCurso(nota.getPromedioCurso().doubleValue());
             dto.setPromedioGeneral(promedioGeneral);
             dto.setCantidadCursosDesaprobados(cursosDesaprobados);
-            dto.setPorcentajeAsistencia(porcentajeAsistencia);
+            ResumenAsistencia asistenciaCurso = sesiones.stream()
+                .anyMatch(item -> item.getAsignacion().getCurso().getId().equals(nota.getCurso().getId()))
+                ? resumirAsistencia(sesiones, nota.getCurso().getId())
+                : new ResumenAsistencia(0, 0, porcentajeAsistencia);
+            dto.setPorcentajeAsistencia(asistenciaCurso.porcentaje());
             dto.setCantidadEvaluacionesRegistradas(
                 nota.getCantidadEvaluacionesRegistradas() != null ? nota.getCantidadEvaluacionesRegistradas() : 0
             );
@@ -719,6 +747,26 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         }
     }
 
+    private ResumenAsistencia resumirAsistencia(List<AsistenciaSesion> sesiones, Long cursoId) {
+        Map<String, EstadoAsistenciaSesion> estadoPorSesion = new HashMap<>();
+        for (AsistenciaSesion sesion : sesiones) {
+            if (cursoId != null && !cursoId.equals(sesion.getAsignacion().getCurso().getId())) {
+                continue;
+            }
+            String claveProgramacion = sesion.getHorarioSemanal() != null
+                ? "horario:" + sesion.getHorarioSemanal().getId()
+                : "asignacion:" + sesion.getAsignacion().getId();
+            estadoPorSesion.put(claveProgramacion + ":" + sesion.getFechaClase(), sesion.getEstadoAsistencia());
+        }
+
+        int programadas = (int) estadoPorSesion.values().stream()
+            .filter(estado -> estado != EstadoAsistenciaSesion.JUSTIFICADO).count();
+        int asistidas = (int) estadoPorSesion.values().stream()
+            .filter(estado -> estado == EstadoAsistenciaSesion.PRESENTE || estado == EstadoAsistenciaSesion.TARDANZA)
+            .count();
+        return new ResumenAsistencia(programadas, asistidas, calcularPorcentajeAsistencia(programadas, asistidas));
+    }
+
     private double calcularPorcentajeAsistencia(int clasesProgramadas, int clasesAsistidas) {
         if (clasesProgramadas == 0) {
             return 0.0;
@@ -727,6 +775,42 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             .multiply(BigDecimal.valueOf(100))
             .divide(BigDecimal.valueOf(clasesProgramadas), 2, RoundingMode.HALF_UP)
             .doubleValue();
+    }
+
+    private static final class ResumenAsistencia {
+        private final int clasesProgramadas;
+        private final int clasesAsistidas;
+        private final double porcentaje;
+
+        private ResumenAsistencia(int clasesProgramadas, int clasesAsistidas, double porcentaje) {
+            this.clasesProgramadas = clasesProgramadas;
+            this.clasesAsistidas = clasesAsistidas;
+            this.porcentaje = porcentaje;
+        }
+
+        private int clasesProgramadas() { return clasesProgramadas; }
+        private int clasesAsistidas() { return clasesAsistidas; }
+        private double porcentaje() { return porcentaje; }
+
+        private static ResumenAsistencia desdeConsolidado(AsistenciaPeriodoEvaluacion asistencia) {
+            int programadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
+            int asistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
+            double porcentaje = programadas == 0 ? 0.0 : BigDecimal.valueOf(asistidas)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(programadas), 2, RoundingMode.HALF_UP)
+                .doubleValue();
+            return new ResumenAsistencia(programadas, asistidas, porcentaje);
+        }
+
+        private static ResumenAsistencia desdeConsolidado(Asistencia asistencia) {
+            int programadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
+            int asistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
+            double porcentaje = programadas == 0 ? 0.0 : BigDecimal.valueOf(asistidas)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(programadas), 2, RoundingMode.HALF_UP)
+                .doubleValue();
+            return new ResumenAsistencia(programadas, asistidas, porcentaje);
+        }
     }
 
     private PrediccionRiesgoRespuestaDto mapearRespuestaGlobal(PrediccionRiesgo prediccion) {

@@ -14,6 +14,10 @@ public class PeriodoAcademicoConPeriodosSolicitudDto extends PeriodoAcademicoSol
     @NotEmpty(message = "Debes registrar al menos una configuracion de evaluacion")
     private List<ConfiguracionEvaluacionDefaultSolicitudDto> configuracionesEvaluacionDefault;
 
+    @Valid
+    @NotEmpty(message = "Debes configurar al menos un corte semanal de seguimiento")
+    private List<CorteSeguimientoSolicitudDto> cortesSeguimiento;
+
     private List<Long> cursosIds;
 
     private Boolean copiarCursosPeriodoAnterior;
@@ -35,6 +39,9 @@ public class PeriodoAcademicoConPeriodosSolicitudDto extends PeriodoAcademicoSol
     ) {
         this.configuracionesEvaluacionDefault = configuracionesEvaluacionDefault;
     }
+
+    public List<CorteSeguimientoSolicitudDto> getCortesSeguimiento() { return cortesSeguimiento; }
+    public void setCortesSeguimiento(List<CorteSeguimientoSolicitudDto> cortesSeguimiento) { this.cortesSeguimiento = cortesSeguimiento; }
 
     public List<Long> getCursosIds() {
         return cursosIds;

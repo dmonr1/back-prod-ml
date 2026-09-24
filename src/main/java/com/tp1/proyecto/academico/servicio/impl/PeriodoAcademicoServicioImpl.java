@@ -7,12 +7,16 @@ import com.tp1.proyecto.academico.dto.PeriodoAcademicoSolicitudDto;
 import com.tp1.proyecto.academico.dto.PeriodoEvaluacionInicialSolicitudDto;
 import com.tp1.proyecto.academico.dto.PeriodoEvaluacionRespuestaDto;
 import com.tp1.proyecto.academico.dto.ConfiguracionEvaluacionDefaultSolicitudDto;
+import com.tp1.proyecto.academico.dto.CorteSeguimientoRespuestaDto;
+import com.tp1.proyecto.academico.dto.CorteSeguimientoSolicitudDto;
+import com.tp1.proyecto.academico.entidad.CorteSeguimiento;
 import com.tp1.proyecto.academico.dto.CursoPeriodoAcademicoRespuestaDto;
 import com.tp1.proyecto.academico.entidad.Curso;
 import com.tp1.proyecto.academico.entidad.CursoPeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.repositorio.CursoPeriodoAcademicoRepositorio;
+import com.tp1.proyecto.academico.repositorio.CorteSeguimientoRepositorio;
 import com.tp1.proyecto.academico.repositorio.CursoRepositorio;
 import com.tp1.proyecto.academico.repositorio.PeriodoAcademicoRepositorio;
 import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
@@ -44,6 +48,7 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
     private final ConfiguracionEvaluacionPeriodoRepositorio configuracionEvaluacionPeriodoRepositorio;
     private final CursoRepositorio cursoRepositorio;
     private final CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio;
+    private final CorteSeguimientoRepositorio corteSeguimientoRepositorio;
     private final PermisoPeriodoServicio permisoPeriodoServicio;
 
     public PeriodoAcademicoServicioImpl(
@@ -53,6 +58,7 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         ConfiguracionEvaluacionPeriodoRepositorio configuracionEvaluacionPeriodoRepositorio,
         CursoRepositorio cursoRepositorio,
         CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio,
+        CorteSeguimientoRepositorio corteSeguimientoRepositorio,
         PermisoPeriodoServicio permisoPeriodoServicio
     ) {
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
@@ -61,6 +67,7 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         this.configuracionEvaluacionPeriodoRepositorio = configuracionEvaluacionPeriodoRepositorio;
         this.cursoRepositorio = cursoRepositorio;
         this.cursoPeriodoAcademicoRepositorio = cursoPeriodoAcademicoRepositorio;
+        this.corteSeguimientoRepositorio = corteSeguimientoRepositorio;
         this.permisoPeriodoServicio = permisoPeriodoServicio;
     }
 
@@ -97,10 +104,12 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         permisoPeriodoServicio.validarCreacion(solicitud.getAnio());
         validarPeriodoAcademico(solicitud, null);
         validarPeriodosEvaluacion(solicitud);
+        validarCortesSeguimiento(solicitud);
         validarConfiguracionesEvaluacionDefault(solicitud);
 
         PeriodoAcademico periodoAcademico = periodoAcademicoRepositorio.save(construirPeriodoAcademico(solicitud));
         sincronizarPeriodosEvaluacion(periodoAcademico, solicitud);
+        sincronizarCortesSeguimiento(periodoAcademico, solicitud);
         sincronizarConfiguracionesEvaluacionPeriodo(periodoAcademico, solicitud.getConfiguracionesEvaluacionDefault());
         sincronizarCursosPeriodoAcademico(periodoAcademico, solicitud);
 
@@ -116,12 +125,14 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         permisoPeriodoServicio.validarEdicion(periodoAcademico);
         validarPeriodoAcademico(solicitud, periodoAcademicoId);
         validarPeriodosEvaluacion(solicitud);
+        validarCortesSeguimiento(solicitud);
         validarConfiguracionesEvaluacionDefault(solicitud);
 
         actualizarPeriodoAcademico(periodoAcademico, solicitud);
         periodoAcademicoRepositorio.save(periodoAcademico);
 
         sincronizarPeriodosEvaluacion(periodoAcademico, solicitud);
+        sincronizarCortesSeguimiento(periodoAcademico, solicitud);
         sincronizarConfiguracionesEvaluacionPeriodo(periodoAcademico, solicitud.getConfiguracionesEvaluacionDefault());
         sincronizarCursosPeriodoAcademico(periodoAcademico, solicitud);
 
@@ -177,6 +188,21 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
 
             if (periodo.getFechaInicio().isBefore(solicitud.getFechaInicio()) || periodo.getFechaFin().isAfter(solicitud.getFechaFin())) {
                 throw new ReglaNegocioException("Los periodos de evaluacion deben estar dentro del periodo academico");
+            }
+        }
+    }
+
+    private void validarCortesSeguimiento(PeriodoAcademicoConPeriodosSolicitudDto solicitud) {
+        Set<Integer> semanas = new HashSet<>();
+        for (CorteSeguimientoSolicitudDto corte : solicitud.getCortesSeguimiento()) {
+            if (!semanas.add(corte.getSemana())) {
+                throw new ReglaNegocioException("No puedes repetir una semana de corte de seguimiento.");
+            }
+            LocalDate inicioSemana = solicitud.getFechaInicio().plusWeeks(corte.getSemana() - 1L);
+            LocalDate finSemana = inicioSemana.plusDays(6);
+            if (inicioSemana.isAfter(solicitud.getFechaFin()) || corte.getFechaCorte().isBefore(inicioSemana)
+                || corte.getFechaCorte().isAfter(finSemana) || corte.getFechaCorte().isAfter(solicitud.getFechaFin())) {
+                throw new ReglaNegocioException("La fecha del corte debe estar dentro de la semana configurada y del período académico.");
             }
         }
     }
@@ -292,6 +318,35 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
             });
 
         periodoEvaluacionRepositorio.saveAll(aGuardar);
+    }
+
+    private void sincronizarCortesSeguimiento(
+        PeriodoAcademico periodoAcademico,
+        PeriodoAcademicoConPeriodosSolicitudDto solicitud
+    ) {
+        Map<Integer, CorteSeguimiento> existentes = corteSeguimientoRepositorio
+            .findByPeriodoAcademicoIdAndEstadoOrderBySemanaAsc(periodoAcademico.getId(), EstadoRegistro.ACTIVO)
+            .stream().collect(java.util.stream.Collectors.toMap(CorteSeguimiento::getSemana, corte -> corte));
+        Set<Integer> semanasSolicitadas = new HashSet<>();
+        List<CorteSeguimiento> guardar = new java.util.ArrayList<>();
+
+        for (CorteSeguimientoSolicitudDto item : solicitud.getCortesSeguimiento()) {
+            semanasSolicitadas.add(item.getSemana());
+            CorteSeguimiento corte = existentes.get(item.getSemana());
+            if (corte == null) {
+                corte = new CorteSeguimiento();
+                corte.setPeriodoAcademico(periodoAcademico);
+                corte.setSemana(item.getSemana());
+            }
+            corte.setFechaCorte(item.getFechaCorte());
+            corte.setEstado(EstadoRegistro.ACTIVO);
+            guardar.add(corte);
+        }
+
+        existentes.values().stream()
+            .filter(corte -> !semanasSolicitadas.contains(corte.getSemana()))
+            .forEach(corte -> { corte.setEstado(EstadoRegistro.INACTIVO); guardar.add(corte); });
+        corteSeguimientoRepositorio.saveAll(guardar);
     }
 
     private void sincronizarConfiguracionesEvaluacionPeriodo(
@@ -431,7 +486,21 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
                 .map(this::mapearCursoPeriodo)
                 .toList()
         );
+        respuesta.setCortesSeguimiento(
+            corteSeguimientoRepositorio.findByPeriodoAcademicoIdAndEstadoOrderBySemanaAsc(
+                periodoAcademico.getId(), EstadoRegistro.ACTIVO
+            ).stream().map(this::mapearCorteSeguimiento).toList()
+        );
         return respuesta;
+    }
+
+    private CorteSeguimientoRespuestaDto mapearCorteSeguimiento(CorteSeguimiento corte) {
+        CorteSeguimientoRespuestaDto dto = new CorteSeguimientoRespuestaDto();
+        dto.setId(corte.getId());
+        dto.setPeriodoAcademicoId(corte.getPeriodoAcademico().getId());
+        dto.setSemana(corte.getSemana());
+        dto.setFechaCorte(corte.getFechaCorte());
+        return dto;
     }
 
     private PeriodoAcademicoRespuestaDto mapearRespuesta(PeriodoAcademico periodoAcademico) {

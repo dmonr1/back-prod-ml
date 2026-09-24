@@ -10,5 +10,9 @@ public interface AlertaSeguimientoServicio {
 
     List<RecomendacionRespuestaDto> listarRecomendaciones(Long periodoEvaluacionId, Long seccionId);
 
+    List<AlertaRespuestaDto> listarAlertasPorCorte(Long corteSeguimientoId, Long seccionId);
+
+    List<RecomendacionRespuestaDto> listarRecomendacionesPorCorte(Long corteSeguimientoId, Long seccionId);
+
     AlertaRespuestaDto marcarAtendida(Long alertaId);
 }

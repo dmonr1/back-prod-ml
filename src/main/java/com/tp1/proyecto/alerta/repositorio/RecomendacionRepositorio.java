@@ -34,4 +34,12 @@ public interface RecomendacionRepositorio extends JpaRepository<Recomendacion, L
         nativeQuery = true
     )
     List<Recomendacion> findByPeriodoEvaluacionIdAndSeccionId(@Param("periodoEvaluacionId") Long periodoEvaluacionId, @Param("seccionId") Long seccionId);
+
+    @Query(value = "SELECT r.* FROM db_tp1.recomendaciones r " +
+        "LEFT JOIN db_tp1.predicciones_riesgo_global pg ON pg.id = r.prediccion_global_id " +
+        "LEFT JOIN db_tp1.predicciones_riesgo_curso pc ON pc.id = r.prediccion_curso_id " +
+        "JOIN db_tp1.matriculas m ON m.id = r.matricula_id " +
+        "WHERE (pg.corte_seguimiento_id = :corteId OR pc.corte_seguimiento_id = :corteId) " +
+        "AND m.seccion_id = :seccionId ORDER BY r.fecha_registro DESC", nativeQuery = true)
+    List<Recomendacion> findByCorteSeguimientoIdAndSeccionId(@Param("corteId") Long corteId, @Param("seccionId") Long seccionId);
 }

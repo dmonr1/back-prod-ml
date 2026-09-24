@@ -1,6 +1,7 @@
 package com.tp1.proyecto.prediccion.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.LocalDate;
 
 public class PrediccionCursoMlDto {
 
@@ -15,6 +16,13 @@ public class PrediccionCursoMlDto {
 
     @JsonProperty("periodo_evaluacion_id")
     private Long periodoEvaluacionId;
+
+    @JsonProperty("corte_seguimiento_id")
+    private Long corteSeguimientoId;
+    @JsonProperty("semana_corte")
+    private Integer semanaCorte;
+    @JsonProperty("fecha_corte")
+    private LocalDate fechaCorte;
 
     @JsonProperty("nota_curso")
     private Double notaCurso;
@@ -66,6 +74,12 @@ public class PrediccionCursoMlDto {
     public void setCursoNombre(String cursoNombre) { this.cursoNombre = cursoNombre; }
     public Long getPeriodoEvaluacionId() { return periodoEvaluacionId; }
     public void setPeriodoEvaluacionId(Long periodoEvaluacionId) { this.periodoEvaluacionId = periodoEvaluacionId; }
+    public Long getCorteSeguimientoId() { return corteSeguimientoId; }
+    public void setCorteSeguimientoId(Long corteSeguimientoId) { this.corteSeguimientoId = corteSeguimientoId; }
+    public Integer getSemanaCorte() { return semanaCorte; }
+    public void setSemanaCorte(Integer semanaCorte) { this.semanaCorte = semanaCorte; }
+    public LocalDate getFechaCorte() { return fechaCorte; }
+    public void setFechaCorte(LocalDate fechaCorte) { this.fechaCorte = fechaCorte; }
     public Double getNotaCurso() { return notaCurso; }
     public void setNotaCurso(Double notaCurso) { this.notaCurso = notaCurso; }
     public Double getPromedioGeneral() { return promedioGeneral; }

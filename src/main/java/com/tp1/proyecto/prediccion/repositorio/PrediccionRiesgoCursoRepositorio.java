@@ -12,4 +12,10 @@ public interface PrediccionRiesgoCursoRepositorio extends JpaRepository<Predicci
     List<PrediccionRiesgoCurso> findByMatriculaIdAndPeriodoEvaluacionId(Long matriculaId, Long periodoEvaluacionId);
 
     List<PrediccionRiesgoCurso> findByPeriodoEvaluacionIdAndMatriculaSeccionId(Long periodoEvaluacionId, Long seccionId);
+
+    Optional<PrediccionRiesgoCurso> findByMatriculaIdAndCursoIdAndCorteSeguimientoId(
+        Long matriculaId, Long cursoId, Long corteSeguimientoId
+    );
+
+    List<PrediccionRiesgoCurso> findByCorteSeguimientoIdAndMatriculaSeccionId(Long corteSeguimientoId, Long seccionId);
 }

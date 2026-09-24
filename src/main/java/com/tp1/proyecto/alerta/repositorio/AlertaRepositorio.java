@@ -31,4 +31,8 @@ public interface AlertaRepositorio extends JpaRepository<Alerta, Long> {
         "ORDER BY a.fechaRegistro DESC"
     )
     List<Alerta> findByPeriodoEvaluacionIdAndSeccionId(@Param("periodoEvaluacionId") Long periodoEvaluacionId, @Param("seccionId") Long seccionId);
+
+    @Query("SELECT a FROM Alerta a WHERE ((a.prediccionGlobal.corteSeguimiento.id = :corteId) OR " +
+        "(a.prediccionCurso.corteSeguimiento.id = :corteId)) AND a.matricula.seccion.id = :seccionId ORDER BY a.fechaRegistro DESC")
+    List<Alerta> findByCorteSeguimientoIdAndSeccionId(@Param("corteId") Long corteId, @Param("seccionId") Long seccionId);
 }
