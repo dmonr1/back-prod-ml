@@ -54,10 +54,11 @@ public class PreparacionCorteServicio {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Corte de seguimiento no encontrado."));
         Long periodoId = corte.getPeriodoAcademico().getId();
         LocalDate fechaCorte = corte.getFechaCorte();
-        String periodoEvaluacion = periodos.findByPeriodoAcademicoId(periodoId).stream()
+        PeriodoEvaluacion periodoActual = periodos.findByPeriodoAcademicoId(periodoId).stream()
             .filter(p -> p.getEstado() == EstadoRegistro.ACTIVO)
             .filter(p -> !fechaCorte.isBefore(p.getFechaInicio()) && !fechaCorte.isAfter(p.getFechaFin()))
-            .findFirst().map(PeriodoEvaluacion::getNombre).orElse(null);
+            .findFirst().orElse(null);
+        String periodoEvaluacion = periodoActual == null ? null : periodoActual.getNombre();
 
         Set<Long> matriculaIds = new HashSet<>();
         matriculas.findBySeccionIdAndPeriodoAcademicoId(seccionId, periodoId).stream()
@@ -65,9 +66,12 @@ public class PreparacionCorteServicio {
             .forEach(m -> matriculaIds.add(m.getId()));
 
         var configuradas = evaluaciones
-            .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
-                seccionId, periodoId, EstadoRegistro.ACTIVO);
-        int sinFecha = (int) configuradas.stream().filter(e -> e.getFechaEvaluacion() == null).count();
+            .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndDocenteCursoSeccionEstadoAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+                seccionId, periodoId, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO);
+        int sinFecha = (int) configuradas.stream()
+            .filter(e -> periodoActual != null && e.getPeriodoEvaluacion().getId().equals(periodoActual.getId()))
+            .filter(e -> e.getFechaEvaluacion() == null)
+            .count();
         var alCorte = configuradas.stream()
             .filter(e -> e.getFechaEvaluacion() != null && !e.getFechaEvaluacion().isAfter(fechaCorte)).toList();
         var evaluacionIds = alCorte.stream().map(Evaluacion::getId).toList();

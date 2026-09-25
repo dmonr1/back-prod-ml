@@ -19,6 +19,8 @@ public class RegistroAsistenciaSesionSolicitudDto {
     @NotNull
     private LocalDate fechaClase;
 
+    private String motivoEdicion;
+
     @Valid
     @NotEmpty
     private List<AsistenciaSesionItemSolicitudDto> asistencias;
@@ -31,6 +33,8 @@ public class RegistroAsistenciaSesionSolicitudDto {
     public void setPeriodoEvaluacionId(Long periodoEvaluacionId) { this.periodoEvaluacionId = periodoEvaluacionId; }
     public LocalDate getFechaClase() { return fechaClase; }
     public void setFechaClase(LocalDate fechaClase) { this.fechaClase = fechaClase; }
+    public String getMotivoEdicion() { return motivoEdicion; }
+    public void setMotivoEdicion(String motivoEdicion) { this.motivoEdicion = motivoEdicion; }
     public List<AsistenciaSesionItemSolicitudDto> getAsistencias() { return asistencias; }
     public void setAsistencias(List<AsistenciaSesionItemSolicitudDto> asistencias) { this.asistencias = asistencias; }
 }

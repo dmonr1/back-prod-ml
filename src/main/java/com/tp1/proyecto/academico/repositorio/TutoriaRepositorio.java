@@ -17,6 +17,10 @@ public interface TutoriaRepositorio extends JpaRepository<Tutoria, Long> {
 
     boolean existsByDocenteIdAndEstado(Long docenteId, EstadoRegistro estado);
 
+    boolean existsByDocenteIdAndSeccionIdAndPeriodoAcademicoIdAndEstado(
+        Long docenteId, Long seccionId, Long periodoAcademicoId, EstadoRegistro estado
+    );
+
     boolean existsBySeccionIdAndPeriodoAcademicoIdAndEstado(
         Long seccionId,
         Long periodoAcademicoId,

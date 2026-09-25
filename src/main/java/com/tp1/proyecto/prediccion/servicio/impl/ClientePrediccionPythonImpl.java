@@ -7,6 +7,7 @@ import com.tp1.proyecto.prediccion.servicio.ClientePrediccionPython;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
@@ -37,6 +38,12 @@ public class ClientePrediccionPythonImpl implements ClientePrediccionPython {
                 .retrieve()
                 .bodyToMono(PrediccionMlResponseDto.class)
                 .block();
+        } catch (WebClientResponseException ex) {
+            String detalle = ex.getResponseBodyAsString();
+            throw new ReglaNegocioException(
+                "El servicio Python rechazó la predicción (HTTP " + ex.getStatusCode().value() + "): "
+                    + (detalle.isBlank() ? ex.getMessage() : detalle)
+            );
         } catch (Exception ex) {
             throw new ReglaNegocioException("No se pudo obtener respuesta del servicio Python: " + ex.getMessage());
         }

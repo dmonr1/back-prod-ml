@@ -7,10 +7,24 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EvaluacionRepositorio extends JpaRepository<Evaluacion, Long> {
 
+    @EntityGraph(attributePaths = {"docenteCursoSeccion.docente.usuario", "docenteCursoSeccion.curso",
+        "docenteCursoSeccion.seccion.grado", "docenteCursoSeccion.periodoAcademico", "periodoEvaluacion", "tipoEvaluacion"})
+    List<Evaluacion> findByDocenteCursoSeccionEstadoAndEstadoAndFechaEvaluacionIsNotNull(
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estadoAsignacion,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estadoEvaluacion
+    );
+
     List<Evaluacion> findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
         Long seccionId,
         Long periodoAcademicoId,
         com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
+    );
+
+    List<Evaluacion> findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndDocenteCursoSeccionEstadoAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+        Long seccionId,
+        Long periodoAcademicoId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estadoAsignacion,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estadoEvaluacion
     );
 
     @EntityGraph(attributePaths = {"docenteCursoSeccion.curso", "periodoEvaluacion", "tipoEvaluacion"})
@@ -18,6 +32,23 @@ public interface EvaluacionRepositorio extends JpaRepository<Evaluacion, Long> {
         Long seccionId,
         Long periodoAcademicoId,
         com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
+    );
+
+    @EntityGraph(attributePaths = {"docenteCursoSeccion.curso", "periodoEvaluacion", "tipoEvaluacion"})
+    List<Evaluacion> findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndPeriodoEvaluacionIdAndFechaEvaluacionIsNullAndEstadoOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+        Long seccionId,
+        Long periodoAcademicoId,
+        Long periodoEvaluacionId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
+    );
+
+    @EntityGraph(attributePaths = {"docenteCursoSeccion.curso", "periodoEvaluacion", "tipoEvaluacion"})
+    List<Evaluacion> findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndDocenteCursoSeccionEstadoAndPeriodoEvaluacionIdAndFechaEvaluacionIsNullAndEstadoOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+        Long seccionId,
+        Long periodoAcademicoId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estadoAsignacion,
+        Long periodoEvaluacionId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estadoEvaluacion
     );
 
     List<Evaluacion> findByDocenteCursoSeccionId(Long docenteCursoSeccionId);

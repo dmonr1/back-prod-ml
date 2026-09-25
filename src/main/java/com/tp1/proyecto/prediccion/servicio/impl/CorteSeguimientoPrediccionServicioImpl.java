@@ -112,10 +112,14 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
     private int recalcularCorte(CorteSeguimiento corte, Long seccionId, Long soloMatriculaId, boolean rechazarSinFechas) {
         if (corte.getFechaCorte().isAfter(java.time.LocalDate.now())) return 0;
         List<Evaluacion> configuradas = evaluacionRepositorio
-            .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
-                seccionId, corte.getPeriodoAcademico().getId(), EstadoRegistro.ACTIVO
+            .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndDocenteCursoSeccionEstadoAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+                seccionId, corte.getPeriodoAcademico().getId(), EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO
             );
-        List<Evaluacion> pendientes = configuradas.stream().filter(e -> e.getFechaEvaluacion() == null).toList();
+        List<Evaluacion> pendientes = configuradas.stream()
+            .filter(e -> !corte.getFechaCorte().isBefore(e.getPeriodoEvaluacion().getFechaInicio())
+                && !corte.getFechaCorte().isAfter(e.getPeriodoEvaluacion().getFechaFin()))
+            .filter(e -> e.getFechaEvaluacion() == null)
+            .toList();
         if (!pendientes.isEmpty()) {
             if (!rechazarSinFechas) return 0;
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -123,7 +127,9 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         }
 
         List<Evaluacion> evaluacionesAlCorte = configuradas.stream()
-            .filter(e -> !e.getFechaEvaluacion().isAfter(corte.getFechaCorte())).toList();
+            .filter(e -> e.getFechaEvaluacion() != null
+                && !e.getFechaEvaluacion().isAfter(corte.getFechaCorte()))
+            .toList();
         List<Long> evaluacionIds = evaluacionesAlCorte.stream().map(Evaluacion::getId).toList();
         List<Matricula> matriculas = matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(
             seccionId, corte.getPeriodoAcademico().getId()
@@ -312,8 +318,8 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
 
     private com.tp1.proyecto.academico.entidad.Curso detalleCurso(Long cursoId, Matricula matricula, CorteSeguimiento corte) {
         return evaluacionRepositorio
-            .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
-                matricula.getSeccion().getId(), corte.getPeriodoAcademico().getId(), EstadoRegistro.ACTIVO)
+            .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndDocenteCursoSeccionEstadoAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+                matricula.getSeccion().getId(), corte.getPeriodoAcademico().getId(), EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO)
             .stream().map(e -> e.getDocenteCursoSeccion().getCurso()).filter(c -> c.getId().equals(cursoId)).findFirst()
             .orElseThrow(() -> new IllegalStateException("No se encontró el curso asociado a la predicción."));
     }

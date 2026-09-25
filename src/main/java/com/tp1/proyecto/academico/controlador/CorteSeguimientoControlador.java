@@ -4,6 +4,7 @@ import com.tp1.proyecto.academico.dto.CorteSeguimientoRespuestaDto;
 import com.tp1.proyecto.academico.dto.PreparacionCorteRespuestaDto;
 import com.tp1.proyecto.academico.entidad.CorteSeguimiento;
 import com.tp1.proyecto.academico.repositorio.CorteSeguimientoRepositorio;
+import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.servicio.PreparacionCorteServicio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.evaluacion.dto.EvaluacionPendienteFechaRespuestaDto;
@@ -24,17 +25,20 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
 public class CorteSeguimientoControlador {
     private final CorteSeguimientoRepositorio corteRepositorio;
+    private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final EvaluacionRepositorio evaluacionRepositorio;
     private final CorteSeguimientoPrediccionServicio prediccionServicio;
     private final PreparacionCorteServicio preparacionServicio;
 
     public CorteSeguimientoControlador(
         CorteSeguimientoRepositorio corteRepositorio,
+        PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         EvaluacionRepositorio evaluacionRepositorio,
         CorteSeguimientoPrediccionServicio prediccionServicio,
         PreparacionCorteServicio preparacionServicio
     ) {
         this.corteRepositorio = corteRepositorio;
+        this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.evaluacionRepositorio = evaluacionRepositorio;
         this.prediccionServicio = prediccionServicio;
         this.preparacionServicio = preparacionServicio;
@@ -53,9 +57,14 @@ public class CorteSeguimientoControlador {
     ) {
         CorteSeguimiento corte = corteRepositorio.findById(corteId)
             .orElseThrow(() -> new IllegalArgumentException("Corte de seguimiento no encontrado."));
+        var periodo = periodoEvaluacionRepositorio.findByPeriodoAcademicoId(corte.getPeriodoAcademico().getId()).stream()
+            .filter(p -> p.getEstado() == EstadoRegistro.ACTIVO)
+            .filter(p -> !corte.getFechaCorte().isBefore(p.getFechaInicio()) && !corte.getFechaCorte().isAfter(p.getFechaFin()))
+            .findFirst();
+        if (periodo.isEmpty()) return List.of();
         return evaluacionRepositorio
-            .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndFechaEvaluacionIsNullAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
-                seccionId, corte.getPeriodoAcademico().getId(), EstadoRegistro.ACTIVO
+            .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndDocenteCursoSeccionEstadoAndPeriodoEvaluacionIdAndFechaEvaluacionIsNullAndEstadoOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+                seccionId, corte.getPeriodoAcademico().getId(), EstadoRegistro.ACTIVO, periodo.get().getId(), EstadoRegistro.ACTIVO
             ).stream().map(this::mapearPendiente).toList();
     }
 

@@ -196,13 +196,18 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         Set<Integer> semanas = new HashSet<>();
         for (CorteSeguimientoSolicitudDto corte : solicitud.getCortesSeguimiento()) {
             if (!semanas.add(corte.getSemana())) {
-                throw new ReglaNegocioException("No puedes repetir una semana de corte de seguimiento.");
+                throw new ReglaNegocioException("Cada semana de corte debe configurarse una sola vez; el sistema la repetirá en cada período de evaluación.");
             }
-            LocalDate inicioSemana = solicitud.getFechaInicio().plusWeeks(corte.getSemana() - 1L);
-            LocalDate finSemana = inicioSemana.plusDays(6);
-            if (inicioSemana.isAfter(solicitud.getFechaFin()) || corte.getFechaCorte().isBefore(inicioSemana)
-                || corte.getFechaCorte().isAfter(finSemana) || corte.getFechaCorte().isAfter(solicitud.getFechaFin())) {
-                throw new ReglaNegocioException("La fecha del corte debe estar dentro de la semana configurada y del período académico.");
+
+            if (corte.getSemana() == null || corte.getSemana() < 1) {
+                throw new ReglaNegocioException("La semana de cada corte debe ser un número mayor que cero.");
+            }
+            for (PeriodoEvaluacionInicialSolicitudDto periodo : solicitud.getPeriodosEvaluacion()) {
+                LocalDate fechaFinSemana = periodo.getFechaInicio().plusWeeks(corte.getSemana()).minusDays(1);
+                if (fechaFinSemana.isAfter(periodo.getFechaFin())) {
+                    throw new ReglaNegocioException("La semana " + corte.getSemana()
+                        + " no existe dentro de " + periodo.getNombre() + "; ajusta la semana o las fechas del período.");
+                }
             }
         }
     }
@@ -324,29 +329,39 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         PeriodoAcademico periodoAcademico,
         PeriodoAcademicoConPeriodosSolicitudDto solicitud
     ) {
-        Map<Integer, CorteSeguimiento> existentes = corteSeguimientoRepositorio
+        Map<String, CorteSeguimiento> existentes = corteSeguimientoRepositorio
             .findByPeriodoAcademicoIdAndEstadoOrderBySemanaAsc(periodoAcademico.getId(), EstadoRegistro.ACTIVO)
-            .stream().collect(java.util.stream.Collectors.toMap(CorteSeguimiento::getSemana, corte -> corte));
-        Set<Integer> semanasSolicitadas = new HashSet<>();
+            .stream().collect(java.util.stream.Collectors.toMap(
+                corte -> claveCorte(corte.getSemana(), corte.getFechaCorte()), corte -> corte, (primero, duplicado) -> primero
+            ));
+        Set<String> clavesSolicitadas = new HashSet<>();
         List<CorteSeguimiento> guardar = new java.util.ArrayList<>();
 
         for (CorteSeguimientoSolicitudDto item : solicitud.getCortesSeguimiento()) {
-            semanasSolicitadas.add(item.getSemana());
-            CorteSeguimiento corte = existentes.get(item.getSemana());
-            if (corte == null) {
-                corte = new CorteSeguimiento();
-                corte.setPeriodoAcademico(periodoAcademico);
-                corte.setSemana(item.getSemana());
+            for (PeriodoEvaluacionInicialSolicitudDto periodo : solicitud.getPeriodosEvaluacion()) {
+                LocalDate fechaCorte = periodo.getFechaInicio().plusWeeks(item.getSemana()).minusDays(1);
+                String clave = claveCorte(item.getSemana(), fechaCorte);
+                clavesSolicitadas.add(clave);
+                CorteSeguimiento corte = existentes.get(clave);
+                if (corte == null) {
+                    corte = new CorteSeguimiento();
+                    corte.setPeriodoAcademico(periodoAcademico);
+                    corte.setSemana(item.getSemana());
+                }
+                corte.setFechaCorte(fechaCorte);
+                corte.setEstado(EstadoRegistro.ACTIVO);
+                guardar.add(corte);
             }
-            corte.setFechaCorte(item.getFechaCorte());
-            corte.setEstado(EstadoRegistro.ACTIVO);
-            guardar.add(corte);
         }
 
         existentes.values().stream()
-            .filter(corte -> !semanasSolicitadas.contains(corte.getSemana()))
+            .filter(corte -> !clavesSolicitadas.contains(claveCorte(corte.getSemana(), corte.getFechaCorte())))
             .forEach(corte -> { corte.setEstado(EstadoRegistro.INACTIVO); guardar.add(corte); });
         corteSeguimientoRepositorio.saveAll(guardar);
+    }
+
+    private String claveCorte(Integer semana, LocalDate fechaCorte) {
+        return semana + "|" + fechaCorte;
     }
 
     private void sincronizarConfiguracionesEvaluacionPeriodo(

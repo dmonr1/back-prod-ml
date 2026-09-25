@@ -1,6 +1,7 @@
 package com.tp1.proyecto.prediccion.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDate;
 
 public class PrediccionCursoMlDto {
@@ -22,6 +23,7 @@ public class PrediccionCursoMlDto {
     @JsonProperty("semana_corte")
     private Integer semanaCorte;
     @JsonProperty("fecha_corte")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate fechaCorte;
 
     @JsonProperty("nota_curso")
@@ -55,16 +57,16 @@ public class PrediccionCursoMlDto {
     private Double notaExamenPrincipal;
 
     @JsonProperty("cantidad_notas_c")
-    private Integer cantidadNotasC;
+    private Integer cantidadNotasC = 0;
 
     @JsonProperty("cantidad_notas_b")
-    private Integer cantidadNotasB;
+    private Integer cantidadNotasB = 0;
 
     @JsonProperty("cantidad_notas_a")
-    private Integer cantidadNotasA;
+    private Integer cantidadNotasA = 0;
 
     @JsonProperty("cantidad_notas_ad")
-    private Integer cantidadNotasAd;
+    private Integer cantidadNotasAd = 0;
 
     public Long getMatriculaId() { return matriculaId; }
     public void setMatriculaId(Long matriculaId) { this.matriculaId = matriculaId; }
@@ -101,11 +103,11 @@ public class PrediccionCursoMlDto {
     public Double getNotaExamenPrincipal() { return notaExamenPrincipal; }
     public void setNotaExamenPrincipal(Double notaExamenPrincipal) { this.notaExamenPrincipal = notaExamenPrincipal; }
     public Integer getCantidadNotasC() { return cantidadNotasC; }
-    public void setCantidadNotasC(Integer cantidadNotasC) { this.cantidadNotasC = cantidadNotasC; }
+    public void setCantidadNotasC(Integer cantidadNotasC) { this.cantidadNotasC = cantidadNotasC == null ? 0 : cantidadNotasC; }
     public Integer getCantidadNotasB() { return cantidadNotasB; }
-    public void setCantidadNotasB(Integer cantidadNotasB) { this.cantidadNotasB = cantidadNotasB; }
+    public void setCantidadNotasB(Integer cantidadNotasB) { this.cantidadNotasB = cantidadNotasB == null ? 0 : cantidadNotasB; }
     public Integer getCantidadNotasA() { return cantidadNotasA; }
-    public void setCantidadNotasA(Integer cantidadNotasA) { this.cantidadNotasA = cantidadNotasA; }
+    public void setCantidadNotasA(Integer cantidadNotasA) { this.cantidadNotasA = cantidadNotasA == null ? 0 : cantidadNotasA; }
     public Integer getCantidadNotasAd() { return cantidadNotasAd; }
-    public void setCantidadNotasAd(Integer cantidadNotasAd) { this.cantidadNotasAd = cantidadNotasAd; }
+    public void setCantidadNotasAd(Integer cantidadNotasAd) { this.cantidadNotasAd = cantidadNotasAd == null ? 0 : cantidadNotasAd; }
 }

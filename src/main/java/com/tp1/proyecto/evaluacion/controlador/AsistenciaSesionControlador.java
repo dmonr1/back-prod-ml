@@ -1,15 +1,18 @@
 package com.tp1.proyecto.evaluacion.controlador;
 
 import com.tp1.proyecto.evaluacion.dto.AsistenciaSesionRespuestaDto;
+import com.tp1.proyecto.evaluacion.dto.EstadoAsistenciaSesionResumenDto;
 import com.tp1.proyecto.evaluacion.dto.RegistroAsistenciaSesionSolicitudDto;
 import com.tp1.proyecto.evaluacion.servicio.AsistenciaSesionServicio;
 import com.tp1.proyecto.seguridad.servicio.UsuarioAutenticado;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,5 +47,23 @@ public class AsistenciaSesionControlador {
         @AuthenticationPrincipal UsuarioAutenticado actor
     ) {
         return asistenciaSesionServicio.registrar(solicitud, actor);
+    }
+
+    @PutMapping
+    public List<AsistenciaSesionRespuestaDto> editar(
+        @Valid @RequestBody RegistroAsistenciaSesionSolicitudDto solicitud,
+        @AuthenticationPrincipal UsuarioAutenticado actor
+    ) {
+        return asistenciaSesionServicio.editar(solicitud, actor);
+    }
+
+    @GetMapping("/resumen")
+    public List<EstadoAsistenciaSesionResumenDto> resumir(
+        @RequestParam Collection<Long> asignacionIds,
+        @RequestParam LocalDate desde,
+        @RequestParam LocalDate hasta,
+        @AuthenticationPrincipal UsuarioAutenticado actor
+    ) {
+        return asistenciaSesionServicio.resumir(asignacionIds, desde, hasta, actor);
     }
 }

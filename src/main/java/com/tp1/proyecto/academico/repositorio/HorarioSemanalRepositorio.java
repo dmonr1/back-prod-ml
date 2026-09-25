@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface HorarioSemanalRepositorio extends JpaRepository<HorarioSemanal, Long> {
+    List<HorarioSemanal> findByEstado(com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado);
     List<HorarioSemanal> findByAsignacionPeriodoAcademicoIdAndEstado(Long periodoAcademicoId, EstadoRegistro estado);
     List<HorarioSemanal> findByBloquePeriodoAcademicoIdAndEstado(Long periodoAcademicoId, EstadoRegistro estado);
     List<HorarioSemanal> findByBloqueIdAndEstado(Long bloqueId, EstadoRegistro estado);

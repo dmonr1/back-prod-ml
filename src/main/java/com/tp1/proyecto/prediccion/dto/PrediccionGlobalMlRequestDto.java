@@ -1,6 +1,7 @@
 package com.tp1.proyecto.prediccion.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDate;
 
 public class PrediccionGlobalMlRequestDto {
@@ -16,6 +17,7 @@ public class PrediccionGlobalMlRequestDto {
     @JsonProperty("semana_corte")
     private Integer semanaCorte;
     @JsonProperty("fecha_corte")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate fechaCorte;
 
     @JsonProperty("promedio_general")
