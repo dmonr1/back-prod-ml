@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.GrantedAuthority;
 
 @RestController
 @RequestMapping("/api/horarios")
@@ -38,6 +39,12 @@ public class HorarioAcademicoControlador {
         @RequestParam Long nivelId
     ) {
         return servicio.listarBloques(periodoAcademicoId, nivelId);
+    }
+
+    @GetMapping("/bloques/recreos")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
+    public List<BloqueHorarioRespuestaDto> listarRecreos(@RequestParam Long periodoAcademicoId) {
+        return servicio.listarRecreos(periodoAcademicoId);
     }
 
     @PostMapping("/bloques")
@@ -78,11 +85,38 @@ public class HorarioAcademicoControlador {
         return servicio.listarMios(periodoAcademicoId, principal.getUsuario().getId());
     }
 
+    @GetMapping("/seccion/{seccionId}")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE_TUTOR')")
+    public List<HorarioSemanalRespuestaDto> listarPorSeccion(
+        @PathVariable Long seccionId,
+        @RequestParam Long periodoAcademicoId,
+        @AuthenticationPrincipal UsuarioAutenticado principal
+    ) {
+        boolean accesoInstitucional = principal.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .anyMatch("ROLE_ADMIN"::equals);
+        return servicio.listarPorSeccion(
+            seccionId,
+            periodoAcademicoId,
+            principal.getUsuario().getId(),
+            accesoInstitucional
+        );
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
     public HorarioSemanalRespuestaDto crear(@Valid @RequestBody HorarioSemanalSolicitudDto solicitud) {
         return servicio.crearHorario(solicitud);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public HorarioSemanalRespuestaDto actualizar(
+        @PathVariable Long id,
+        @Valid @RequestBody HorarioSemanalSolicitudDto solicitud
+    ) {
+        return servicio.actualizarHorario(id, solicitud);
     }
 
     @PatchMapping("/{id}/estado")

@@ -15,12 +15,15 @@ import com.tp1.proyecto.academico.repositorio.DocenteCursoSeccionRepositorio;
 import com.tp1.proyecto.academico.repositorio.HorarioSemanalRepositorio;
 import com.tp1.proyecto.academico.repositorio.NivelRepositorio;
 import com.tp1.proyecto.academico.repositorio.PeriodoAcademicoRepositorio;
+import com.tp1.proyecto.academico.repositorio.TutoriaRepositorio;
 import com.tp1.proyecto.academico.servicio.HorarioAcademicoServicio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.docente.entidad.Docente;
 import com.tp1.proyecto.docente.repositorio.DocenteRepositorio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
+import java.time.Duration;
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -35,6 +38,7 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
     private final PeriodoAcademicoRepositorio periodoRepositorio;
     private final NivelRepositorio nivelRepositorio;
     private final DocenteRepositorio docenteRepositorio;
+    private final TutoriaRepositorio tutoriaRepositorio;
 
     public HorarioAcademicoServicioImpl(
         BloqueHorarioRepositorio bloqueRepositorio,
@@ -42,7 +46,8 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         DocenteCursoSeccionRepositorio asignacionRepositorio,
         PeriodoAcademicoRepositorio periodoRepositorio,
         NivelRepositorio nivelRepositorio,
-        DocenteRepositorio docenteRepositorio
+        DocenteRepositorio docenteRepositorio,
+        TutoriaRepositorio tutoriaRepositorio
     ) {
         this.bloqueRepositorio = bloqueRepositorio;
         this.horarioRepositorio = horarioRepositorio;
@@ -50,6 +55,7 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         this.periodoRepositorio = periodoRepositorio;
         this.nivelRepositorio = nivelRepositorio;
         this.docenteRepositorio = docenteRepositorio;
+        this.tutoriaRepositorio = tutoriaRepositorio;
     }
 
     @Override
@@ -57,6 +63,15 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
     public List<BloqueHorarioRespuestaDto> listarBloques(Long periodoId, Long nivelId) {
         return bloqueRepositorio.findByPeriodoAcademicoIdAndNivelIdAndEstadoOrderByOrdenAsc(
             periodoId, nivelId, EstadoRegistro.ACTIVO
+        ).stream().map(this::mapearBloque).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BloqueHorarioRespuestaDto> listarRecreos(Long periodoId) {
+        obtenerPeriodo(periodoId);
+        return bloqueRepositorio.findByPeriodoAcademicoIdAndEsRecreoTrueAndEstadoOrderByHoraInicioAsc(
+            periodoId, EstadoRegistro.ACTIVO
         ).stream().map(this::mapearBloque).toList();
     }
 
@@ -124,38 +139,73 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<HorarioSemanalRespuestaDto> listarPorSeccion(
+        Long seccionId,
+        Long periodoId,
+        Long usuarioId,
+        boolean accesoInstitucional
+    ) {
+        obtenerPeriodo(periodoId);
+        if (!accesoInstitucional) {
+            Docente docente = docenteRepositorio.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("El usuario no tiene un perfil docente vinculado."));
+            boolean esTutor = tutoriaRepositorio.existsByDocenteIdAndSeccionIdAndPeriodoAcademicoIdAndEstado(
+                docente.getId(), seccionId, periodoId, EstadoRegistro.ACTIVO
+            );
+            if (!esTutor) {
+                throw new ReglaNegocioException("No tienes permiso para consultar el horario de esta sección.");
+            }
+        }
+        return horarioRepositorio.findByAsignacionPeriodoAcademicoIdAndEstado(periodoId, EstadoRegistro.ACTIVO)
+            .stream()
+            .filter(item -> item.getAsignacion().getSeccion().getId().equals(seccionId))
+            .map(this::mapearHorario)
+            .sorted(ordenHorario())
+            .toList();
+    }
+
+    @Override
     public HorarioSemanalRespuestaDto crearHorario(HorarioSemanalSolicitudDto solicitud) {
         DocenteCursoSeccion asignacion = asignacionRepositorio.findById(solicitud.getAsignacionId())
             .filter(item -> item.getEstado() == EstadoRegistro.ACTIVO)
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró una asignación académica activa."));
         BloqueHorario bloque = bloqueRepositorio.findByIdAndEstado(solicitud.getBloqueHorarioId(), EstadoRegistro.ACTIVO)
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró un bloque horario activo."));
+        if (bloque.isEsRecreo()) {
+            throw new ReglaNegocioException("Un bloque de recreo no se puede asignar a un curso.");
+        }
         Long periodoId = asignacion.getPeriodoAcademico().getId();
         Long nivelId = asignacion.getCurso().getNivel().getId();
         if (!bloque.getPeriodoAcademico().getId().equals(periodoId) || !bloque.getNivel().getId().equals(nivelId)) {
             throw new ReglaNegocioException("El bloque debe pertenecer al mismo período y nivel de la asignación.");
         }
-        List<HorarioSemanal> existentes = horarioRepositorio.findByAsignacionPeriodoAcademicoIdAndEstado(
-            periodoId, EstadoRegistro.ACTIVO
-        );
-        for (HorarioSemanal existente : existentes) {
-            if (existente.getDiaSemana() != solicitud.getDiaSemana() || !seCruzanEnHora(existente.getBloque(), bloque)) {
-                continue;
-            }
-            DocenteCursoSeccion otra = existente.getAsignacion();
-            if (otra.getDocente().getId().equals(asignacion.getDocente().getId())) {
-                throw new ReglaNegocioException("El docente ya tiene una clase programada que se cruza en ese horario.");
-            }
-            if (otra.getSeccion().getId().equals(asignacion.getSeccion  ().getId())) {
-                throw new ReglaNegocioException("La sección ya tiene una clase programada que se cruza en ese horario.");
-            }
-        }
-        if (horarioRepositorio.existsByAsignacionIdAndDiaSemanaAndBloqueIdAndEstado(
-            asignacion.getId(), solicitud.getDiaSemana(), bloque.getId(), EstadoRegistro.ACTIVO
-        )) {
-            throw new ReglaNegocioException("Esta asignación ya está programada en ese día y bloque.");
-        }
+        validarProgramacion(asignacion, bloque, solicitud, null, periodoId);
         HorarioSemanal horario = new HorarioSemanal();
+        horario.setAsignacion(asignacion);
+        horario.setBloque(bloque);
+        horario.setDiaSemana(solicitud.getDiaSemana());
+        return mapearHorario(horarioRepositorio.save(horario));
+    }
+
+    @Override
+    public HorarioSemanalRespuestaDto actualizarHorario(Long id, HorarioSemanalSolicitudDto solicitud) {
+        HorarioSemanal horario = horarioRepositorio.findByIdAndEstado(id, EstadoRegistro.ACTIVO)
+            .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró la clase programada activa."));
+        DocenteCursoSeccion asignacion = asignacionRepositorio.findById(solicitud.getAsignacionId())
+            .filter(item -> item.getEstado() == EstadoRegistro.ACTIVO)
+            .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró una asignación académica activa."));
+        BloqueHorario bloque = bloqueRepositorio.findByIdAndEstado(solicitud.getBloqueHorarioId(), EstadoRegistro.ACTIVO)
+            .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró un bloque horario activo."));
+        if (bloque.isEsRecreo()) {
+            throw new ReglaNegocioException("Un bloque de recreo no se puede asignar a un curso.");
+        }
+        Long periodoId = asignacion.getPeriodoAcademico().getId();
+        Long nivelId = asignacion.getCurso().getNivel().getId();
+        if (!bloque.getPeriodoAcademico().getId().equals(periodoId) || !bloque.getNivel().getId().equals(nivelId)) {
+            throw new ReglaNegocioException("El bloque debe pertenecer al mismo período y nivel de la asignación.");
+        }
+        validarProgramacion(asignacion, bloque, solicitud, id, periodoId);
         horario.setAsignacion(asignacion);
         horario.setBloque(bloque);
         horario.setDiaSemana(solicitud.getDiaSemana());
@@ -176,6 +226,21 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
     private void validarRangoBloque(BloqueHorarioSolicitudDto solicitud, Long periodoId, Long nivelId, Long ignorarId) {
         if (!solicitud.getHoraInicio().isBefore(solicitud.getHoraFin())) {
             throw new ReglaNegocioException("La hora de inicio debe ser anterior a la hora de fin.");
+        }
+        if (solicitud.getHoraInicio().isBefore(LocalTime.of(7, 0)) || solicitud.getHoraFin().isAfter(LocalTime.of(18, 0))) {
+            throw new ReglaNegocioException("Los bloques deben estar dentro de la jornada de 07:00 a 18:00.");
+        }
+        PeriodoAcademico periodo = obtenerPeriodo(periodoId);
+        String nombreNivel = nivelRepositorio.findById(nivelId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el nivel académico."))
+            .getNombre().toUpperCase();
+        boolean secundaria = nombreNivel.contains("SECUNDARIA");
+        int duracionConfigurada = solicitud.isEsRecreo()
+            ? secundaria ? periodo.getDuracionRecreoSecundariaMinutos() : periodo.getDuracionRecreoPrimariaMinutos()
+            : secundaria ? periodo.getDuracionHoraSecundariaMinutos() : periodo.getDuracionHoraPrimariaMinutos();
+        long duracionSolicitada = Duration.between(solicitud.getHoraInicio(), solicitud.getHoraFin()).toSeconds();
+        if (duracionSolicitada != duracionConfigurada * 60L) {
+            throw new ReglaNegocioException("La duración del bloque debe ser de " + duracionConfigurada + " minutos según la configuración del período.");
         }
         if (bloqueRepositorio.existsByPeriodoAcademicoIdAndNivelIdAndOrdenAndEstado(
             periodoId, nivelId, solicitud.getOrden(), EstadoRegistro.ACTIVO
@@ -199,10 +264,47 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         return a.getHoraInicio().isBefore(b.getHoraFin()) && b.getHoraInicio().isBefore(a.getHoraFin());
     }
 
+    private void validarProgramacion(
+        DocenteCursoSeccion asignacion,
+        BloqueHorario bloque,
+        HorarioSemanalSolicitudDto solicitud,
+        Long ignorarHorarioId,
+        Long periodoId
+    ) {
+        List<HorarioSemanal> existentes = horarioRepositorio.findByAsignacionPeriodoAcademicoIdAndEstado(
+            periodoId, EstadoRegistro.ACTIVO
+        );
+        boolean duplicada = existentes.stream().anyMatch(existente ->
+            !existente.getId().equals(ignorarHorarioId)
+                && existente.getAsignacion().getId().equals(asignacion.getId())
+                && existente.getDiaSemana() == solicitud.getDiaSemana()
+                && existente.getBloque().getId().equals(bloque.getId())
+        );
+        if (duplicada) {
+            throw new ReglaNegocioException("Esta asignación ya está programada en ese día y bloque.");
+        }
+        for (HorarioSemanal existente : existentes) {
+            if (existente.getId().equals(ignorarHorarioId)) continue;
+            if (existente.getDiaSemana() != solicitud.getDiaSemana() || !seCruzanEnHora(existente.getBloque(), bloque)) {
+                continue;
+            }
+            DocenteCursoSeccion otra = existente.getAsignacion();
+            if (otra.getDocente().getId().equals(asignacion.getDocente().getId())) {
+                throw new ReglaNegocioException("El docente ya tiene una clase programada que se cruza en ese horario.");
+            }
+            if (otra.getSeccion().getId().equals(asignacion.getSeccion().getId())) {
+                throw new ReglaNegocioException("La sección ya tiene una clase programada que se cruza en ese horario.");
+            }
+        }
+    }
+
     private void validarHorariosAlActualizarBloque(BloqueHorario bloque, BloqueHorarioSolicitudDto solicitud) {
         List<HorarioSemanal> horariosDelBloque = horarioRepositorio.findByBloqueIdAndEstado(
             bloque.getId(), EstadoRegistro.ACTIVO
         );
+        if (solicitud.isEsRecreo() && !horariosDelBloque.isEmpty()) {
+            throw new ReglaNegocioException("Retira primero las clases programadas en este bloque antes de convertirlo en recreo.");
+        }
         List<HorarioSemanal> todosDelPeriodo = horarioRepositorio.findByAsignacionPeriodoAcademicoIdAndEstado(
             bloque.getPeriodoAcademico().getId(), EstadoRegistro.ACTIVO
         );
@@ -229,6 +331,7 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         bloque.setOrden(solicitud.getOrden());
         bloque.setHoraInicio(solicitud.getHoraInicio());
         bloque.setHoraFin(solicitud.getHoraFin());
+        bloque.setEsRecreo(solicitud.isEsRecreo());
     }
 
     private PeriodoAcademico obtenerPeriodo(Long id) {
@@ -246,6 +349,7 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         dto.setOrden(bloque.getOrden());
         dto.setHoraInicio(bloque.getHoraInicio());
         dto.setHoraFin(bloque.getHoraFin());
+        dto.setEsRecreo(bloque.isEsRecreo());
         return dto;
     }
 

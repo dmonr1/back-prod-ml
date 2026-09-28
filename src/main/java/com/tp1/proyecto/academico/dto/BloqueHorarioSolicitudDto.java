@@ -12,6 +12,7 @@ public class BloqueHorarioSolicitudDto {
     @NotNull @Positive private Short orden;
     @NotNull private LocalTime horaInicio;
     @NotNull private LocalTime horaFin;
+    private boolean esRecreo;
 
     public Long getPeriodoAcademicoId() { return periodoAcademicoId; }
     public void setPeriodoAcademicoId(Long periodoAcademicoId) { this.periodoAcademicoId = periodoAcademicoId; }
@@ -25,4 +26,6 @@ public class BloqueHorarioSolicitudDto {
     public void setHoraInicio(LocalTime horaInicio) { this.horaInicio = horaInicio; }
     public LocalTime getHoraFin() { return horaFin; }
     public void setHoraFin(LocalTime horaFin) { this.horaFin = horaFin; }
+    public boolean isEsRecreo() { return esRecreo; }
+    public void setEsRecreo(boolean esRecreo) { this.esRecreo = esRecreo; }
 }

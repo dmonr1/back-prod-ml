@@ -11,6 +11,10 @@ public class PeriodoAcademicoRespuestaDto {
     private LocalDate fechaFin;
     private String tipoPeriodoEvaluacion;
     private String estado;
+    private Integer duracionHoraPrimariaMinutos;
+    private Integer duracionRecreoPrimariaMinutos;
+    private Integer duracionHoraSecundariaMinutos;
+    private Integer duracionRecreoSecundariaMinutos;
 
     public Long getId() {
         return id;
@@ -67,4 +71,13 @@ public class PeriodoAcademicoRespuestaDto {
     public void setEstado(String estado) {
         this.estado = estado;
     }
+
+    public Integer getDuracionHoraPrimariaMinutos() { return duracionHoraPrimariaMinutos; }
+    public void setDuracionHoraPrimariaMinutos(Integer value) { this.duracionHoraPrimariaMinutos = value; }
+    public Integer getDuracionRecreoPrimariaMinutos() { return duracionRecreoPrimariaMinutos; }
+    public void setDuracionRecreoPrimariaMinutos(Integer value) { this.duracionRecreoPrimariaMinutos = value; }
+    public Integer getDuracionHoraSecundariaMinutos() { return duracionHoraSecundariaMinutos; }
+    public void setDuracionHoraSecundariaMinutos(Integer value) { this.duracionHoraSecundariaMinutos = value; }
+    public Integer getDuracionRecreoSecundariaMinutos() { return duracionRecreoSecundariaMinutos; }
+    public void setDuracionRecreoSecundariaMinutos(Integer value) { this.duracionRecreoSecundariaMinutos = value; }
 }

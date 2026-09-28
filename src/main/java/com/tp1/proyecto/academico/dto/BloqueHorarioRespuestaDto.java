@@ -11,6 +11,7 @@ public class BloqueHorarioRespuestaDto {
     private Short orden;
     private LocalTime horaInicio;
     private LocalTime horaFin;
+    private boolean esRecreo;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -28,4 +29,6 @@ public class BloqueHorarioRespuestaDto {
     public void setHoraInicio(LocalTime horaInicio) { this.horaInicio = horaInicio; }
     public LocalTime getHoraFin() { return horaFin; }
     public void setHoraFin(LocalTime horaFin) { this.horaFin = horaFin; }
+    public boolean isEsRecreo() { return esRecreo; }
+    public void setEsRecreo(boolean esRecreo) { this.esRecreo = esRecreo; }
 }

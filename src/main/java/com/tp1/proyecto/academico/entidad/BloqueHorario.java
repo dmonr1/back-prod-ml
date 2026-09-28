@@ -39,6 +39,9 @@ public class BloqueHorario extends AuditoriaEntidad {
     @Column(name = "hora_fin", nullable = false)
     private LocalTime horaFin;
 
+    @Column(name = "es_recreo", nullable = false)
+    private boolean esRecreo;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public PeriodoAcademico getPeriodoAcademico() { return periodoAcademico; }
@@ -53,4 +56,6 @@ public class BloqueHorario extends AuditoriaEntidad {
     public void setHoraInicio(LocalTime horaInicio) { this.horaInicio = horaInicio; }
     public LocalTime getHoraFin() { return horaFin; }
     public void setHoraFin(LocalTime horaFin) { this.horaFin = horaFin; }
+    public boolean isEsRecreo() { return esRecreo; }
+    public void setEsRecreo(boolean esRecreo) { this.esRecreo = esRecreo; }
 }

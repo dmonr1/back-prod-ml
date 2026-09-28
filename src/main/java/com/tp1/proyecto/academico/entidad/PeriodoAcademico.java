@@ -32,6 +32,18 @@ public class PeriodoAcademico extends AuditoriaEntidad {
     @Column(name = "tipo_periodo_evaluacion", nullable = false, length = 30)
     private String tipoPeriodoEvaluacion;
 
+    @Column(name = "duracion_hora_primaria_minutos", nullable = false)
+    private Integer duracionHoraPrimariaMinutos = 50;
+
+    @Column(name = "duracion_recreo_primaria_minutos", nullable = false)
+    private Integer duracionRecreoPrimariaMinutos = 20;
+
+    @Column(name = "duracion_hora_secundaria_minutos", nullable = false)
+    private Integer duracionHoraSecundariaMinutos = 90;
+
+    @Column(name = "duracion_recreo_secundaria_minutos", nullable = false)
+    private Integer duracionRecreoSecundariaMinutos = 20;
+
     public Long getId() {
         return id;
     }
@@ -79,4 +91,13 @@ public class PeriodoAcademico extends AuditoriaEntidad {
     public void setTipoPeriodoEvaluacion(String tipoPeriodoEvaluacion) {
         this.tipoPeriodoEvaluacion = tipoPeriodoEvaluacion;
     }
+
+    public Integer getDuracionHoraPrimariaMinutos() { return duracionHoraPrimariaMinutos; }
+    public void setDuracionHoraPrimariaMinutos(Integer value) { this.duracionHoraPrimariaMinutos = value; }
+    public Integer getDuracionRecreoPrimariaMinutos() { return duracionRecreoPrimariaMinutos; }
+    public void setDuracionRecreoPrimariaMinutos(Integer value) { this.duracionRecreoPrimariaMinutos = value; }
+    public Integer getDuracionHoraSecundariaMinutos() { return duracionHoraSecundariaMinutos; }
+    public void setDuracionHoraSecundariaMinutos(Integer value) { this.duracionHoraSecundariaMinutos = value; }
+    public Integer getDuracionRecreoSecundariaMinutos() { return duracionRecreoSecundariaMinutos; }
+    public void setDuracionRecreoSecundariaMinutos(Integer value) { this.duracionRecreoSecundariaMinutos = value; }
 }

@@ -16,6 +16,9 @@ public interface BloqueHorarioRepositorio extends JpaRepository<BloqueHorario, L
     List<BloqueHorario> findByPeriodoAcademicoIdAndEstadoOrderByNivelIdAscOrdenAsc(
         Long periodoAcademicoId, EstadoRegistro estado
     );
+    List<BloqueHorario> findByPeriodoAcademicoIdAndEsRecreoTrueAndEstadoOrderByHoraInicioAsc(
+        Long periodoAcademicoId, EstadoRegistro estado
+    );
     Optional<BloqueHorario> findByIdAndEstado(Long id, EstadoRegistro estado);
     boolean existsByPeriodoAcademicoIdAndNivelIdAndOrdenAndEstado(
         Long periodoAcademicoId, Long nivelId, Short orden, EstadoRegistro estado

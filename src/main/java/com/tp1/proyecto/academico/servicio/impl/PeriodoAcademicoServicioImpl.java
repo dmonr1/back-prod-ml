@@ -140,6 +140,12 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
     }
 
     private void validarPeriodoAcademico(PeriodoAcademicoSolicitudDto solicitud, Long periodoAcademicoActualId) {
+        if (solicitud.getDuracionHoraPrimariaMinutos() == null || solicitud.getDuracionHoraPrimariaMinutos() % 5 != 0
+            || solicitud.getDuracionRecreoPrimariaMinutos() == null || solicitud.getDuracionRecreoPrimariaMinutos() % 5 != 0
+            || solicitud.getDuracionHoraSecundariaMinutos() == null || solicitud.getDuracionHoraSecundariaMinutos() % 5 != 0
+            || solicitud.getDuracionRecreoSecundariaMinutos() == null || solicitud.getDuracionRecreoSecundariaMinutos() % 5 != 0) {
+            throw new ReglaNegocioException("Las duraciones de clases y recreos deben configurarse en múltiplos de 5 minutos.");
+        }
         validarRangoFechas(
             solicitud.getAnio(),
             solicitud.getFechaInicio(),
@@ -163,6 +169,7 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         periodoAcademico.setFechaInicio(solicitud.getFechaInicio());
         periodoAcademico.setFechaFin(solicitud.getFechaFin());
         periodoAcademico.setTipoPeriodoEvaluacion(solicitud.getTipoPeriodoEvaluacion());
+        aplicarDuracionesHorario(periodoAcademico, solicitud);
         return periodoAcademico;
     }
 
@@ -172,7 +179,15 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         periodoAcademico.setFechaInicio(solicitud.getFechaInicio());
         periodoAcademico.setFechaFin(solicitud.getFechaFin());
         periodoAcademico.setTipoPeriodoEvaluacion(solicitud.getTipoPeriodoEvaluacion());
+        aplicarDuracionesHorario(periodoAcademico, solicitud);
         periodoAcademico.setEstado(EstadoRegistro.ACTIVO);
+    }
+
+    private void aplicarDuracionesHorario(PeriodoAcademico periodo, PeriodoAcademicoSolicitudDto solicitud) {
+        periodo.setDuracionHoraPrimariaMinutos(solicitud.getDuracionHoraPrimariaMinutos());
+        periodo.setDuracionRecreoPrimariaMinutos(solicitud.getDuracionRecreoPrimariaMinutos());
+        periodo.setDuracionHoraSecundariaMinutos(solicitud.getDuracionHoraSecundariaMinutos());
+        periodo.setDuracionRecreoSecundariaMinutos(solicitud.getDuracionRecreoSecundariaMinutos());
     }
 
     private void validarPeriodosEvaluacion(PeriodoAcademicoConPeriodosSolicitudDto solicitud) {
@@ -527,6 +542,10 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         dto.setFechaFin(periodoAcademico.getFechaFin());
         dto.setTipoPeriodoEvaluacion(periodoAcademico.getTipoPeriodoEvaluacion());
         dto.setEstado(periodoAcademico.getEstado() != null ? periodoAcademico.getEstado().name() : null);
+        dto.setDuracionHoraPrimariaMinutos(periodoAcademico.getDuracionHoraPrimariaMinutos());
+        dto.setDuracionRecreoPrimariaMinutos(periodoAcademico.getDuracionRecreoPrimariaMinutos());
+        dto.setDuracionHoraSecundariaMinutos(periodoAcademico.getDuracionHoraSecundariaMinutos());
+        dto.setDuracionRecreoSecundariaMinutos(periodoAcademico.getDuracionRecreoSecundariaMinutos());
         return dto;
     }
 

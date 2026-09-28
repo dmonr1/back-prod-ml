@@ -32,6 +32,15 @@ public class PeriodoAcademicoSolicitudDto {
     )
     private String tipoPeriodoEvaluacion;
 
+    @NotNull @Min(30) @Max(180)
+    private Integer duracionHoraPrimariaMinutos = 50;
+    @NotNull @Min(5) @Max(60)
+    private Integer duracionRecreoPrimariaMinutos = 20;
+    @NotNull @Min(30) @Max(180)
+    private Integer duracionHoraSecundariaMinutos = 90;
+    @NotNull @Min(5) @Max(60)
+    private Integer duracionRecreoSecundariaMinutos = 20;
+
     public String getNombre() {
         return nombre;
     }
@@ -71,4 +80,13 @@ public class PeriodoAcademicoSolicitudDto {
     public void setTipoPeriodoEvaluacion(String tipoPeriodoEvaluacion) {
         this.tipoPeriodoEvaluacion = tipoPeriodoEvaluacion;
     }
+
+    public Integer getDuracionHoraPrimariaMinutos() { return duracionHoraPrimariaMinutos; }
+    public void setDuracionHoraPrimariaMinutos(Integer value) { this.duracionHoraPrimariaMinutos = value; }
+    public Integer getDuracionRecreoPrimariaMinutos() { return duracionRecreoPrimariaMinutos; }
+    public void setDuracionRecreoPrimariaMinutos(Integer value) { this.duracionRecreoPrimariaMinutos = value; }
+    public Integer getDuracionHoraSecundariaMinutos() { return duracionHoraSecundariaMinutos; }
+    public void setDuracionHoraSecundariaMinutos(Integer value) { this.duracionHoraSecundariaMinutos = value; }
+    public Integer getDuracionRecreoSecundariaMinutos() { return duracionRecreoSecundariaMinutos; }
+    public void setDuracionRecreoSecundariaMinutos(Integer value) { this.duracionRecreoSecundariaMinutos = value; }
 }
