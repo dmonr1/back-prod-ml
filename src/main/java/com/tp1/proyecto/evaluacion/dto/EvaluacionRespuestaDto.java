@@ -14,6 +14,9 @@ public class EvaluacionRespuestaDto {
     private Integer numeroEvaluacion;
     private String nombre;
     private LocalDate fechaEvaluacion;
+    private String creadoPor;
+    private String modificadoPor;
+    private boolean hayNotasEnCursoSeccion;
     private String curso;
     private String seccion;
     private String grado;
@@ -98,6 +101,30 @@ public class EvaluacionRespuestaDto {
 
     public void setFechaEvaluacion(LocalDate fechaEvaluacion) {
         this.fechaEvaluacion = fechaEvaluacion;
+    }
+
+    public String getCreadoPor() {
+        return creadoPor;
+    }
+
+    public void setCreadoPor(String creadoPor) {
+        this.creadoPor = creadoPor;
+    }
+
+    public String getModificadoPor() {
+        return modificadoPor;
+    }
+
+    public void setModificadoPor(String modificadoPor) {
+        this.modificadoPor = modificadoPor;
+    }
+
+    public boolean isHayNotasEnCursoSeccion() {
+        return hayNotasEnCursoSeccion;
+    }
+
+    public void setHayNotasEnCursoSeccion(boolean hayNotasEnCursoSeccion) {
+        this.hayNotasEnCursoSeccion = hayNotasEnCursoSeccion;
     }
 
     public String getCurso() {

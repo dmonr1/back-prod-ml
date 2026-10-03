@@ -11,6 +11,7 @@ import com.tp1.proyecto.academico.repositorio.SeccionRepositorio;
 import com.tp1.proyecto.academico.servicio.MatriculaServicio;
 import com.tp1.proyecto.alumno.entidad.Alumno;
 import com.tp1.proyecto.alumno.repositorio.AlumnoRepositorio;
+import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
 import com.tp1.proyecto.seguridad.servicio.PermisoPeriodoServicio;
@@ -83,6 +84,15 @@ public class MatriculaServicioImpl implements MatriculaServicio {
         return mapearRespuesta(matriculaRepositorio.save(matricula));
     }
 
+    @Override
+    public MatriculaRespuestaDto actualizarEstado(Long matriculaId, boolean activo) {
+        Matricula matricula = matriculaRepositorio.findById(matriculaId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Matrícula no encontrada con id: " + matriculaId));
+        permisoPeriodoServicio.validarEdicion(matricula.getPeriodoAcademico());
+        matricula.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
+        return mapearRespuesta(matriculaRepositorio.save(matricula));
+    }
+
     private PeriodoAcademico obtenerPeriodo(Long periodoAcademicoId) {
         return periodoAcademicoRepositorio.findById(periodoAcademicoId)
             .orElseThrow(() ->
@@ -105,6 +115,7 @@ public class MatriculaServicioImpl implements MatriculaServicio {
         dto.setPeriodoAcademico(matricula.getPeriodoAcademico().getNombre());
         dto.setAnioAcademico(matricula.getPeriodoAcademico().getAnio());
         dto.setFechaMatricula(matricula.getFechaMatricula());
+        dto.setEstado(matricula.getEstado() != null ? matricula.getEstado().name() : "ACTIVO");
         return dto;
     }
 }

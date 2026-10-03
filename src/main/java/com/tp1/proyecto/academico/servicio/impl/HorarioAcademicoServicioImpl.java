@@ -227,14 +227,16 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         if (!solicitud.getHoraInicio().isBefore(solicitud.getHoraFin())) {
             throw new ReglaNegocioException("La hora de inicio debe ser anterior a la hora de fin.");
         }
-        if (solicitud.getHoraInicio().isBefore(LocalTime.of(7, 0)) || solicitud.getHoraFin().isAfter(LocalTime.of(18, 0))) {
-            throw new ReglaNegocioException("Los bloques deben estar dentro de la jornada de 07:00 a 18:00.");
-        }
         PeriodoAcademico periodo = obtenerPeriodo(periodoId);
         String nombreNivel = nivelRepositorio.findById(nivelId)
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el nivel académico."))
             .getNombre().toUpperCase();
         boolean secundaria = nombreNivel.contains("SECUNDARIA");
+        LocalTime inicioJornada = secundaria ? periodo.getHoraInicioJornadaSecundaria() : periodo.getHoraInicioJornadaPrimaria();
+        LocalTime finJornada = secundaria ? periodo.getHoraFinJornadaSecundaria() : periodo.getHoraFinJornadaPrimaria();
+        if (solicitud.getHoraInicio().isBefore(inicioJornada) || solicitud.getHoraFin().isAfter(finJornada)) {
+            throw new ReglaNegocioException("El bloque debe estar dentro de la jornada configurada (" + inicioJornada + " a " + finJornada + ").");
+        }
         int duracionConfigurada = solicitud.isEsRecreo()
             ? secundaria ? periodo.getDuracionRecreoSecundariaMinutos() : periodo.getDuracionRecreoPrimariaMinutos()
             : secundaria ? periodo.getDuracionHoraSecundariaMinutos() : periodo.getDuracionHoraPrimariaMinutos();

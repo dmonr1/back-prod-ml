@@ -4,6 +4,7 @@ import com.tp1.proyecto.academico.dto.CursoRespuestaDto;
 import com.tp1.proyecto.academico.dto.CursoSolicitudDto;
 import com.tp1.proyecto.academico.entidad.Curso;
 import com.tp1.proyecto.academico.entidad.Nivel;
+import com.tp1.proyecto.academico.repositorio.CursoPeriodoAcademicoRepositorio;
 import com.tp1.proyecto.academico.repositorio.CursoRepositorio;
 import com.tp1.proyecto.academico.repositorio.NivelRepositorio;
 import com.tp1.proyecto.academico.servicio.CursoServicio;
@@ -20,10 +21,16 @@ public class CursoServicioImpl implements CursoServicio {
 
     private final CursoRepositorio cursoRepositorio;
     private final NivelRepositorio nivelRepositorio;
+    private final CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio;
 
-    public CursoServicioImpl(CursoRepositorio cursoRepositorio, NivelRepositorio nivelRepositorio) {
+    public CursoServicioImpl(
+        CursoRepositorio cursoRepositorio,
+        NivelRepositorio nivelRepositorio,
+        CursoPeriodoAcademicoRepositorio cursoPeriodoAcademicoRepositorio
+    ) {
         this.cursoRepositorio = cursoRepositorio;
         this.nivelRepositorio = nivelRepositorio;
+        this.cursoPeriodoAcademicoRepositorio = cursoPeriodoAcademicoRepositorio;
     }
 
     @Override
@@ -79,6 +86,15 @@ public class CursoServicioImpl implements CursoServicio {
         Curso curso = buscarCurso(cursoId);
         curso.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
         return mapearRespuesta(cursoRepositorio.save(curso));
+    }
+
+    @Override
+    public void eliminar(Long id) {
+        Curso curso = buscarCurso(id);
+        if (cursoPeriodoAcademicoRepositorio.existsByCursoId(id)) {
+            throw new ReglaNegocioException("No se puede eliminar el curso '" + curso.getNombre() + "' porque ya está asociado a períodos académicos. Puedes deshabilitarlo en su lugar.");
+        }
+        cursoRepositorio.delete(curso);
     }
 
     private Curso buscarCurso(Long id) {

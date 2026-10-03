@@ -9,4 +9,6 @@ public interface MatriculaServicio {
     List<MatriculaRespuestaDto> listar(Long periodoAcademicoId, Long seccionId);
 
     MatriculaRespuestaDto crear(MatriculaSolicitudDto solicitud);
+
+    MatriculaRespuestaDto actualizarEstado(Long matriculaId, boolean activo);
 }

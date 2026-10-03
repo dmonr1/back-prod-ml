@@ -1,11 +1,15 @@
 package com.tp1.proyecto.evaluacion.entidad;
 
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
+import com.tp1.proyecto.academico.entidad.DocenteCursoSeccion;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -24,6 +28,10 @@ public class TipoEvaluacion extends AuditoriaEntidad {
 
     @Column(name = "orden", nullable = false)
     private Short orden;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "docente_curso_seccion_id")
+    private DocenteCursoSeccion docenteCursoSeccion;
 
     public Long getId() {
         return id;
@@ -55,5 +63,13 @@ public class TipoEvaluacion extends AuditoriaEntidad {
 
     public void setOrden(Short orden) {
         this.orden = orden;
+    }
+
+    public DocenteCursoSeccion getDocenteCursoSeccion() {
+        return docenteCursoSeccion;
+    }
+
+    public void setDocenteCursoSeccion(DocenteCursoSeccion docenteCursoSeccion) {
+        this.docenteCursoSeccion = docenteCursoSeccion;
     }
 }

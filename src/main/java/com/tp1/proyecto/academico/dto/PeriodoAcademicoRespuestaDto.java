@@ -1,6 +1,7 @@
 package com.tp1.proyecto.academico.dto;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class PeriodoAcademicoRespuestaDto {
 
@@ -15,6 +16,10 @@ public class PeriodoAcademicoRespuestaDto {
     private Integer duracionRecreoPrimariaMinutos;
     private Integer duracionHoraSecundariaMinutos;
     private Integer duracionRecreoSecundariaMinutos;
+    private LocalTime horaInicioJornadaPrimaria;
+    private LocalTime horaFinJornadaPrimaria;
+    private LocalTime horaInicioJornadaSecundaria;
+    private LocalTime horaFinJornadaSecundaria;
 
     public Long getId() {
         return id;
@@ -80,4 +85,12 @@ public class PeriodoAcademicoRespuestaDto {
     public void setDuracionHoraSecundariaMinutos(Integer value) { this.duracionHoraSecundariaMinutos = value; }
     public Integer getDuracionRecreoSecundariaMinutos() { return duracionRecreoSecundariaMinutos; }
     public void setDuracionRecreoSecundariaMinutos(Integer value) { this.duracionRecreoSecundariaMinutos = value; }
+    public LocalTime getHoraInicioJornadaPrimaria() { return horaInicioJornadaPrimaria; }
+    public void setHoraInicioJornadaPrimaria(LocalTime value) { this.horaInicioJornadaPrimaria = value; }
+    public LocalTime getHoraFinJornadaPrimaria() { return horaFinJornadaPrimaria; }
+    public void setHoraFinJornadaPrimaria(LocalTime value) { this.horaFinJornadaPrimaria = value; }
+    public LocalTime getHoraInicioJornadaSecundaria() { return horaInicioJornadaSecundaria; }
+    public void setHoraInicioJornadaSecundaria(LocalTime value) { this.horaInicioJornadaSecundaria = value; }
+    public LocalTime getHoraFinJornadaSecundaria() { return horaFinJornadaSecundaria; }
+    public void setHoraFinJornadaSecundaria(LocalTime value) { this.horaFinJornadaSecundaria = value; }
 }

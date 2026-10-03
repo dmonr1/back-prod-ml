@@ -36,7 +36,7 @@ public class ConfiguracionEvaluacionControlador {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE','DOCENTE_TUTOR')")
     public List<ConfiguracionEvaluacionRespuestaDto> listar(
         @RequestParam Long periodoEvaluacionId,
         @RequestParam Long cursoId
@@ -45,13 +45,13 @@ public class ConfiguracionEvaluacionControlador {
     }
 
     @GetMapping("/cursos-periodo")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE','DOCENTE_TUTOR')")
     public List<ConfiguracionEvaluacionCursoResumenDto> listarCursosPorPeriodo(@RequestParam Long periodoAcademicoId) {
         return configuracionEvaluacionServicio.listarCursosPorPeriodo(periodoAcademicoId);
     }
 
     @GetMapping("/cursos-periodo/detalle")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE','DOCENTE_TUTOR')")
     public ConfiguracionEvaluacionCursoDetalleDto obtenerDetalleCurso(
         @RequestParam Long periodoAcademicoId,
         @RequestParam Long cursoId
@@ -60,7 +60,7 @@ public class ConfiguracionEvaluacionControlador {
     }
 
     @PostMapping("/cursos-periodo")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
     public ConfiguracionEvaluacionCursoDetalleDto guardarConfiguracionCurso(
         @Valid @RequestBody ConfiguracionEvaluacionCursoGuardarSolicitudDto solicitud
     ) {

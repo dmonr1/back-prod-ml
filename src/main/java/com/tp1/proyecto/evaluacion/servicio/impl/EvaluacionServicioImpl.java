@@ -80,7 +80,7 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
     }
 
     @Override
-    public EvaluacionRespuestaDto crear(EvaluacionSolicitudDto solicitud) {
+    public EvaluacionRespuestaDto crear(EvaluacionSolicitudDto solicitud, UsuarioAutenticado actor) {
         ConfiguracionEvaluacion configuracion = configuracionEvaluacionRepositorio.findById(solicitud.getConfiguracionEvaluacionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Configuracion de evaluacion no encontrada con id: " + solicitud.getConfiguracionEvaluacionId()));
 
@@ -94,7 +94,17 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
             .orElseThrow(() -> new RecursoNoEncontradoException("Tipo de evaluacion no encontrado con id: " + solicitud.getTipoEvaluacionId()));
 
         validarCoherenciaConfiguracion(configuracion, docenteCursoSeccion, periodoEvaluacion.getId(), tipoEvaluacion.getId());
+        validarAccesoAsignacion(docenteCursoSeccion, actor);
+        if (tipoEvaluacion.getDocenteCursoSeccion() != null
+            && !tipoEvaluacion.getDocenteCursoSeccion().getId().equals(docenteCursoSeccion.getId())) {
+            throw new ReglaNegocioException("El tipo de evaluación no pertenece a esta asignación.");
+        }
         validarFechaEvaluacion(solicitud.getFechaEvaluacion(), periodoEvaluacion);
+        if (evaluacionRepositorio.existsByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndTipoEvaluacionIdAndNumeroEvaluacion(
+            docenteCursoSeccion.getId(), periodoEvaluacion.getId(), tipoEvaluacion.getId(), solicitud.getNumeroEvaluacion()
+        )) {
+            throw new ReglaNegocioException("Ya existe esa evaluación para la asignación y período seleccionados.");
+        }
 
         Evaluacion evaluacion = new Evaluacion();
         evaluacion.setConfiguracionEvaluacion(configuracion);
@@ -104,6 +114,8 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         evaluacion.setNumeroEvaluacion(solicitud.getNumeroEvaluacion());
         evaluacion.setNombre(solicitud.getNombre().trim());
         evaluacion.setFechaEvaluacion(solicitud.getFechaEvaluacion());
+        evaluacion.setCreadoPor(actor.getUsuario());
+        evaluacion.setModificadoPor(actor.getUsuario());
 
         return mapearEvaluacion(evaluacionRepositorio.save(evaluacion));
     }
@@ -117,8 +129,10 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         Evaluacion evaluacion = evaluacionRepositorio.findById(evaluacionId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Evaluación no encontrada con id: " + evaluacionId));
         validarAccesoEvaluacion(evaluacion, actor);
+        validarEvaluacionActiva(evaluacion);
         validarFechaEvaluacion(solicitud.getFechaEvaluacion(), evaluacion.getPeriodoEvaluacion());
         evaluacion.setFechaEvaluacion(solicitud.getFechaEvaluacion());
+        evaluacion.setModificadoPor(actor.getUsuario());
         Evaluacion guardada = evaluacionRepositorio.save(evaluacion);
         if (guardada.getFechaEvaluacion() != null && !guardada.getFechaEvaluacion().isAfter(LocalDate.now())) {
             matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(
@@ -133,22 +147,34 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EvaluacionRespuestaDto> listarPorAsignacionYPeriodoEvaluacion(Long docenteCursoSeccionId, Long periodoEvaluacionId) {
-        return evaluacionRepositorio
+    public List<EvaluacionRespuestaDto> listarPorAsignacionYPeriodoEvaluacion(Long docenteCursoSeccionId, Long periodoEvaluacionId, UsuarioAutenticado actor) {
+        DocenteCursoSeccion asignacion = docenteCursoSeccionRepositorio.findById(docenteCursoSeccionId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Asignación no encontrada con id: " + docenteCursoSeccionId));
+        validarAccesoAsignacion(asignacion, actor);
+        var periodo = periodoEvaluacionRepositorio.findById(periodoEvaluacionId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Período evaluativo no encontrado con id: " + periodoEvaluacionId));
+        if (!periodo.getPeriodoAcademico().getId().equals(asignacion.getPeriodoAcademico().getId())) {
+            throw new ReglaNegocioException("El período evaluativo no corresponde a la asignación.");
+        }
+        List<Evaluacion> activas = evaluacionRepositorio
             .findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndEstadoOrderByTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
                 docenteCursoSeccionId,
                 periodoEvaluacionId,
                 EstadoRegistro.ACTIVO
-            )
-            .stream()
-            .map(this::mapearEvaluacion)
+            );
+        if (activas.isEmpty()) return List.of();
+        boolean hayNotasEnCursoSeccion = hayNotasEnCursoSeccion(asignacion);
+        return activas.stream()
+            .map(item -> mapearEvaluacion(item, hayNotasEnCursoSeccion))
             .toList();
     }
 
     @Override
-    public List<DetalleNotaEvaluacionRespuestaDto> registrarNotas(Long evaluacionId, RegistroNotasEvaluacionSolicitudDto solicitud) {
+    public List<DetalleNotaEvaluacionRespuestaDto> registrarNotas(Long evaluacionId, RegistroNotasEvaluacionSolicitudDto solicitud, UsuarioAutenticado actor) {
         Evaluacion evaluacion = evaluacionRepositorio.findById(evaluacionId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Evaluacion no encontrada con id: " + evaluacionId));
+        validarAccesoEvaluacion(evaluacion, actor);
+        validarEvaluacionActiva(evaluacion);
 
         if (evaluacion.getFechaEvaluacion() == null) {
             throw new ReglaNegocioException("Registra la fecha de la evaluación antes de ingresar notas.");
@@ -193,9 +219,10 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public List<DetalleNotaEvaluacionRespuestaDto> listarNotasPorEvaluacion(Long evaluacionId) {
-        evaluacionRepositorio.findById(evaluacionId)
+    public List<DetalleNotaEvaluacionRespuestaDto> listarNotasPorEvaluacion(Long evaluacionId, UsuarioAutenticado actor) {
+        Evaluacion evaluacion = evaluacionRepositorio.findById(evaluacionId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Evaluacion no encontrada con id: " + evaluacionId));
+        validarAccesoEvaluacion(evaluacion, actor);
 
         return detalleNotaEvaluacionRepositorio.findByEvaluacionId(evaluacionId)
             .stream()
@@ -230,17 +257,32 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
     }
 
     private void validarAccesoEvaluacion(Evaluacion evaluacion, UsuarioAutenticado actor) {
-        boolean esAdministrador = actor.getAuthorities().stream()
-            .map(GrantedAuthority::getAuthority)
-            .anyMatch("ROLE_ADMIN"::equals);
-        if (esAdministrador) {
+        if (esGestorAcademico(actor)) {
             return;
         }
+        validarAccesoAsignacion(evaluacion.getDocenteCursoSeccion(), actor);
+    }
+
+    private void validarEvaluacionActiva(Evaluacion evaluacion) {
+        if (evaluacion.getEstado() != EstadoRegistro.ACTIVO) {
+            throw new ReglaNegocioException("Esta evaluación fue retirada y ya no admite cambios.");
+        }
+    }
+
+    private void validarAccesoAsignacion(DocenteCursoSeccion asignacion, UsuarioAutenticado actor) {
+        if (esGestorAcademico(actor)) return;
+
         Docente docente = docenteRepositorio.findByUsuarioId(actor.getUsuario().getId())
             .orElseThrow(() -> new ReglaNegocioException("El usuario no está vinculado a un docente."));
-        if (!docente.getId().equals(evaluacion.getDocenteCursoSeccion().getDocente().getId())) {
-            throw new ReglaNegocioException("Solo puedes cambiar fechas de tus propias evaluaciones.");
+        if (!docente.getId().equals(asignacion.getDocente().getId())) {
+            throw new ReglaNegocioException("Solo puedes gestionar evaluaciones de tus propias asignaciones.");
         }
+    }
+
+    private boolean esGestorAcademico(UsuarioAutenticado actor) {
+        return actor.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .anyMatch(rol -> rol.equals("ROLE_ADMIN") || rol.equals("ROLE_DIRECTOR_ACADEMICO"));
     }
 
     private void recalcularNotaCursoPeriodoEvaluacion(Evaluacion evaluacion, Matricula matricula) {
@@ -288,6 +330,17 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
     }
 
     private EvaluacionRespuestaDto mapearEvaluacion(Evaluacion entidad) {
+        return mapearEvaluacion(entidad, hayNotasEnCursoSeccion(entidad.getDocenteCursoSeccion()));
+    }
+
+    private boolean hayNotasEnCursoSeccion(DocenteCursoSeccion asignacion) {
+        return detalleNotaEvaluacionRepositorio.existsNotasPorCursoSeccion(
+            asignacion.getCurso().getId(), asignacion.getSeccion().getId(),
+            asignacion.getPeriodoAcademico().getId(), EstadoRegistro.ACTIVO
+        );
+    }
+
+    private EvaluacionRespuestaDto mapearEvaluacion(Evaluacion entidad, boolean hayNotasEnCursoSeccion) {
         EvaluacionRespuestaDto dto = new EvaluacionRespuestaDto();
         dto.setId(entidad.getId());
         dto.setConfiguracionEvaluacionId(entidad.getConfiguracionEvaluacion().getId());
@@ -299,6 +352,9 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
         dto.setNumeroEvaluacion(entidad.getNumeroEvaluacion());
         dto.setNombre(entidad.getNombre());
         dto.setFechaEvaluacion(entidad.getFechaEvaluacion());
+        dto.setCreadoPor(entidad.getCreadoPor() != null ? entidad.getCreadoPor().getUsername() : null);
+        dto.setModificadoPor(entidad.getModificadoPor() != null ? entidad.getModificadoPor().getUsername() : null);
+        dto.setHayNotasEnCursoSeccion(hayNotasEnCursoSeccion);
         dto.setCurso(entidad.getDocenteCursoSeccion().getCurso().getNombre());
         dto.setSeccion(entidad.getDocenteCursoSeccion().getSeccion().getNombre());
         dto.setGrado(entidad.getDocenteCursoSeccion().getSeccion().getGrado().getNombre());

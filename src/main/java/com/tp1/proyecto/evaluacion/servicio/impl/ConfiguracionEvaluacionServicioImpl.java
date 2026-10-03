@@ -35,6 +35,7 @@ import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionRepositori
 import com.tp1.proyecto.evaluacion.repositorio.DetalleNotaEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.NotaCursoPeriodoEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.PlanEvaluacionAsignacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.TipoEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.servicio.ConfiguracionEvaluacionServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
@@ -71,6 +72,7 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
     private final MatriculaRepositorio matriculaRepositorio;
     private final PrediccionRiesgoServicio prediccionRiesgoServicio;
     private final PermisoPeriodoServicio permisoPeriodoServicio;
+    private final PlanEvaluacionAsignacionRepositorio planEvaluacionAsignacionRepositorio;
 
     public ConfiguracionEvaluacionServicioImpl(
         ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio,
@@ -88,7 +90,8 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         NotaCursoPeriodoEvaluacionRepositorio notaCursoPeriodoEvaluacionRepositorio,
         MatriculaRepositorio matriculaRepositorio,
         PrediccionRiesgoServicio prediccionRiesgoServicio,
-        PermisoPeriodoServicio permisoPeriodoServicio
+        PermisoPeriodoServicio permisoPeriodoServicio,
+        PlanEvaluacionAsignacionRepositorio planEvaluacionAsignacionRepositorio
     ) {
         this.configuracionEvaluacionRepositorio = configuracionEvaluacionRepositorio;
         this.periodoAcademicoRepositorio = periodoAcademicoRepositorio;
@@ -106,6 +109,7 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
         this.matriculaRepositorio = matriculaRepositorio;
         this.prediccionRiesgoServicio = prediccionRiesgoServicio;
         this.permisoPeriodoServicio = permisoPeriodoServicio;
+        this.planEvaluacionAsignacionRepositorio = planEvaluacionAsignacionRepositorio;
     }
 
     @Override
@@ -422,7 +426,8 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
             String clave = construirClave(configuracion.getPeriodoEvaluacion().getId(), configuracion.getTipoEvaluacion().getId());
             if (activas.stream().noneMatch(item ->
                 construirClave(item.getPeriodoEvaluacion().getId(), item.getTipoEvaluacion().getId()).equals(clave)
-            )) {
+            ) && configuracion.getTipoEvaluacion().getDocenteCursoSeccion() == null
+                && !evaluacionRepositorio.existsByConfiguracionEvaluacionIdAndEstado(configuracion.getId(), EstadoRegistro.ACTIVO)) {
                 configuracion.setEstado(EstadoRegistro.INACTIVO);
                 cambios.add(configuracion);
             }
@@ -450,8 +455,14 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
     ) {
         List<Evaluacion> cambios = new ArrayList<>();
         List<String> clavesActivas = new ArrayList<>();
+        boolean hayNotasEnCursoSeccion = detalleNotaEvaluacionRepositorio.existsNotasPorCursoSeccion(
+            asignacion.getCurso().getId(), asignacion.getSeccion().getId(),
+            asignacion.getPeriodoAcademico().getId(), EstadoRegistro.ACTIVO
+        );
 
         for (ConfiguracionEvaluacion configuracion : configuraciones) {
+            if (planEvaluacionAsignacionRepositorio.existsByDocenteCursoSeccionIdAndPeriodoEvaluacionId(
+                asignacion.getId(), configuracion.getPeriodoEvaluacion().getId())) continue;
             int cantidad = configuracion.getCantidadEvaluaciones() != null ? configuracion.getCantidadEvaluaciones() : 0;
             List<Evaluacion> existentes = evaluacionRepositorio
                 .findByDocenteCursoSeccionIdAndPeriodoEvaluacionIdAndTipoEvaluacionIdOrderByNumeroEvaluacionAsc(
@@ -486,8 +497,11 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
             }
 
             existentes.stream()
-                .filter(evaluacion -> evaluacion.getNumeroEvaluacion() > cantidad)
+                .filter(evaluacion -> evaluacion.getNumeroEvaluacion() > cantidad && evaluacion.getEstado() == EstadoRegistro.ACTIVO)
                 .forEach(evaluacion -> {
+                    if (hayNotasEnCursoSeccion) {
+                        throw new ReglaNegocioException("No se pueden quitar evaluaciones: este curso y sección ya tiene notas registradas.");
+                    }
                     evaluacion.setEstado(EstadoRegistro.INACTIVO);
                     cambios.add(evaluacion);
                 });
@@ -495,6 +509,8 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
 
         evaluacionRepositorio.findByDocenteCursoSeccionId(asignacion.getId())
             .stream()
+            .filter(evaluacion -> !planEvaluacionAsignacionRepositorio.existsByDocenteCursoSeccionIdAndPeriodoEvaluacionId(
+                asignacion.getId(), evaluacion.getPeriodoEvaluacion().getId()))
             .filter(evaluacion ->
                 !clavesActivas.contains(
                     construirClaveEvaluacion(
@@ -504,7 +520,11 @@ public class ConfiguracionEvaluacionServicioImpl implements ConfiguracionEvaluac
                     )
                 )
             )
+            .filter(evaluacion -> evaluacion.getEstado() == EstadoRegistro.ACTIVO)
             .forEach(evaluacion -> {
+                if (hayNotasEnCursoSeccion) {
+                    throw new ReglaNegocioException("No se pueden quitar evaluaciones: este curso y sección ya tiene notas registradas.");
+                }
                 evaluacion.setEstado(EstadoRegistro.INACTIVO);
                 cambios.add(evaluacion);
             });

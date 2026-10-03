@@ -25,4 +25,12 @@ public interface DocenteCursoSeccionRepositorio extends JpaRepository<DocenteCur
         Long periodoAcademicoId,
         com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
     );
+
+    boolean existsByCursoIdAndSeccionIdAndPeriodoAcademicoIdAndEstadoAndIdNot(
+        Long cursoId,
+        Long seccionId,
+        Long periodoAcademicoId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado,
+        Long id
+    );
 }

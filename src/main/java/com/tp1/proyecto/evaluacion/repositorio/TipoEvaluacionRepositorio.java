@@ -7,4 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TipoEvaluacionRepositorio extends JpaRepository<TipoEvaluacion, Long> {
 
     List<TipoEvaluacion> findAllByOrderByOrdenAscNombreAsc();
+
+    List<TipoEvaluacion> findByDocenteCursoSeccionIsNullOrderByOrdenAscNombreAsc();
+
+    List<TipoEvaluacion> findByDocenteCursoSeccionIdOrderByOrdenAscNombreAsc(Long asignacionId);
 }

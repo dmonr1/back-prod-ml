@@ -15,4 +15,6 @@ public interface CursoServicio {
     CursoRespuestaDto actualizar(Long id, CursoSolicitudDto solicitud);
 
     CursoRespuestaDto actualizarEstado(Long cursoId, boolean activo);
+ 
+    void eliminar(Long id);
 }

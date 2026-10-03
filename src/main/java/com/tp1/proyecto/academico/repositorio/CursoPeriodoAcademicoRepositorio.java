@@ -12,4 +12,6 @@ public interface CursoPeriodoAcademicoRepositorio extends JpaRepository<CursoPer
     Optional<CursoPeriodoAcademico> findByPeriodoAcademicoIdAndCursoId(Long periodoAcademicoId, Long cursoId);
 
     boolean existsByPeriodoAcademicoIdAndCursoId(Long periodoAcademicoId, Long cursoId);
+
+    boolean existsByCursoId(Long cursoId);
 }

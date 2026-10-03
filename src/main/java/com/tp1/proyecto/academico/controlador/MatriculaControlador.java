@@ -6,6 +6,8 @@ import com.tp1.proyecto.academico.servicio.MatriculaServicio;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,5 +37,14 @@ public class MatriculaControlador {
     @PreAuthorize("hasRole('ADMIN')")
     public MatriculaRespuestaDto crear(@RequestBody MatriculaSolicitudDto solicitud) {
         return matriculaServicio.crear(solicitud);
+    }
+
+    @PatchMapping("/{matriculaId}/estado")
+    @PreAuthorize("hasRole('ADMIN')")
+    public MatriculaRespuestaDto actualizarEstado(
+        @PathVariable Long matriculaId,
+        @RequestParam boolean activo
+    ) {
+        return matriculaServicio.actualizarEstado(matriculaId, activo);
     }
 }

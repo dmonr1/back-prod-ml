@@ -17,6 +17,7 @@ public class MatriculaRespuestaDto {
     private String periodoAcademico;
     private Integer anioAcademico;
     private LocalDate fechaMatricula;
+    private String estado;
 
     public Long getId() {
         return id;
@@ -120,5 +121,13 @@ public class MatriculaRespuestaDto {
 
     public void setFechaMatricula(LocalDate fechaMatricula) {
         this.fechaMatricula = fechaMatricula;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }

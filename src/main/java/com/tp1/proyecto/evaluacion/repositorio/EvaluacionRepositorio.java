@@ -90,4 +90,9 @@ public interface EvaluacionRepositorio extends JpaRepository<Evaluacion, Long> {
         Long tipoEvaluacionId,
         Integer numeroEvaluacion
     );
+
+    boolean existsByConfiguracionEvaluacionIdAndEstado(
+        Long configuracionEvaluacionId,
+        com.tp1.proyecto.comun.enumeracion.EstadoRegistro estado
+    );
 }

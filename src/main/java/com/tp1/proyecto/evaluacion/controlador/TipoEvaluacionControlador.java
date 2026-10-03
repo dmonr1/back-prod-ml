@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/tipos-evaluacion")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE','DOCENTE_TUTOR')")
 public class TipoEvaluacionControlador {
 
     private final TipoEvaluacionServicio tipoEvaluacionServicio;
@@ -28,6 +28,7 @@ public class TipoEvaluacionControlador {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     public TipoEvaluacionRespuestaDto crear(@Valid @RequestBody TipoEvaluacionSolicitudDto solicitud) {
         return tipoEvaluacionServicio.crear(solicitud);
     }

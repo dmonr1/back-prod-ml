@@ -33,7 +33,7 @@ public class HorarioAcademicoControlador {
     }
 
     @GetMapping("/bloques")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE','DOCENTE_TUTOR')")
     public List<BloqueHorarioRespuestaDto> listarBloques(
         @RequestParam Long periodoAcademicoId,
         @RequestParam Long nivelId
@@ -42,20 +42,20 @@ public class HorarioAcademicoControlador {
     }
 
     @GetMapping("/bloques/recreos")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE','DOCENTE_TUTOR')")
     public List<BloqueHorarioRespuestaDto> listarRecreos(@RequestParam Long periodoAcademicoId) {
         return servicio.listarRecreos(periodoAcademicoId);
     }
 
     @PostMapping("/bloques")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
     public BloqueHorarioRespuestaDto crearBloque(@Valid @RequestBody BloqueHorarioSolicitudDto solicitud) {
         return servicio.crearBloque(solicitud);
     }
 
     @PutMapping("/bloques/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
     public BloqueHorarioRespuestaDto actualizarBloque(
         @PathVariable Long id,
         @Valid @RequestBody BloqueHorarioSolicitudDto solicitud
@@ -65,13 +65,13 @@ public class HorarioAcademicoControlador {
 
     @PatchMapping("/bloques/{id}/estado")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
     public void actualizarEstadoBloque(@PathVariable Long id, @RequestParam boolean activo) {
         servicio.actualizarEstadoBloque(id, activo);
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
     public List<HorarioSemanalRespuestaDto> listarPorPeriodo(@RequestParam Long periodoAcademicoId) {
         return servicio.listarPorPeriodo(periodoAcademicoId);
     }
@@ -86,7 +86,7 @@ public class HorarioAcademicoControlador {
     }
 
     @GetMapping("/seccion/{seccionId}")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE_TUTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE_TUTOR')")
     public List<HorarioSemanalRespuestaDto> listarPorSeccion(
         @PathVariable Long seccionId,
         @RequestParam Long periodoAcademicoId,
@@ -94,7 +94,7 @@ public class HorarioAcademicoControlador {
     ) {
         boolean accesoInstitucional = principal.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
-            .anyMatch("ROLE_ADMIN"::equals);
+            .anyMatch(authority -> authority.equals("ROLE_ADMIN") || authority.equals("ROLE_DIRECTOR_ACADEMICO"));
         return servicio.listarPorSeccion(
             seccionId,
             periodoAcademicoId,
@@ -105,13 +105,13 @@ public class HorarioAcademicoControlador {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
     public HorarioSemanalRespuestaDto crear(@Valid @RequestBody HorarioSemanalSolicitudDto solicitud) {
         return servicio.crearHorario(solicitud);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
     public HorarioSemanalRespuestaDto actualizar(
         @PathVariable Long id,
         @Valid @RequestBody HorarioSemanalSolicitudDto solicitud
@@ -121,7 +121,7 @@ public class HorarioAcademicoControlador {
 
     @PatchMapping("/{id}/estado")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
     public void actualizarEstado(@PathVariable Long id, @RequestParam boolean activo) {
         servicio.actualizarEstadoHorario(id, activo);
     }

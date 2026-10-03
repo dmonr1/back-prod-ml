@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -58,10 +59,28 @@ public class AsignacionAcademicaControlador {
         return asignacionAcademicaServicio.actualizarEstadoAsignacion(asignacionId, activo);
     }
 
+    @PutMapping("/asignaciones-docente/{asignacionId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AsignacionDocenteRespuestaDto actualizarAsignacionDocente(
+        @PathVariable Long asignacionId,
+        @RequestBody AsignacionDocenteSolicitudDto solicitud
+    ) {
+        return asignacionAcademicaServicio.actualizarAsignacionDocente(asignacionId, solicitud);
+    }
+
     @PostMapping("/tutorias")
     @PreAuthorize("hasRole('ADMIN')")
     public TutoriaRespuestaDto crearTutoria(@RequestBody TutoriaSolicitudDto solicitud) {
         return asignacionAcademicaServicio.crearTutoria(solicitud);
+    }
+
+    @PutMapping("/tutorias/{tutoriaId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public TutoriaRespuestaDto actualizarTutoria(
+        @PathVariable Long tutoriaId,
+        @RequestBody TutoriaSolicitudDto solicitud
+    ) {
+        return asignacionAcademicaServicio.actualizarTutoria(tutoriaId, solicitud);
     }
 
     @GetMapping("/tutorias")

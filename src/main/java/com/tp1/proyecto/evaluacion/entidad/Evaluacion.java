@@ -3,6 +3,7 @@ package com.tp1.proyecto.evaluacion.entidad;
 import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.entidad.DocenteCursoSeccion;
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
+import com.tp1.proyecto.usuario.entidad.Usuario;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -37,6 +38,14 @@ public class Evaluacion extends AuditoriaEntidad {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "tipo_evaluacion_id", nullable = false)
     private TipoEvaluacion tipoEvaluacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creado_por_usuario_id")
+    private Usuario creadoPor;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "modificado_por_usuario_id")
+    private Usuario modificadoPor;
 
     @Column(name = "numero_evaluacion", nullable = false)
     private Integer numeroEvaluacion;
@@ -85,6 +94,22 @@ public class Evaluacion extends AuditoriaEntidad {
 
     public void setTipoEvaluacion(TipoEvaluacion tipoEvaluacion) {
         this.tipoEvaluacion = tipoEvaluacion;
+    }
+
+    public Usuario getCreadoPor() {
+        return creadoPor;
+    }
+
+    public void setCreadoPor(Usuario creadoPor) {
+        this.creadoPor = creadoPor;
+    }
+
+    public Usuario getModificadoPor() {
+        return modificadoPor;
+    }
+
+    public void setModificadoPor(Usuario modificadoPor) {
+        this.modificadoPor = modificadoPor;
     }
 
     public Integer getNumeroEvaluacion() {

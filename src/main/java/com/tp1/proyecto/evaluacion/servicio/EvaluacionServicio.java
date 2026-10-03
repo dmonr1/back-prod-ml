@@ -10,13 +10,13 @@ import java.util.List;
 
 public interface EvaluacionServicio {
 
-    EvaluacionRespuestaDto crear(EvaluacionSolicitudDto solicitud);
+    EvaluacionRespuestaDto crear(EvaluacionSolicitudDto solicitud, UsuarioAutenticado actor);
 
     EvaluacionRespuestaDto actualizarFecha(Long evaluacionId, ActualizarFechaEvaluacionSolicitudDto solicitud, UsuarioAutenticado actor);
 
-    List<EvaluacionRespuestaDto> listarPorAsignacionYPeriodoEvaluacion(Long docenteCursoSeccionId, Long periodoEvaluacionId);
+    List<EvaluacionRespuestaDto> listarPorAsignacionYPeriodoEvaluacion(Long docenteCursoSeccionId, Long periodoEvaluacionId, UsuarioAutenticado actor);
 
-    List<DetalleNotaEvaluacionRespuestaDto> registrarNotas(Long evaluacionId, RegistroNotasEvaluacionSolicitudDto solicitud);
+    List<DetalleNotaEvaluacionRespuestaDto> registrarNotas(Long evaluacionId, RegistroNotasEvaluacionSolicitudDto solicitud, UsuarioAutenticado actor);
 
-    List<DetalleNotaEvaluacionRespuestaDto> listarNotasPorEvaluacion(Long evaluacionId);
+    List<DetalleNotaEvaluacionRespuestaDto> listarNotasPorEvaluacion(Long evaluacionId, UsuarioAutenticado actor);
 }

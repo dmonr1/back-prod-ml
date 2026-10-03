@@ -32,7 +32,7 @@ public class TipoEvaluacionServicioImpl implements TipoEvaluacionServicio {
     @Override
     @Transactional(readOnly = true)
     public List<TipoEvaluacionRespuestaDto> listar() {
-        return tipoEvaluacionRepositorio.findAllByOrderByOrdenAscNombreAsc()
+        return tipoEvaluacionRepositorio.findByDocenteCursoSeccionIsNullOrderByOrdenAscNombreAsc()
             .stream()
             .map(this::mapear)
             .toList();

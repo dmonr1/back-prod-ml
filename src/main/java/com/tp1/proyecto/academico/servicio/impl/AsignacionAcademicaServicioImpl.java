@@ -205,6 +205,77 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     }
 
     @Override
+    public AsignacionDocenteRespuestaDto actualizarAsignacionDocente(Long asignacionId, AsignacionDocenteSolicitudDto solicitud) {
+        DocenteCursoSeccion asignacion = docenteCursoSeccionRepositorio.findById(asignacionId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Asignacion docente no encontrada con id: " + asignacionId));
+
+        PeriodoAcademico periodoAcademico = asignacion.getPeriodoAcademico();
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
+
+        Docente nuevoDocente = obtenerDocente(solicitud.getDocenteId());
+        Curso nuevoCurso = cursoRepositorio.findById(solicitud.getCursoId())
+            .orElseThrow(() -> new RecursoNoEncontradoException("Curso no encontrado con id: " + solicitud.getCursoId()));
+        Seccion nuevaSeccion = seccionRepositorio.findById(solicitud.getSeccionId())
+            .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
+
+        if (
+            nuevaSeccion.getPeriodoAcademico() == null ||
+            !nuevaSeccion.getPeriodoAcademico().getId().equals(periodoAcademico.getId())
+        ) {
+            throw new ReglaNegocioException("La seccion seleccionada no pertenece al periodo academico de la asignacion.");
+        }
+
+        if (nuevoCurso.getEstado() != EstadoRegistro.ACTIVO) {
+            throw new ReglaNegocioException("El curso seleccionado se encuentra deshabilitado.");
+        }
+
+        if (!nuevoCurso.getNivel().getId().equals(nuevaSeccion.getGrado().getNivel().getId())) {
+            throw new ReglaNegocioException("El curso seleccionado no pertenece al nivel de la seccion indicada.");
+        }
+
+        if (docenteCursoSeccionRepositorio.existsByCursoIdAndSeccionIdAndPeriodoAcademicoIdAndEstadoAndIdNot(
+            nuevoCurso.getId(),
+            nuevaSeccion.getId(),
+            periodoAcademico.getId(),
+            EstadoRegistro.ACTIVO,
+            asignacionId
+        )) {
+            throw new ReglaNegocioException(
+                "El curso seleccionado ya tiene un docente asignado para esta seccion y periodo academico."
+            );
+        }
+
+        boolean cambioCurso = !nuevoCurso.getId().equals(asignacion.getCurso().getId());
+        boolean cambioSeccion = !nuevaSeccion.getId().equals(asignacion.getSeccion().getId());
+
+        if (cambioCurso || cambioSeccion) {
+            if (detalleNotaEvaluacionRepositorio.existsByEvaluacionDocenteCursoSeccionId(asignacionId)) {
+                throw new ReglaNegocioException(
+                    "No se puede cambiar el curso o la seccion porque ya existen calificaciones registradas para esta asignacion. Solo es posible reasignar el docente."
+                );
+            }
+
+            if (cambioCurso) {
+                List<Evaluacion> evaluacionesAntiguas = evaluacionRepositorio.findByDocenteCursoSeccionId(asignacionId);
+                if (!evaluacionesAntiguas.isEmpty()) {
+                    evaluacionRepositorio.deleteAll(evaluacionesAntiguas);
+                }
+            }
+        }
+
+        asignacion.setDocente(nuevoDocente);
+        asignacion.setCurso(nuevoCurso);
+        asignacion.setSeccion(nuevaSeccion);
+
+        DocenteCursoSeccion guardada = docenteCursoSeccionRepositorio.save(asignacion);
+        if (cambioCurso) {
+            generarEvaluacionesProgramadas(guardada);
+        }
+
+        return mapearAsignacion(guardada);
+    }
+
+    @Override
     public TutoriaRespuestaDto crearTutoria(TutoriaSolicitudDto solicitud) {
         Docente docente = obtenerDocente(solicitud.getDocenteId());
         Seccion seccion = seccionRepositorio.findById(solicitud.getSeccionId())
@@ -283,6 +354,45 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         tutoria.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
         Tutoria guardada = tutoriaRepositorio.save(tutoria);
         sincronizarRolTutor(guardada.getDocente());
+        return mapearTutoria(guardada);
+    }
+
+    @Override
+    public TutoriaRespuestaDto actualizarTutoria(Long tutoriaId, TutoriaSolicitudDto solicitud) {
+        Tutoria tutoria = tutoriaRepositorio.findById(tutoriaId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Tutoria no encontrada con id: " + tutoriaId));
+
+        PeriodoAcademico periodoAcademico = tutoria.getPeriodoAcademico();
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
+
+        Docente nuevoDocente = obtenerDocente(solicitud.getDocenteId());
+        Seccion nuevaSeccion = seccionRepositorio.findById(solicitud.getSeccionId())
+            .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
+
+        if (
+            nuevaSeccion.getPeriodoAcademico() == null ||
+            !nuevaSeccion.getPeriodoAcademico().getId().equals(periodoAcademico.getId())
+        ) {
+            throw new ReglaNegocioException("La seccion seleccionada no pertenece al periodo academico de la tutoria.");
+        }
+
+        if (tutoriaRepositorio.existsBySeccionIdAndPeriodoAcademicoIdAndEstadoAndIdNot(
+            nuevaSeccion.getId(),
+            periodoAcademico.getId(),
+            EstadoRegistro.ACTIVO,
+            tutoriaId
+        )) {
+            throw new ReglaNegocioException("La seccion ya tiene una tutoria asignada en este periodo.");
+        }
+
+        Docente docenteAnterior = tutoria.getDocente();
+        tutoria.setDocente(nuevoDocente);
+        tutoria.setSeccion(nuevaSeccion);
+
+        Tutoria guardada = tutoriaRepositorio.save(tutoria);
+        sincronizarRolTutor(docenteAnterior);
+        sincronizarRolTutor(nuevoDocente);
+
         return mapearTutoria(guardada);
     }
 
@@ -546,8 +656,12 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     }
 
     private Docente obtenerDocente(Long docenteId) {
-        return docenteRepositorio.findById(docenteId)
+        Docente docente = docenteRepositorio.findById(docenteId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Docente no encontrado con id: " + docenteId));
+        if (docente.getEstado() != EstadoRegistro.ACTIVO) {
+            throw new ReglaNegocioException("El docente seleccionado se encuentra inactivo.");
+        }
+        return docente;
     }
 
     private void generarEvaluacionesProgramadas(DocenteCursoSeccion asignacion) {
@@ -691,7 +805,9 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
                 configuracion.getTipoEvaluacion().getId()
             );
 
-            if (!contieneConfiguracion(resultado, clave)) {
+            if (!contieneConfiguracion(resultado, clave)
+                && configuracion.getTipoEvaluacion().getDocenteCursoSeccion() == null
+                && !evaluacionRepositorio.existsByConfiguracionEvaluacionIdAndEstado(configuracion.getId(), EstadoRegistro.ACTIVO)) {
                 configuracion.setEstado(EstadoRegistro.INACTIVO);
                 cambios.add(configuracion);
             }

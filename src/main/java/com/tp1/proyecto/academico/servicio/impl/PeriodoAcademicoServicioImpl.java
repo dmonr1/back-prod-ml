@@ -146,6 +146,12 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
             || solicitud.getDuracionRecreoSecundariaMinutos() == null || solicitud.getDuracionRecreoSecundariaMinutos() % 5 != 0) {
             throw new ReglaNegocioException("Las duraciones de clases y recreos deben configurarse en múltiplos de 5 minutos.");
         }
+        if (solicitud.getHoraInicioJornadaPrimaria() == null || solicitud.getHoraFinJornadaPrimaria() == null
+            || !solicitud.getHoraFinJornadaPrimaria().isAfter(solicitud.getHoraInicioJornadaPrimaria())
+            || solicitud.getHoraInicioJornadaSecundaria() == null || solicitud.getHoraFinJornadaSecundaria() == null
+            || !solicitud.getHoraFinJornadaSecundaria().isAfter(solicitud.getHoraInicioJornadaSecundaria())) {
+            throw new ReglaNegocioException("La hora de fin de cada jornada debe ser posterior a su hora de inicio.");
+        }
         validarRangoFechas(
             solicitud.getAnio(),
             solicitud.getFechaInicio(),
@@ -188,6 +194,10 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         periodo.setDuracionRecreoPrimariaMinutos(solicitud.getDuracionRecreoPrimariaMinutos());
         periodo.setDuracionHoraSecundariaMinutos(solicitud.getDuracionHoraSecundariaMinutos());
         periodo.setDuracionRecreoSecundariaMinutos(solicitud.getDuracionRecreoSecundariaMinutos());
+        periodo.setHoraInicioJornadaPrimaria(solicitud.getHoraInicioJornadaPrimaria());
+        periodo.setHoraFinJornadaPrimaria(solicitud.getHoraFinJornadaPrimaria());
+        periodo.setHoraInicioJornadaSecundaria(solicitud.getHoraInicioJornadaSecundaria());
+        periodo.setHoraFinJornadaSecundaria(solicitud.getHoraFinJornadaSecundaria());
     }
 
     private void validarPeriodosEvaluacion(PeriodoAcademicoConPeriodosSolicitudDto solicitud) {
@@ -546,6 +556,10 @@ public class PeriodoAcademicoServicioImpl implements PeriodoAcademicoServicio {
         dto.setDuracionRecreoPrimariaMinutos(periodoAcademico.getDuracionRecreoPrimariaMinutos());
         dto.setDuracionHoraSecundariaMinutos(periodoAcademico.getDuracionHoraSecundariaMinutos());
         dto.setDuracionRecreoSecundariaMinutos(periodoAcademico.getDuracionRecreoSecundariaMinutos());
+        dto.setHoraInicioJornadaPrimaria(periodoAcademico.getHoraInicioJornadaPrimaria());
+        dto.setHoraFinJornadaPrimaria(periodoAcademico.getHoraFinJornadaPrimaria());
+        dto.setHoraInicioJornadaSecundaria(periodoAcademico.getHoraInicioJornadaSecundaria());
+        dto.setHoraFinJornadaSecundaria(periodoAcademico.getHoraFinJornadaSecundaria());
         return dto;
     }
 

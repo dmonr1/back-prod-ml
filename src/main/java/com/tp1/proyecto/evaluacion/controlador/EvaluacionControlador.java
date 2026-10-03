@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/evaluaciones")
-@PreAuthorize("hasAnyRole('ADMIN','DOCENTE','DOCENTE_TUTOR')")
+@PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE','DOCENTE_TUTOR')")
 public class EvaluacionControlador {
 
     private final EvaluacionServicio evaluacionServicio;
@@ -35,8 +35,11 @@ public class EvaluacionControlador {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public EvaluacionRespuestaDto crear(@Valid @RequestBody EvaluacionSolicitudDto solicitud) {
-        return evaluacionServicio.crear(solicitud);
+    public EvaluacionRespuestaDto crear(
+        @Valid @RequestBody EvaluacionSolicitudDto solicitud,
+        @AuthenticationPrincipal UsuarioAutenticado actor
+    ) {
+        return evaluacionServicio.crear(solicitud, actor);
     }
 
     @PatchMapping("/{evaluacionId}/fecha")
@@ -51,21 +54,26 @@ public class EvaluacionControlador {
     @GetMapping
     public List<EvaluacionRespuestaDto> listar(
         @RequestParam Long docenteCursoSeccionId,
-        @RequestParam Long periodoEvaluacionId
+        @RequestParam Long periodoEvaluacionId,
+        @AuthenticationPrincipal UsuarioAutenticado actor
     ) {
-        return evaluacionServicio.listarPorAsignacionYPeriodoEvaluacion(docenteCursoSeccionId, periodoEvaluacionId);
+        return evaluacionServicio.listarPorAsignacionYPeriodoEvaluacion(docenteCursoSeccionId, periodoEvaluacionId, actor);
     }
 
     @PostMapping("/{evaluacionId}/notas")
     public List<DetalleNotaEvaluacionRespuestaDto> registrarNotas(
         @PathVariable Long evaluacionId,
-        @Valid @RequestBody RegistroNotasEvaluacionSolicitudDto solicitud
+        @Valid @RequestBody RegistroNotasEvaluacionSolicitudDto solicitud,
+        @AuthenticationPrincipal UsuarioAutenticado actor
     ) {
-        return evaluacionServicio.registrarNotas(evaluacionId, solicitud);
+        return evaluacionServicio.registrarNotas(evaluacionId, solicitud, actor);
     }
 
     @GetMapping("/{evaluacionId}/notas")
-    public List<DetalleNotaEvaluacionRespuestaDto> listarNotas(@PathVariable Long evaluacionId) {
-        return evaluacionServicio.listarNotasPorEvaluacion(evaluacionId);
+    public List<DetalleNotaEvaluacionRespuestaDto> listarNotas(
+        @PathVariable Long evaluacionId,
+        @AuthenticationPrincipal UsuarioAutenticado actor
+    ) {
+        return evaluacionServicio.listarNotasPorEvaluacion(evaluacionId, actor);
     }
 }
