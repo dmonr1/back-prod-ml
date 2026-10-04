@@ -5,6 +5,7 @@ import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
 import com.tp1.proyecto.academico.entidad.Seccion;
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
 import com.tp1.proyecto.docente.entidad.Docente;
+import com.tp1.proyecto.usuario.entidad.Usuario;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -23,6 +24,10 @@ public class CargaExcel extends AuditoriaEntidad {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_ejecutor_id")
+    private Usuario usuarioEjecutor;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "docente_id", nullable = false)
@@ -155,5 +160,13 @@ public class CargaExcel extends AuditoriaEntidad {
 
     public void setFechaCarga(LocalDateTime fechaCarga) {
         this.fechaCarga = fechaCarga;
+    }
+
+    public Usuario getUsuarioEjecutor() {
+        return usuarioEjecutor;
+    }
+
+    public void setUsuarioEjecutor(Usuario usuarioEjecutor) {
+        this.usuarioEjecutor = usuarioEjecutor;
     }
 }

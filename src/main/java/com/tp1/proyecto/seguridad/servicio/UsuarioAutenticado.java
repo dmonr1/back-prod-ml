@@ -1,5 +1,6 @@
 package com.tp1.proyecto.seguridad.servicio;
 
+import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.usuario.entidad.Usuario;
 import java.util.Collection;
 import java.util.List;
@@ -64,7 +65,7 @@ public class UsuarioAutenticado implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return usuario.getEstado() == null || usuario.getEstado() == EstadoRegistro.ACTIVO;
     }
 
     @Override
@@ -74,6 +75,6 @@ public class UsuarioAutenticado implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return usuario.getEstado() == null || usuario.getEstado() == EstadoRegistro.ACTIVO;
     }
 }

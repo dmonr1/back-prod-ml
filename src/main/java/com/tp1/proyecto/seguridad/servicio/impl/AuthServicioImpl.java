@@ -17,6 +17,7 @@ import com.tp1.proyecto.seguridad.entidad.RecuperacionPasswordToken;
 import com.tp1.proyecto.seguridad.repositorio.RecuperacionPasswordTokenRepositorio;
 import com.tp1.proyecto.seguridad.servicio.AuthServicio;
 import com.tp1.proyecto.seguridad.servicio.CorreoServicio;
+import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.seguridad.servicio.JwtServicio;
 import com.tp1.proyecto.seguridad.servicio.UsuarioAutenticado;
 import com.tp1.proyecto.usuario.entidad.Usuario;
@@ -27,6 +28,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -81,12 +84,17 @@ public class AuthServicioImpl implements AuthServicio {
             authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(solicitud.getIdentificador(), solicitud.getPassword())
             );
+        } catch (DisabledException | LockedException ex) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "La cuenta se encuentra desactivada. Comuníquese con la administración.");
         } catch (AuthenticationException ex) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales invalidas");
         }
 
         UsuarioAutenticado principal = (UsuarioAutenticado) authentication.getPrincipal();
         Usuario usuario = principal.getUsuario();
+        if (usuario.getEstado() != null && usuario.getEstado() != EstadoRegistro.ACTIVO) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "La cuenta se encuentra desactivada. Comuníquese con la administración.");
+        }
         usuario.setUltimoLogin(LocalDateTime.now());
         usuarioRepositorio.save(usuario);
 
@@ -220,8 +228,14 @@ public class AuthServicioImpl implements AuthServicio {
 
         if (!token.getCodigo().equals(codigo)) {
             token.setIntentos(token.getIntentos() + 1);
+            if (token.getIntentos() >= recuperacionMaxIntentos) {
+                token.setUsado(Boolean.TRUE);
+                recuperacionPasswordTokenRepositorio.save(token);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ha superado el maximo de 5 intentos fallidos. El codigo ha sido invalidado permanentemente.");
+            }
             recuperacionPasswordTokenRepositorio.save(token);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El codigo de verificacion es invalido.");
+            int restantes = recuperacionMaxIntentos - token.getIntentos();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El codigo de verificacion es invalido. Intentos restantes: " + restantes);
         }
 
         token.setCodigoVerificado(Boolean.TRUE);
@@ -287,7 +301,7 @@ public class AuthServicioImpl implements AuthServicio {
         if (token.getExpiracion().isBefore(LocalDateTime.now())) {
             token.setUsado(Boolean.TRUE);
             recuperacionPasswordTokenRepositorio.save(token);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El codigo de recuperacion ha expirado.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El token o codigo de recuperacion ha expirado.");
         }
     }
 

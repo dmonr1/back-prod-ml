@@ -17,6 +17,8 @@ public class CargaExcelRespuestaDto {
     private String estadoProceso;
     private String observacion;
     private LocalDateTime fechaCarga;
+    private Long usuarioEjecutorId;
+    private String usuarioEjecutorUsername;
 
     public Long getId() {
         return id;
@@ -120,5 +122,21 @@ public class CargaExcelRespuestaDto {
 
     public void setFechaCarga(LocalDateTime fechaCarga) {
         this.fechaCarga = fechaCarga;
+    }
+
+    public Long getUsuarioEjecutorId() {
+        return usuarioEjecutorId;
+    }
+
+    public void setUsuarioEjecutorId(Long usuarioEjecutorId) {
+        this.usuarioEjecutorId = usuarioEjecutorId;
+    }
+
+    public String getUsuarioEjecutorUsername() {
+        return usuarioEjecutorUsername;
+    }
+
+    public void setUsuarioEjecutorUsername(String usuarioEjecutorUsername) {
+        this.usuarioEjecutorUsername = usuarioEjecutorUsername;
     }
 }

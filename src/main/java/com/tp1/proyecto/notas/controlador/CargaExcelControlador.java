@@ -2,10 +2,13 @@ package com.tp1.proyecto.notas.controlador;
 
 import com.tp1.proyecto.notas.dto.CargaExcelRespuestaDto;
 import com.tp1.proyecto.notas.servicio.CargaExcelServicio;
+import com.tp1.proyecto.seguridad.servicio.UsuarioAutenticado;
+import com.tp1.proyecto.usuario.entidad.Usuario;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,9 +42,11 @@ public class CargaExcelControlador {
         @RequestParam Long periodoAcademicoId,
         @RequestParam Long periodoEvaluacionId,
         @RequestParam Long seccionId,
-        @RequestParam("archivo") MultipartFile archivo
+        @RequestParam("archivo") MultipartFile archivo,
+        @AuthenticationPrincipal UsuarioAutenticado usuarioAutenticado
     ) {
-        return cargaExcelServicio.registrarCarga(docenteId, periodoAcademicoId, periodoEvaluacionId, seccionId, archivo);
+        Usuario ejecutor = usuarioAutenticado != null ? usuarioAutenticado.getUsuario() : null;
+        return cargaExcelServicio.registrarCarga(docenteId, periodoAcademicoId, periodoEvaluacionId, seccionId, archivo, ejecutor);
     }
 
     @GetMapping("/docente/{docenteId}")

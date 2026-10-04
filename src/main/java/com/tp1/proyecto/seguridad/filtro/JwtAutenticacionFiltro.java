@@ -44,7 +44,7 @@ public class JwtAutenticacionFiltro extends OncePerRequestFilter {
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UsuarioAutenticado usuario = (UsuarioAutenticado) usuarioDetalleServicio.loadUserByUsername(username);
-                if (jwtServicio.esTokenValido(jwt, usuario)) {
+                if (jwtServicio.esTokenValido(jwt, usuario) && usuario.isEnabled()) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         usuario,
                         null,
@@ -52,6 +52,12 @@ public class JwtAutenticacionFiltro extends OncePerRequestFilter {
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else if (jwtServicio.esTokenValido(jwt, usuario) && !usuario.isEnabled()) {
+                    SecurityContextHolder.clearContext();
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"mensaje\":\"La cuenta se encuentra desactivada. Comuníquese con la administración.\"}");
+                    return;
                 }
             }
         } catch (JwtException | IllegalArgumentException ex) {

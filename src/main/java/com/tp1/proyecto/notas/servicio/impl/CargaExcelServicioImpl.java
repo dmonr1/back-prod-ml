@@ -16,6 +16,7 @@ import com.tp1.proyecto.notas.repositorio.CargaExcelRepositorio;
 import com.tp1.proyecto.notas.servicio.CargaExcelServicio;
 import com.tp1.proyecto.notas.servicio.ProcesadorExcelServicio;
 import com.tp1.proyecto.prediccion.servicio.PrediccionRiesgoServicio;
+import com.tp1.proyecto.usuario.entidad.Usuario;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -69,6 +70,18 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
         Long seccionId,
         MultipartFile archivo
     ) {
+        return registrarCarga(docenteId, periodoAcademicoId, periodoEvaluacionId, seccionId, archivo, null);
+    }
+
+    @Override
+    public CargaExcelRespuestaDto registrarCarga(
+        Long docenteId,
+        Long periodoAcademicoId,
+        Long periodoEvaluacionId,
+        Long seccionId,
+        MultipartFile archivo,
+        Usuario usuarioEjecutor
+    ) {
         if (archivo == null || archivo.isEmpty()) {
             throw new ReglaNegocioException("Debe seleccionar un archivo Excel");
         }
@@ -91,6 +104,7 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
 
         CargaExcel cargaExcel = new CargaExcel();
         cargaExcel.setDocente(docente);
+        cargaExcel.setUsuarioEjecutor(usuarioEjecutor);
         cargaExcel.setPeriodoAcademico(periodoAcademico);
         cargaExcel.setPeriodoEvaluacion(periodoEvaluacion);
         cargaExcel.setSeccion(seccion);
@@ -171,6 +185,10 @@ public class CargaExcelServicioImpl implements CargaExcelServicio {
         dto.setEstadoProceso(cargaExcel.getEstadoProceso());
         dto.setObservacion(cargaExcel.getObservacion());
         dto.setFechaCarga(cargaExcel.getFechaCarga());
+        if (cargaExcel.getUsuarioEjecutor() != null) {
+            dto.setUsuarioEjecutorId(cargaExcel.getUsuarioEjecutor().getId());
+            dto.setUsuarioEjecutorUsername(cargaExcel.getUsuarioEjecutor().getUsername());
+        }
         return dto;
     }
 }

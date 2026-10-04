@@ -33,9 +33,23 @@ if (-not $psql) {
     throw 'No se encontro psql.exe. Instala PostgreSQL con sus herramientas de linea de comandos.'
 }
 
-$java = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME 'bin\java.exe' } else { 'java.exe' }
-$javaVersion = (& $java -version 2>&1 | Out-String)
-if ($LASTEXITCODE -ne 0 -or $javaVersion -notmatch 'version "(?:1\.)?(\d+)') {
+$javaHome = $env:JAVA_HOME
+if (-not $javaHome) {
+    $javaHome = [Environment]::GetEnvironmentVariable('JAVA_HOME', 'Machine')
+}
+$java = if ($javaHome) { Join-Path $javaHome 'bin\java.exe' } else { 'java.exe' }
+if (-not (Test-Path -LiteralPath $java -PathType Leaf)) {
+    throw "No se encontro java.exe en JAVA_HOME: '$javaHome'."
+}
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+    $javaVersion = (& $java -version 2>&1 | Out-String)
+    $javaExitCode = $LASTEXITCODE
+} finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+if ($javaExitCode -ne 0 -or $javaVersion -notmatch 'version "(?:1\.)?(\d+)') {
     throw 'No se pudo determinar la version de Java. Este proyecto requiere JDK 21.'
 }
 if ([int]$Matches[1] -lt 21) {
@@ -49,6 +63,7 @@ $previousDbHost = $env:DB_HOST
 $previousDbPort = $env:DB_PORT
 $previousDbName = $env:DB_NAME
 $previousDbUser = $env:DB_USER
+$previousJavaHome = $env:JAVA_HOME
 
 try {
     if (-not $env:DB_PASSWORD) {
@@ -67,6 +82,7 @@ try {
     $env:DB_NAME = $DatabaseName
     $env:DB_USER = $DatabaseUser
     $env:SPRING_PROFILES_ACTIVE = 'local'
+    $env:JAVA_HOME = $javaHome
 
     $databaseExists = Invoke-Psql 'postgres' "SELECT 1 FROM pg_database WHERE datname = '$DatabaseName';"
     if ($databaseExists -ne '1') {
@@ -103,4 +119,5 @@ try {
     $env:DB_PORT = $previousDbPort
     $env:DB_NAME = $previousDbName
     $env:DB_USER = $previousDbUser
+    $env:JAVA_HOME = $previousJavaHome
 }
