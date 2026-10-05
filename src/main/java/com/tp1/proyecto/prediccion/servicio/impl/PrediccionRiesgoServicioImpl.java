@@ -51,6 +51,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +60,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
+    private static final Logger log = LoggerFactory.getLogger(PrediccionRiesgoServicioImpl.class);
     private static final BigDecimal NOTA_APROBATORIA = BigDecimal.valueOf(11);
     private static final BigDecimal NOTA_CRITICA = BigDecimal.valueOf(10);
 
@@ -174,7 +177,11 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     @Override
     public void generarPrediccionGlobalPorMatricula(Long matriculaId, Long periodoEvaluacionId) {
-        corteSeguimientoPrediccionServicio.actualizarPorMatricula(matriculaId);
+        try {
+            corteSeguimientoPrediccionServicio.actualizarPorMatricula(matriculaId);
+        } catch (Exception ex) {
+            log.warn("No se pudo actualizar seguimiento de corte para la matrícula {}: {}", matriculaId, ex.getMessage());
+        }
         Matricula matricula = matriculaRepositorio.findById(matriculaId)
             .orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada: " + matriculaId));
 
@@ -304,19 +311,23 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         Long cargaArchivoId,
         PrediccionMlRequestDto request
     ) {
-        PrediccionMlResponseDto response = clientePrediccionPython.predecir(request);
-        if (response == null || response.getGlobalPrediction() == null) {
-            return;
-        }
+        try {
+            PrediccionMlResponseDto response = clientePrediccionPython.predecir(request);
+            if (response == null || response.getGlobalPrediction() == null) {
+                return;
+            }
 
-        PrediccionRiesgo prediccionGlobal = guardarPrediccionGlobal(
-            periodoEvaluacionId,
-            cargaArchivoId,
-            matricula,
-            response.getGlobalPrediction()
-        );
-        guardarPrediccionesCurso(cargaArchivoId, matricula, response.getCoursePredictions());
-        generarAlertasYRecomendacionesGlobales(prediccionGlobal);
+            PrediccionRiesgo prediccionGlobal = guardarPrediccionGlobal(
+                periodoEvaluacionId,
+                cargaArchivoId,
+                matricula,
+                response.getGlobalPrediction()
+            );
+            guardarPrediccionesCurso(cargaArchivoId, matricula, response.getCoursePredictions());
+            generarAlertasYRecomendacionesGlobales(prediccionGlobal);
+        } catch (Exception ex) {
+            log.warn("No se pudo procesar la predicción ML para la matrícula {}: {}", matricula.getId(), ex.getMessage());
+        }
     }
 
     private PrediccionMlRequestDto construirRequestLegado(

@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tp1.proyecto.academico.entidad.CorteSeguimiento;
 import com.tp1.proyecto.academico.entidad.Matricula;
+import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.repositorio.CorteSeguimientoRepositorio;
 import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
+import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.alerta.entidad.Alerta;
 import com.tp1.proyecto.alerta.entidad.Recomendacion;
 import com.tp1.proyecto.alerta.repositorio.AlertaRepositorio;
@@ -41,6 +43,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,10 +53,12 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @Transactional
 public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoPrediccionServicio {
+    private static final Logger log = LoggerFactory.getLogger(CorteSeguimientoPrediccionServicioImpl.class);
     private static final BigDecimal NOTA_APROBATORIA = BigDecimal.valueOf(11);
 
     private final CorteSeguimientoRepositorio corteRepositorio;
     private final MatriculaRepositorio matriculaRepositorio;
+    private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final EvaluacionRepositorio evaluacionRepositorio;
     private final DetalleNotaEvaluacionRepositorio detalleRepositorio;
     private final AsistenciaSesionRepositorio asistenciaRepositorio;
@@ -66,6 +72,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
     public CorteSeguimientoPrediccionServicioImpl(
         CorteSeguimientoRepositorio corteRepositorio,
         MatriculaRepositorio matriculaRepositorio,
+        PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         EvaluacionRepositorio evaluacionRepositorio,
         DetalleNotaEvaluacionRepositorio detalleRepositorio,
         AsistenciaSesionRepositorio asistenciaRepositorio,
@@ -78,6 +85,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
     ) {
         this.corteRepositorio = corteRepositorio;
         this.matriculaRepositorio = matriculaRepositorio;
+        this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.evaluacionRepositorio = evaluacionRepositorio;
         this.detalleRepositorio = detalleRepositorio;
         this.asistenciaRepositorio = asistenciaRepositorio;
@@ -142,6 +150,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         Map<Long, List<AsistenciaSesion>> sesionesPorMatricula = sesiones.stream()
             .collect(Collectors.groupingBy(s -> s.getMatricula().getId()));
         int procesadas = 0;
+        Long periodoEvaluacionId = obtenerPeriodoEvaluacionIdParaCorte(corte);
 
         for (Matricula matricula : matriculas) {
             List<DetalleNotaEvaluacion> detalles = evaluacionIds.isEmpty() ? List.of() : detalleRepositorio
@@ -169,6 +178,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
 
             PrediccionGlobalMlRequestDto global = new PrediccionGlobalMlRequestDto();
             global.setMatriculaId(matricula.getId());
+            global.setPeriodoEvaluacionId(periodoEvaluacionId);
             global.setCorteSeguimientoId(corte.getId());
             global.setSemanaCorte(corte.getSemana());
             global.setFechaCorte(corte.getFechaCorte());
@@ -202,6 +212,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
                 feature.setCursoId(entry.getKey());
                 feature.setCursoNombre(detalles.stream().filter(d -> d.getEvaluacion().getDocenteCursoSeccion().getCurso().getId().equals(entry.getKey()))
                     .findFirst().orElseThrow().getEvaluacion().getDocenteCursoSeccion().getCurso().getNombre());
+                feature.setPeriodoEvaluacionId(periodoEvaluacionId);
                 feature.setCorteSeguimientoId(corte.getId());
                 feature.setSemanaCorte(corte.getSemana());
                 feature.setFechaCorte(corte.getFechaCorte());
@@ -222,11 +233,18 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
             request.setModeloVersion("v4-corte-temprano");
             request.setGlobalFeatures(global);
             request.setCourseFeatures(featuresCurso);
-            PrediccionMlResponseDto response = clienteMl.predecir(request);
-            if (response == null || response.getGlobalPrediction() == null) continue;
-            guardarGlobal(corte, matricula, response.getGlobalPrediction());
-            guardarCursos(corte, matricula, response.getCoursePredictions());
-            procesadas++;
+            try {
+                PrediccionMlResponseDto response = clienteMl.predecir(request);
+                if (response == null || response.getGlobalPrediction() == null) continue;
+                guardarGlobal(corte, matricula, response.getGlobalPrediction());
+                guardarCursos(corte, matricula, response.getCoursePredictions());
+                procesadas++;
+            } catch (Exception ex) {
+                log.warn("No se pudo predecir corte {} para matricula {}: {}", corte.getId(), matricula.getId(), ex.getMessage());
+                if (rechazarSinFechas) {
+                    throw ex;
+                }
+            }
         }
         return procesadas;
     }
@@ -347,6 +365,35 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
 
     private BigDecimal promedio(List<BigDecimal> notas) {
         return notas.stream().reduce(BigDecimal.ZERO, BigDecimal::add).divide(BigDecimal.valueOf(notas.size()), 2, RoundingMode.HALF_UP);
+    }
+
+    private Long obtenerPeriodoEvaluacionIdParaCorte(CorteSeguimiento corte) {
+        List<PeriodoEvaluacion> periodos = periodoEvaluacionRepositorio
+            .findByPeriodoAcademicoId(corte.getPeriodoAcademico().getId());
+        if (periodos == null || periodos.isEmpty()) {
+            return 1L;
+        }
+        if (corte.getFechaCorte() == null) {
+            return periodos.get(0).getId();
+        }
+        return periodos.stream()
+            .filter(p -> p.getFechaInicio() != null && p.getFechaFin() != null
+                && !corte.getFechaCorte().isBefore(p.getFechaInicio())
+                && !corte.getFechaCorte().isAfter(p.getFechaFin()))
+            .findFirst()
+            .or(() -> periodos.stream()
+                .filter(p -> p.getFechaInicio() != null && p.getFechaFin() != null)
+                .min(Comparator.comparingLong(p -> {
+                    if (corte.getFechaCorte().isBefore(p.getFechaInicio())) {
+                        return java.time.temporal.ChronoUnit.DAYS.between(corte.getFechaCorte(), p.getFechaInicio());
+                    } else if (corte.getFechaCorte().isAfter(p.getFechaFin())) {
+                        return java.time.temporal.ChronoUnit.DAYS.between(p.getFechaFin(), corte.getFechaCorte());
+                    }
+                    return 0L;
+                }))
+            )
+            .map(PeriodoEvaluacion::getId)
+            .orElse(periodos.get(0).getId());
     }
 
     private String serializar(Object value) {

@@ -36,6 +36,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.time.LocalDate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +45,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class EvaluacionServicioImpl implements EvaluacionServicio {
+
+    private static final Logger log = LoggerFactory.getLogger(EvaluacionServicioImpl.class);
 
     private final EvaluacionRepositorio evaluacionRepositorio;
     private final ConfiguracionEvaluacionRepositorio configuracionEvaluacionRepositorio;
@@ -138,9 +142,15 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
             matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(
                 guardada.getDocenteCursoSeccion().getSeccion().getId(),
                 guardada.getDocenteCursoSeccion().getPeriodoAcademico().getId()
-            ).forEach(matricula -> prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(
-                matricula.getId(), guardada.getPeriodoEvaluacion().getId()
-            ));
+            ).forEach(matricula -> {
+                try {
+                    prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(
+                        matricula.getId(), guardada.getPeriodoEvaluacion().getId()
+                    );
+                } catch (Exception ex) {
+                    log.warn("No se pudo generar predicción de riesgo para la matrícula {}: {}", matricula.getId(), ex.getMessage());
+                }
+            });
         }
         return mapearEvaluacion(guardada);
     }
@@ -210,7 +220,11 @@ public class EvaluacionServicioImpl implements EvaluacionServicio {
 
             DetalleNotaEvaluacion guardado = detalleNotaEvaluacionRepositorio.save(detalle);
             recalcularNotaCursoPeriodoEvaluacion(evaluacion, matricula);
-            prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(matricula.getId(), evaluacion.getPeriodoEvaluacion().getId());
+            try {
+                prediccionRiesgoServicio.generarPrediccionGlobalPorMatricula(matricula.getId(), evaluacion.getPeriodoEvaluacion().getId());
+            } catch (Exception ex) {
+                log.warn("No se pudo generar predicción de riesgo para la matrícula {}: {}", matricula.getId(), ex.getMessage());
+            }
             respuestas.add(mapearDetalle(guardado));
         }
 
