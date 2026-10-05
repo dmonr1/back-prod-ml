@@ -839,7 +839,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     private double calcularPorcentajeAsistencia(int clasesProgramadas, int clasesAsistidas) {
         if (clasesProgramadas == 0) {
-            return 0.0;
+            return 100.0;
         }
         return BigDecimal.valueOf(clasesAsistidas)
             .multiply(BigDecimal.valueOf(100))
@@ -863,9 +863,9 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         private double porcentaje() { return porcentaje; }
 
         private static ResumenAsistencia desdeConsolidado(AsistenciaPeriodoEvaluacion asistencia) {
-            int programadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
-            int asistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
-            double porcentaje = programadas == 0 ? 0.0 : BigDecimal.valueOf(asistidas)
+            int programadas = asistencia != null && asistencia.getClasesProgramadas() != null ? asistencia.getClasesProgramadas() : 0;
+            int asistidas = asistencia != null && asistencia.getClasesAsistidas() != null ? asistencia.getClasesAsistidas() : 0;
+            double porcentaje = programadas == 0 ? 100.0 : BigDecimal.valueOf(asistidas)
                 .multiply(BigDecimal.valueOf(100))
                 .divide(BigDecimal.valueOf(programadas), 2, RoundingMode.HALF_UP)
                 .doubleValue();
@@ -873,9 +873,9 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         }
 
         private static ResumenAsistencia desdeConsolidado(Asistencia asistencia) {
-            int programadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
-            int asistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
-            double porcentaje = programadas == 0 ? 0.0 : BigDecimal.valueOf(asistidas)
+            int programadas = asistencia != null && asistencia.getClasesProgramadas() != null ? asistencia.getClasesProgramadas() : 0;
+            int asistidas = asistencia != null && asistencia.getClasesAsistidas() != null ? asistencia.getClasesAsistidas() : 0;
+            double porcentaje = programadas == 0 ? 100.0 : BigDecimal.valueOf(asistidas)
                 .multiply(BigDecimal.valueOf(100))
                 .divide(BigDecimal.valueOf(programadas), 2, RoundingMode.HALF_UP)
                 .doubleValue();
@@ -896,6 +896,12 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             dto.setPeriodoEvaluacionId(prediccion.getPeriodoEvaluacion().getId());
             dto.setNumeroPeriodoEvaluacion(prediccion.getPeriodoEvaluacion().getNumero());
             dto.setNombrePeriodoEvaluacion(prediccion.getPeriodoEvaluacion().getNombre());
+        }
+
+        if (prediccion.getCorteSeguimiento() != null) {
+            dto.setCorteSeguimientoId(prediccion.getCorteSeguimiento().getId());
+            dto.setSemanaCorte(prediccion.getCorteSeguimiento().getSemana());
+            dto.setFechaCorte(prediccion.getCorteSeguimiento().getFechaCorte());
         }
 
         if (prediccion.getMatricula() != null) {
@@ -941,6 +947,12 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
             dto.setPeriodoEvaluacionId(prediccion.getPeriodoEvaluacion().getId());
             dto.setNumeroPeriodoEvaluacion(prediccion.getPeriodoEvaluacion().getNumero());
             dto.setNombrePeriodoEvaluacion(prediccion.getPeriodoEvaluacion().getNombre());
+        }
+
+        if (prediccion.getCorteSeguimiento() != null) {
+            dto.setCorteSeguimientoId(prediccion.getCorteSeguimiento().getId());
+            dto.setSemanaCorte(prediccion.getCorteSeguimiento().getSemana());
+            dto.setFechaCorte(prediccion.getCorteSeguimiento().getFechaCorte());
         }
 
         if (prediccion.getMatricula() != null) {

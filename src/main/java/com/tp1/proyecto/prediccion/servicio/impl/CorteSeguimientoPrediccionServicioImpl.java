@@ -13,10 +13,12 @@ import com.tp1.proyecto.alerta.entidad.Recomendacion;
 import com.tp1.proyecto.alerta.repositorio.AlertaRepositorio;
 import com.tp1.proyecto.alerta.repositorio.RecomendacionRepositorio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
+import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.AsistenciaSesion;
 import com.tp1.proyecto.evaluacion.entidad.DetalleNotaEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
 import com.tp1.proyecto.evaluacion.enumeracion.EstadoAsistenciaSesion;
+import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.AsistenciaSesionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.DetalleNotaEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.EvaluacionRepositorio;
@@ -67,6 +69,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
     private final ClientePrediccionPython clienteMl;
     private final AlertaRepositorio alertaRepositorio;
     private final RecomendacionRepositorio recomendacionRepositorio;
+    private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
     private final ObjectMapper objectMapper;
 
     public CorteSeguimientoPrediccionServicioImpl(
@@ -81,6 +84,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         ClientePrediccionPython clienteMl,
         AlertaRepositorio alertaRepositorio,
         RecomendacionRepositorio recomendacionRepositorio,
+        AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
         ObjectMapper objectMapper
     ) {
         this.corteRepositorio = corteRepositorio;
@@ -94,6 +98,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         this.clienteMl = clienteMl;
         this.alertaRepositorio = alertaRepositorio;
         this.recomendacionRepositorio = recomendacionRepositorio;
+        this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
         this.objectMapper = objectMapper;
     }
 
@@ -151,6 +156,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
             .collect(Collectors.groupingBy(s -> s.getMatricula().getId()));
         int procesadas = 0;
         Long periodoEvaluacionId = obtenerPeriodoEvaluacionIdParaCorte(corte);
+        PeriodoEvaluacion periodoEvaluacionEntidad = periodoEvaluacionRepositorio.findById(periodoEvaluacionId).orElse(null);
 
         for (Matricula matricula : matriculas) {
             List<DetalleNotaEvaluacion> detalles = evaluacionIds.isEmpty() ? List.of() : detalleRepositorio
@@ -170,10 +176,31 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
             BigDecimal promedioGeneral = promedios.isEmpty() ? BigDecimal.valueOf(20) : promedio(promedios);
             BigDecimal minima = promedios.stream().min(Comparator.naturalOrder()).orElse(BigDecimal.valueOf(20));
             BigDecimal maxima = promedios.stream().max(Comparator.naturalOrder()).orElse(BigDecimal.valueOf(20));
-            int programadas = (int) sesionesAlumno.stream().filter(s -> s.getEstadoAsistencia() != EstadoAsistenciaSesion.JUSTIFICADO).count();
-            int asistidas = (int) sesionesAlumno.stream().filter(s -> s.getEstadoAsistencia() == EstadoAsistenciaSesion.PRESENTE
-                || s.getEstadoAsistencia() == EstadoAsistenciaSesion.TARDANZA).count();
-            double asistencia = programadas == 0 ? 0 : BigDecimal.valueOf(asistidas * 100L)
+
+            int programadas = 0;
+            int asistidas = 0;
+            if (!sesionesAlumno.isEmpty()) {
+                programadas = (int) sesionesAlumno.stream().filter(s -> s.getEstadoAsistencia() != EstadoAsistenciaSesion.JUSTIFICADO).count();
+                asistidas = (int) sesionesAlumno.stream().filter(s -> s.getEstadoAsistencia() == EstadoAsistenciaSesion.PRESENTE
+                    || s.getEstadoAsistencia() == EstadoAsistenciaSesion.TARDANZA).count();
+            } else {
+                List<AsistenciaSesion> sesionesPeriodo = asistenciaRepositorio
+                    .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(matricula.getId(), periodoEvaluacionId, EstadoRegistro.ACTIVO);
+                if (!sesionesPeriodo.isEmpty()) {
+                    programadas = (int) sesionesPeriodo.stream().filter(s -> s.getEstadoAsistencia() != EstadoAsistenciaSesion.JUSTIFICADO).count();
+                    asistidas = (int) sesionesPeriodo.stream().filter(s -> s.getEstadoAsistencia() == EstadoAsistenciaSesion.PRESENTE
+                        || s.getEstadoAsistencia() == EstadoAsistenciaSesion.TARDANZA).count();
+                } else {
+                    AsistenciaPeriodoEvaluacion consolidado = asistenciaPeriodoEvaluacionRepositorio
+                        .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId).orElse(null);
+                    if (consolidado != null && consolidado.getClasesProgramadas() != null && consolidado.getClasesProgramadas() > 0) {
+                        programadas = consolidado.getClasesProgramadas();
+                        asistidas = consolidado.getClasesAsistidas() != null ? consolidado.getClasesAsistidas() : 0;
+                    }
+                }
+            }
+
+            double asistencia = programadas == 0 ? 100.0 : BigDecimal.valueOf(asistidas * 100L)
                 .divide(BigDecimal.valueOf(programadas), 2, RoundingMode.HALF_UP).doubleValue();
 
             PrediccionGlobalMlRequestDto global = new PrediccionGlobalMlRequestDto();
@@ -236,8 +263,8 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
             try {
                 PrediccionMlResponseDto response = clienteMl.predecir(request);
                 if (response == null || response.getGlobalPrediction() == null) continue;
-                guardarGlobal(corte, matricula, response.getGlobalPrediction());
-                guardarCursos(corte, matricula, response.getCoursePredictions());
+                guardarGlobal(corte, matricula, periodoEvaluacionEntidad, response.getGlobalPrediction());
+                guardarCursos(corte, matricula, periodoEvaluacionEntidad, response.getCoursePredictions());
                 procesadas++;
             } catch (Exception ex) {
                 log.warn("No se pudo predecir corte {} para matricula {}: {}", corte.getId(), matricula.getId(), ex.getMessage());
@@ -286,10 +313,12 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         return dto;
     }
 
-    private void guardarGlobal(CorteSeguimiento corte, Matricula matricula, PrediccionGlobalMlResponseDto response) {
+    private void guardarGlobal(CorteSeguimiento corte, Matricula matricula, PeriodoEvaluacion periodoEvaluacion, PrediccionGlobalMlResponseDto response) {
         PrediccionRiesgo entity = globalRepositorio.findByMatriculaIdAndCorteSeguimientoId(matricula.getId(), corte.getId())
             .orElseGet(PrediccionRiesgo::new);
-        entity.setMatricula(matricula); entity.setPeriodoEvaluacion(null); entity.setCorteSeguimiento(corte);
+        entity.setMatricula(matricula);
+        entity.setPeriodoEvaluacion(periodoEvaluacion);
+        entity.setCorteSeguimiento(corte);
         entity.setPuntajeRiesgo(BigDecimal.valueOf(response.getPuntajeRiesgo())); entity.setNivelRiesgo(response.getNivelRiesgo());
         entity.setModeloVersion(response.getModeloVersion()); entity.setVariablesEntrada(serializar(response.getVariablesEntrada()));
         entity.setFechaPrediccion(LocalDateTime.now());
@@ -308,14 +337,15 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         }
     }
 
-    private void guardarCursos(CorteSeguimiento corte, Matricula matricula, List<PrediccionCursoMlResponseDto> predictions) {
+    private void guardarCursos(CorteSeguimiento corte, Matricula matricula, PeriodoEvaluacion periodoEvaluacion, List<PrediccionCursoMlResponseDto> predictions) {
         if (predictions == null) return;
         for (PrediccionCursoMlResponseDto response : predictions) {
             PrediccionRiesgoCurso entity = cursoRepositorio.findByMatriculaIdAndCursoIdAndCorteSeguimientoId(
                 matricula.getId(), response.getCursoId(), corte.getId()).orElseGet(PrediccionRiesgoCurso::new);
             entity.setMatricula(matricula);
             entity.setCurso(detalleCurso(response.getCursoId(), matricula, corte));
-            entity.setPeriodoEvaluacion(null); entity.setCorteSeguimiento(corte);
+            entity.setPeriodoEvaluacion(periodoEvaluacion);
+            entity.setCorteSeguimiento(corte);
             entity.setPuntajeRiesgo(BigDecimal.valueOf(response.getPuntajeRiesgo())); entity.setNivelRiesgo(response.getNivelRiesgo());
             entity.setModeloVersion(response.getModeloVersion()); entity.setVariablesEntrada(serializar(response.getVariablesEntrada()));
             entity.setFechaPrediccion(LocalDateTime.now());
@@ -345,14 +375,26 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
     private PrediccionRiesgoRespuestaDto mapGlobal(PrediccionRiesgo p) {
         PrediccionRiesgoRespuestaDto dto = base(p.getMatricula(), p.getPuntajeRiesgo(), p.getNivelRiesgo(), p.getModeloVersion(), p.getVariablesEntrada(), p.getFechaPrediccion());
         dto.setId(p.getId()); dto.setCorteSeguimientoId(p.getCorteSeguimiento().getId()); dto.setSemanaCorte(p.getCorteSeguimiento().getSemana());
-        dto.setFechaCorte(p.getCorteSeguimiento().getFechaCorte()); return dto;
+        dto.setFechaCorte(p.getCorteSeguimiento().getFechaCorte());
+        if (p.getPeriodoEvaluacion() != null) {
+            dto.setPeriodoEvaluacionId(p.getPeriodoEvaluacion().getId());
+            dto.setNumeroPeriodoEvaluacion(p.getPeriodoEvaluacion().getNumero());
+            dto.setNombrePeriodoEvaluacion(p.getPeriodoEvaluacion().getNombre());
+        }
+        return dto;
     }
 
     private PrediccionRiesgoRespuestaDto mapCurso(PrediccionRiesgoCurso p) {
         PrediccionRiesgoRespuestaDto dto = base(p.getMatricula(), p.getPuntajeRiesgo(), p.getNivelRiesgo(), p.getModeloVersion(), p.getVariablesEntrada(), p.getFechaPrediccion());
         dto.setId(p.getId()); dto.setCursoId(p.getCurso().getId()); dto.setCurso(p.getCurso().getNombre());
         dto.setCorteSeguimientoId(p.getCorteSeguimiento().getId()); dto.setSemanaCorte(p.getCorteSeguimiento().getSemana());
-        dto.setFechaCorte(p.getCorteSeguimiento().getFechaCorte()); return dto;
+        dto.setFechaCorte(p.getCorteSeguimiento().getFechaCorte());
+        if (p.getPeriodoEvaluacion() != null) {
+            dto.setPeriodoEvaluacionId(p.getPeriodoEvaluacion().getId());
+            dto.setNumeroPeriodoEvaluacion(p.getPeriodoEvaluacion().getNumero());
+            dto.setNombrePeriodoEvaluacion(p.getPeriodoEvaluacion().getNombre());
+        }
+        return dto;
     }
 
     private PrediccionRiesgoRespuestaDto base(Matricula m, BigDecimal score, String level, String version, String variables, LocalDateTime date) {

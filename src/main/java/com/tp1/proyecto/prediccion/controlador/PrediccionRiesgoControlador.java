@@ -76,6 +76,13 @@ public class PrediccionRiesgoControlador {
     ) {
         if (corteSeguimientoId != null) {
             int procesadas = cortePrediccionServicio.recalcular(corteSeguimientoId, seccionId);
+            if (periodoEvaluacionId != null) {
+                try {
+                    prediccionRiesgoServicio.recalcularPrediccionesPorSeccionYPeriodo(seccionId, periodoEvaluacionId);
+                } catch (Exception ex) {
+                    // Ignorar si el período consolidado no tiene notas completas aún
+                }
+            }
             return Map.of("mensaje", "Predicciones recalculadas para el corte semanal.", "corteSeguimientoId", corteSeguimientoId,
                 "seccionId", seccionId, "matriculasProcesadas", procesadas, "modeloVersion", "v4-corte-temprano");
         }
