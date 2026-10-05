@@ -69,7 +69,7 @@ public class PreparacionCorteServicio {
             .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndDocenteCursoSeccionEstadoAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
                 seccionId, periodoId, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO);
         int sinFecha = (int) configuradas.stream()
-            .filter(e -> periodoActual != null && e.getPeriodoEvaluacion().getId().equals(periodoActual.getId()))
+            .filter(e -> periodoActual != null && e.getPeriodoEvaluacion() != null && e.getPeriodoEvaluacion().getId().equals(periodoActual.getId()))
             .filter(e -> e.getFechaEvaluacion() == null)
             .count();
         var alCorte = configuradas.stream()

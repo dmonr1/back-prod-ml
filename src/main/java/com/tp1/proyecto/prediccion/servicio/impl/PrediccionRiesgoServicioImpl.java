@@ -286,10 +286,26 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
     @Override
     @Transactional(readOnly = true)
     public List<PrediccionRiesgoRespuestaDto> listarPrediccionesPorAlumno(Long alumnoId) {
-        return prediccionRiesgoRepositorio.findByMatriculaAlumnoIdOrderByFechaPrediccionDesc(alumnoId)
+        List<PrediccionRiesgoRespuestaDto> globales = prediccionRiesgoRepositorio.findByMatriculaAlumnoIdOrderByFechaPrediccionDesc(alumnoId)
             .stream()
             .map(this::mapearRespuestaGlobal)
             .toList();
+
+        List<PrediccionRiesgoRespuestaDto> porCurso = prediccionRiesgoCursoRepositorio.findByMatriculaAlumnoIdOrderByFechaPrediccionDesc(alumnoId)
+            .stream()
+            .map(this::mapearRespuestaCurso)
+            .toList();
+
+        List<PrediccionRiesgoRespuestaDto> todas = new java.util.ArrayList<>(globales.size() + porCurso.size());
+        todas.addAll(globales);
+        todas.addAll(porCurso);
+        todas.sort((a, b) -> {
+            if (a.getFechaPrediccion() == null && b.getFechaPrediccion() == null) return 0;
+            if (a.getFechaPrediccion() == null) return 1;
+            if (b.getFechaPrediccion() == null) return -1;
+            return b.getFechaPrediccion().compareTo(a.getFechaPrediccion());
+        });
+        return todas;
     }
 
     @Override

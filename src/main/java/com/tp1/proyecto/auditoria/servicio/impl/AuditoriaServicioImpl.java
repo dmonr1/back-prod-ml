@@ -10,11 +10,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuditoriaServicioImpl implements AuditoriaServicio {
+
+    private static final Logger log = LoggerFactory.getLogger(AuditoriaServicioImpl.class);
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -43,7 +47,7 @@ public class AuditoriaServicioImpl implements AuditoriaServicio {
                            CONCAT('Cambio de estado: ', COALESCE(h.estado_anterior, 'SIN_REGISTRO'), ' -> ', h.estado_nuevo, '. Motivo: ', h.motivo) AS descripcion,
                            CONCAT('Alumno: ', a.nombres, ' ', a.apellidos, ' (', a.codigo, ') - ', c.nombre, ' ', sec.nombre) AS entidad_afectada,
                            u.username AS usuario_username,
-                           CONCAT(u.nombres, ' ', u.apellidos) AS usuario_nombre,
+                           COALESCE(CONCAT(d.nombres, ' ', d.apellidos), u.username, 'Docente') AS usuario_nombre,
                            'CRITICO' AS nivel_criticidad,
                            h.fecha_edicion AS fecha_evento,
                            CONCAT('Obs ant: ', COALESCE(h.observacion_anterior, '-'), ' | Obs nueva: ', COALESCE(h.observacion_nueva, '-')) AS detalle_adicional
@@ -55,6 +59,7 @@ public class AuditoriaServicioImpl implements AuditoriaServicio {
                     JOIN db_tp1.cursos c ON c.id = dcs.curso_id
                     JOIN db_tp1.secciones sec ON sec.id = dcs.seccion_id
                     JOIN db_tp1.usuarios u ON u.id = h.usuario_editor_id
+                    LEFT JOIN db_tp1.docentes d ON d.usuario_id = u.id
                     ORDER BY h.fecha_edicion DESC
                     LIMIT 200
                 """;
@@ -76,7 +81,7 @@ public class AuditoriaServicioImpl implements AuditoriaServicio {
                 });
                 resultados.addAll(list);
             } catch (Exception ex) {
-                // Si tabla no existe en algún entorno, continuar sin fallar
+                log.error("Error al consultar auditoria de asistencia: {}", ex.getMessage(), ex);
             }
         }
 
@@ -87,15 +92,16 @@ public class AuditoriaServicioImpl implements AuditoriaServicio {
                     SELECT ca.id,
                            'CARGA_MASIVA' AS modulo,
                            'IMPORTACION_EXCEL' AS tipo_evento,
-                           CONCAT('Carga masiva de ', ca.tipo, ': ', ca.registros_procesados, ' procesados, ', ca.registros_con_error, ' con error. Archivo: ', ca.nombre_archivo) AS descripcion,
+                           CONCAT('Carga masiva: ', ca.total_filas, ' filas procesadas, ', ca.filas_error, ' con error. Archivo: ', ca.nombre_archivo) AS descripcion,
                            CONCAT('Lote: ', ca.nombre_archivo, ' (Docente ID: ', COALESCE(ca.docente_id::text, 'No asignado'), ')') AS entidad_afectada,
                            COALESCE(u.username, 'admin') AS usuario_username,
-                           COALESCE(CONCAT(u.nombres, ' ', u.apellidos), 'Administrador del Sistema') AS usuario_nombre,
-                           CASE WHEN ca.registros_con_error > 0 THEN 'ADVERTENCIA' ELSE 'INFO' END AS nivel_criticidad,
+                           COALESCE(CONCAT(d.nombres, ' ', d.apellidos), u.username, 'Administrador del Sistema') AS usuario_nombre,
+                           CASE WHEN ca.filas_error > 0 THEN 'ADVERTENCIA' ELSE 'INFO' END AS nivel_criticidad,
                            ca.fecha_carga AS fecha_evento,
-                           CONCAT('Estado: ', ca.estado, ' | Errores: ', ca.registros_con_error) AS detalle_adicional
+                           CONCAT('Estado proceso: ', ca.estado_proceso, ' | Errores: ', ca.filas_error) AS detalle_adicional
                     FROM db_tp1.cargas_archivos ca
                     LEFT JOIN db_tp1.usuarios u ON u.id = ca.usuario_ejecutor_id
+                    LEFT JOIN db_tp1.docentes d ON d.usuario_id = u.id
                     ORDER BY ca.fecha_carga DESC
                     LIMIT 200
                 """;
@@ -117,7 +123,7 @@ public class AuditoriaServicioImpl implements AuditoriaServicio {
                 });
                 resultados.addAll(list);
             } catch (Exception ex) {
-                // Ignorar si falla
+                log.error("Error al consultar auditoria de cargas: {}", ex.getMessage(), ex);
             }
         }
 
@@ -131,16 +137,17 @@ public class AuditoriaServicioImpl implements AuditoriaServicio {
                            CONCAT('Evaluación configurada: ', ev.nombre, ' (N.° ', ev.numero_evaluacion, ')') AS descripcion,
                            CONCAT('Curso: ', c.nombre, ' - Sección: ', sec.nombre) AS entidad_afectada,
                            COALESCE(u.username, 'sistema') AS usuario_username,
-                           COALESCE(CONCAT(u.nombres, ' ', u.apellidos), 'Docente / Admin') AS usuario_nombre,
+                           COALESCE(CONCAT(d.nombres, ' ', d.apellidos), u.username, 'Docente / Admin') AS usuario_nombre,
                            'INFO' AS nivel_criticidad,
-                           COALESCE(ev.fecha_actualizacion, ev.fecha_creacion, CURRENT_TIMESTAMP) AS fecha_evento,
+                           COALESCE(ev.fecha_modificacion, ev.fecha_registro, CURRENT_TIMESTAMP) AS fecha_evento,
                            CONCAT('Fecha programada: ', COALESCE(ev.fecha_evaluacion::text, 'Sin fecha')) AS detalle_adicional
                     FROM db_tp1.evaluaciones ev
                     JOIN db_tp1.docente_curso_seccion dcs ON dcs.id = ev.docente_curso_seccion_id
                     JOIN db_tp1.cursos c ON c.id = dcs.curso_id
                     JOIN db_tp1.secciones sec ON sec.id = dcs.seccion_id
                     LEFT JOIN db_tp1.usuarios u ON u.id = COALESCE(ev.modificado_por_usuario_id, ev.creado_por_usuario_id)
-                    ORDER BY COALESCE(ev.fecha_actualizacion, ev.fecha_creacion) DESC
+                    LEFT JOIN db_tp1.docentes d ON d.usuario_id = u.id
+                    ORDER BY COALESCE(ev.fecha_modificacion, ev.fecha_registro) DESC
                     LIMIT 200
                 """;
                 List<RegistroAuditoriaDto> list = jdbcTemplate.query(sqlEvaluaciones, (rs, rowNum) -> {
@@ -161,7 +168,7 @@ public class AuditoriaServicioImpl implements AuditoriaServicio {
                 });
                 resultados.addAll(list);
             } catch (Exception ex) {
-                // Ignorar si falla
+                log.error("Error al consultar auditoria de evaluaciones: {}", ex.getMessage(), ex);
             }
         }
 

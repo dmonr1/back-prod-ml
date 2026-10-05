@@ -47,6 +47,7 @@ class PreparacionCorteServicioTest {
         when(cortes.findById(3L)).thenReturn(Optional.of(corte));
 
         var periodoEvaluacion = mock(PeriodoEvaluacion.class);
+        when(periodoEvaluacion.getId()).thenReturn(100L);
         when(periodoEvaluacion.getEstado()).thenReturn(EstadoRegistro.ACTIVO);
         when(periodoEvaluacion.getFechaInicio()).thenReturn(LocalDate.of(2025, 3, 1));
         when(periodoEvaluacion.getFechaFin()).thenReturn(LocalDate.of(2025, 5, 31));
@@ -65,11 +66,14 @@ class PreparacionCorteServicioTest {
         var evaluacionAlCorte = mock(Evaluacion.class);
         when(evaluacionAlCorte.getId()).thenReturn(20L);
         when(evaluacionAlCorte.getFechaEvaluacion()).thenReturn(fecha.minusDays(1));
+        when(evaluacionAlCorte.getPeriodoEvaluacion()).thenReturn(periodoEvaluacion);
         var evaluacionFutura = mock(Evaluacion.class);
         when(evaluacionFutura.getFechaEvaluacion()).thenReturn(fecha.plusDays(1));
+        when(evaluacionFutura.getPeriodoEvaluacion()).thenReturn(periodoEvaluacion);
         var evaluacionSinFecha = mock(Evaluacion.class);
-        when(evaluaciones.findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
-            2L, 1L, EstadoRegistro.ACTIVO))
+        when(evaluacionSinFecha.getPeriodoEvaluacion()).thenReturn(periodoEvaluacion);
+        when(evaluaciones.findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndDocenteCursoSeccionEstadoAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
+            2L, 1L, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO))
             .thenReturn(List.of(evaluacionAlCorte, evaluacionFutura, evaluacionSinFecha));
 
         var detalle = mock(DetalleNotaEvaluacion.class);

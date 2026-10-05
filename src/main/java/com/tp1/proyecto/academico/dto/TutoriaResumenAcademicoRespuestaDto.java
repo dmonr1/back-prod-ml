@@ -209,6 +209,9 @@ public class TutoriaResumenAcademicoRespuestaDto {
         private String alumnoNombreCompleto;
         private Integer clasesProgramadas;
         private Integer clasesAsistidas;
+        private Integer inasistencias;
+        private Integer tardanzas;
+        private Integer justificaciones;
         private BigDecimal porcentajeAsistencia;
         private BigDecimal promedioGeneral;
         private List<CursoAlumnoTutoriaResumenDto> cursos = new ArrayList<>();
@@ -261,6 +264,30 @@ public class TutoriaResumenAcademicoRespuestaDto {
             this.clasesAsistidas = clasesAsistidas;
         }
 
+        public Integer getInasistencias() {
+            return inasistencias;
+        }
+
+        public void setInasistencias(Integer inasistencias) {
+            this.inasistencias = inasistencias;
+        }
+
+        public Integer getTardanzas() {
+            return tardanzas;
+        }
+
+        public void setTardanzas(Integer tardanzas) {
+            this.tardanzas = tardanzas;
+        }
+
+        public Integer getJustificaciones() {
+            return justificaciones;
+        }
+
+        public void setJustificaciones(Integer justificaciones) {
+            this.justificaciones = justificaciones;
+        }
+
         public BigDecimal getPorcentajeAsistencia() {
             return porcentajeAsistencia;
         }
@@ -297,6 +324,12 @@ public class TutoriaResumenAcademicoRespuestaDto {
         private BigDecimal promedio;
         private List<BigDecimal> notas = new ArrayList<>();
         private List<NotaEvaluacionTutoriaDto> detalleNotas = new ArrayList<>();
+        private Integer clasesProgramadas;
+        private Integer clasesAsistidas;
+        private Integer inasistencias;
+        private Integer tardanzas;
+        private Integer justificaciones;
+        private BigDecimal porcentajeAsistencia;
 
         public Long getAsignacionId() {
             return asignacionId;
@@ -368,6 +401,54 @@ public class TutoriaResumenAcademicoRespuestaDto {
 
         public void setDetalleNotas(List<NotaEvaluacionTutoriaDto> detalleNotas) {
             this.detalleNotas = detalleNotas;
+        }
+
+        public Integer getClasesProgramadas() {
+            return clasesProgramadas;
+        }
+
+        public void setClasesProgramadas(Integer clasesProgramadas) {
+            this.clasesProgramadas = clasesProgramadas;
+        }
+
+        public Integer getClasesAsistidas() {
+            return clasesAsistidas;
+        }
+
+        public void setClasesAsistidas(Integer clasesAsistidas) {
+            this.clasesAsistidas = clasesAsistidas;
+        }
+
+        public Integer getInasistencias() {
+            return inasistencias;
+        }
+
+        public void setInasistencias(Integer inasistencias) {
+            this.inasistencias = inasistencias;
+        }
+
+        public Integer getTardanzas() {
+            return tardanzas;
+        }
+
+        public void setTardanzas(Integer tardanzas) {
+            this.tardanzas = tardanzas;
+        }
+
+        public Integer getJustificaciones() {
+            return justificaciones;
+        }
+
+        public void setJustificaciones(Integer justificaciones) {
+            this.justificaciones = justificaciones;
+        }
+
+        public BigDecimal getPorcentajeAsistencia() {
+            return porcentajeAsistencia;
+        }
+
+        public void setPorcentajeAsistencia(BigDecimal porcentajeAsistencia) {
+            this.porcentajeAsistencia = porcentajeAsistencia;
         }
     }
 

@@ -621,6 +621,9 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         List<AsistenciaSesion> sesionesAlumno = sesionesPorMatricula.getOrDefault(matricula.getId(), List.of());
         int clasesProgramadas = 0;
         int clasesAsistidas = 0;
+        int inasistenciasTotal = 0;
+        int tardanzasTotal = 0;
+        int justificacionesTotal = 0;
 
         if (!sesionesAlumno.isEmpty()) {
             Map<String, EstadoAsistenciaSesion> estadoPorSesion = new HashMap<>();
@@ -636,6 +639,15 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
                 .count();
             clasesAsistidas = (int) estadoPorSesion.values().stream()
                 .filter(estado -> estado == EstadoAsistenciaSesion.PRESENTE || estado == EstadoAsistenciaSesion.TARDANZA)
+                .count();
+            inasistenciasTotal = (int) estadoPorSesion.values().stream()
+                .filter(estado -> estado == EstadoAsistenciaSesion.AUSENTE)
+                .count();
+            tardanzasTotal = (int) estadoPorSesion.values().stream()
+                .filter(estado -> estado == EstadoAsistenciaSesion.TARDANZA)
+                .count();
+            justificacionesTotal = (int) estadoPorSesion.values().stream()
+                .filter(estado -> estado == EstadoAsistenciaSesion.JUSTIFICADO)
                 .count();
 
             // Sincronizar AsistenciaPeriodoEvaluacion
@@ -662,11 +674,15 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             if (asistencia != null) {
                 clasesProgramadas = asistencia.getClasesProgramadas() != null ? asistencia.getClasesProgramadas() : 0;
                 clasesAsistidas = asistencia.getClasesAsistidas() != null ? asistencia.getClasesAsistidas() : 0;
+                inasistenciasTotal = Math.max(0, clasesProgramadas - clasesAsistidas);
             }
         }
 
         dto.setClasesProgramadas(clasesProgramadas);
         dto.setClasesAsistidas(clasesAsistidas);
+        dto.setInasistencias(inasistenciasTotal);
+        dto.setTardanzas(tardanzasTotal);
+        dto.setJustificaciones(justificacionesTotal);
         dto.setPorcentajeAsistencia(calcularPorcentajeAsistencia(clasesProgramadas, clasesAsistidas));
 
         List<TutoriaResumenAcademicoRespuestaDto.CursoAlumnoTutoriaResumenDto> cursos = new ArrayList<>();
@@ -692,6 +708,50 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             cursoDto.setPromedio(promedio);
             cursoDto.setNotas(new ArrayList<>(notas));
             cursoDto.setDetalleNotas(new ArrayList<>(detalleNotas));
+
+            List<AsistenciaSesion> sesionesCurso = sesionesAlumno.stream()
+                .filter(s -> s.getAsignacion() != null && s.getAsignacion().getId().equals(asignacion.getId()))
+                .toList();
+
+            int cursoProgramadas = 0;
+            int cursoAsistidas = 0;
+            int cursoInasistencias = 0;
+            int cursoTardanzas = 0;
+            int cursoJustificadas = 0;
+
+            if (!sesionesCurso.isEmpty()) {
+                Map<String, EstadoAsistenciaSesion> estadoPorSesionCurso = new HashMap<>();
+                for (AsistenciaSesion sesion : sesionesCurso) {
+                    String claveProgramacion = sesion.getHorarioSemanal() != null
+                        ? "horario:" + sesion.getHorarioSemanal().getId()
+                        : "asignacion:" + sesion.getAsignacion().getId();
+                    estadoPorSesionCurso.put(claveProgramacion + ":" + sesion.getFechaClase(), sesion.getEstadoAsistencia());
+                }
+
+                cursoProgramadas = (int) estadoPorSesionCurso.values().stream()
+                    .filter(estado -> estado != EstadoAsistenciaSesion.JUSTIFICADO)
+                    .count();
+                cursoAsistidas = (int) estadoPorSesionCurso.values().stream()
+                    .filter(estado -> estado == EstadoAsistenciaSesion.PRESENTE || estado == EstadoAsistenciaSesion.TARDANZA)
+                    .count();
+                cursoInasistencias = (int) estadoPorSesionCurso.values().stream()
+                    .filter(estado -> estado == EstadoAsistenciaSesion.AUSENTE)
+                    .count();
+                cursoTardanzas = (int) estadoPorSesionCurso.values().stream()
+                    .filter(estado -> estado == EstadoAsistenciaSesion.TARDANZA)
+                    .count();
+                cursoJustificadas = (int) estadoPorSesionCurso.values().stream()
+                    .filter(estado -> estado == EstadoAsistenciaSesion.JUSTIFICADO)
+                    .count();
+            }
+
+            cursoDto.setClasesProgramadas(cursoProgramadas);
+            cursoDto.setClasesAsistidas(cursoAsistidas);
+            cursoDto.setInasistencias(cursoInasistencias);
+            cursoDto.setTardanzas(cursoTardanzas);
+            cursoDto.setJustificaciones(cursoJustificadas);
+            cursoDto.setPorcentajeAsistencia(calcularPorcentajeAsistencia(cursoProgramadas, cursoAsistidas));
+
             cursos.add(cursoDto);
 
             if (promedio != null) {
