@@ -165,7 +165,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
                 cargaExcel.getPeriodoEvaluacion().getId()
             );
 
-            PrediccionMlRequestDto request = construirRequestLegado(matricula, cargaExcel, notas, asistenciaOpt.orElse(null));
+            PrediccionMlRequestDto request = construirRequestLegado(matricula, cargaExcel.getPeriodoEvaluacion().getId(), notas, asistenciaOpt.orElse(null));
             procesarRespuestaPrediccion(matricula, cargaExcel.getPeriodoEvaluacion().getId(), cargaExcel.getId(), request);
         }
 
@@ -185,6 +185,8 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         Matricula matricula = matriculaRepositorio.findById(matriculaId)
             .orElseThrow(() -> new IllegalArgumentException("Matricula no encontrada: " + matriculaId));
 
+        sincronizarAsistenciaPeriodo(matriculaId, periodoEvaluacionId);
+
         List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio
             .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
                 matriculaId,
@@ -192,6 +194,14 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
                 EstadoRegistro.ACTIVO
             );
         if (notasConsolidadas.isEmpty()) {
+            List<Nota> notasLegado = notaRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(matriculaId, periodoEvaluacionId);
+            if (!notasLegado.isEmpty()) {
+                Asistencia asistenciaLegado = asistenciaRepositorio
+                    .findByMatriculaIdAndPeriodoEvaluacionId(matriculaId, periodoEvaluacionId)
+                    .orElse(null);
+                PrediccionMlRequestDto request = construirRequestLegado(matricula, periodoEvaluacionId, notasLegado, asistenciaLegado);
+                procesarRespuestaPrediccion(matricula, periodoEvaluacionId, null, request);
+            }
             return;
         }
 
@@ -213,6 +223,8 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
         int procesadas = 0;
         for (Matricula matricula : matriculas) {
+            sincronizarAsistenciaPeriodo(matricula.getId(), periodoEvaluacionId);
+
             List<NotaCursoPeriodoEvaluacion> notasConsolidadas = notaCursoPeriodoEvaluacionRepositorio
                 .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
                     matricula.getId(),
@@ -220,23 +232,32 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
                     EstadoRegistro.ACTIVO
                 );
 
-            if (notasConsolidadas.isEmpty()) {
+            if (!notasConsolidadas.isEmpty()) {
+                AsistenciaPeriodoEvaluacion asistenciaConsolidada = asistenciaPeriodoEvaluacionRepositorio
+                    .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
+                    .orElse(null);
+
+                PrediccionMlRequestDto request = construirRequestConsolidado(
+                    matricula,
+                    periodoEvaluacionId,
+                    notasConsolidadas,
+                    asistenciaConsolidada
+                );
+
+                procesarRespuestaPrediccion(matricula, periodoEvaluacionId, null, request);
+                procesadas++;
                 continue;
             }
 
-            AsistenciaPeriodoEvaluacion asistenciaConsolidada = asistenciaPeriodoEvaluacionRepositorio
-                .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
-                .orElse(null);
-
-            PrediccionMlRequestDto request = construirRequestConsolidado(
-                matricula,
-                periodoEvaluacionId,
-                notasConsolidadas,
-                asistenciaConsolidada
-            );
-
-            procesarRespuestaPrediccion(matricula, periodoEvaluacionId, null, request);
-            procesadas++;
+            List<Nota> notasLegado = notaRepositorio.findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId);
+            if (!notasLegado.isEmpty()) {
+                Asistencia asistenciaLegado = asistenciaRepositorio
+                    .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
+                    .orElse(null);
+                PrediccionMlRequestDto request = construirRequestLegado(matricula, periodoEvaluacionId, notasLegado, asistenciaLegado);
+                procesarRespuestaPrediccion(matricula, periodoEvaluacionId, null, request);
+                procesadas++;
+            }
         }
 
         hallazgoDataMiningServicio.generarHallazgos(periodoEvaluacionId, seccionId);
@@ -332,7 +353,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
     private PrediccionMlRequestDto construirRequestLegado(
         Matricula matricula,
-        CargaExcel cargaExcel,
+        Long periodoEvaluacionId,
         List<Nota> notas,
         Asistencia asistencia
     ) {
@@ -351,7 +372,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         int cantidadCursosAd = (int) notas.stream().filter(nota -> esCategoriaAd(nota.getNota())).count();
 
         List<AsistenciaSesion> sesiones = asistenciaSesionRepositorio.findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
-            matricula.getId(), cargaExcel.getPeriodoEvaluacion().getId(), EstadoRegistro.ACTIVO
+            matricula.getId(), periodoEvaluacionId, EstadoRegistro.ACTIVO
         );
         ResumenAsistencia resumen = sesiones.isEmpty()
             ? ResumenAsistencia.desdeConsolidado(asistencia)
@@ -362,7 +383,7 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
 
         PrediccionGlobalMlRequestDto global = new PrediccionGlobalMlRequestDto();
         global.setMatriculaId(matricula.getId());
-        global.setPeriodoEvaluacionId(cargaExcel.getPeriodoEvaluacion().getId());
+        global.setPeriodoEvaluacionId(periodoEvaluacionId);
         global.setPromedioGeneral(promedio.doubleValue());
         global.setCantidadCursos(notas.size());
         global.setCantidadCursosDesaprobados(cursosDesaprobados);
@@ -385,6 +406,44 @@ public class PrediccionRiesgoServicioImpl implements PrediccionRiesgoServicio {
         request.setGlobalFeatures(global);
         request.setCourseFeatures(new ArrayList<>());
         return request;
+    }
+
+    private void sincronizarAsistenciaPeriodo(Long matriculaId, Long periodoEvaluacionId) {
+        List<AsistenciaSesion> sesiones = asistenciaSesionRepositorio.findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
+            matriculaId, periodoEvaluacionId, EstadoRegistro.ACTIVO
+        );
+        if (sesiones.isEmpty()) {
+            return;
+        }
+
+        Map<String, EstadoAsistenciaSesion> estadoPorSesion = new HashMap<>();
+        for (AsistenciaSesion sesion : sesiones) {
+            String claveProgramacion = sesion.getHorarioSemanal() != null
+                ? "horario:" + sesion.getHorarioSemanal().getId()
+                : "asignacion:" + sesion.getAsignacion().getId();
+            estadoPorSesion.put(claveProgramacion + ":" + sesion.getFechaClase(), sesion.getEstadoAsistencia());
+        }
+
+        int programadas = (int) estadoPorSesion.values().stream()
+            .filter(estado -> estado != EstadoAsistenciaSesion.JUSTIFICADO).count();
+        int asistidas = (int) estadoPorSesion.values().stream()
+            .filter(estado -> estado == EstadoAsistenciaSesion.PRESENTE || estado == EstadoAsistenciaSesion.TARDANZA)
+            .count();
+
+        AsistenciaPeriodoEvaluacion consolidado = asistenciaPeriodoEvaluacionRepositorio
+            .findByMatriculaIdAndPeriodoEvaluacionId(matriculaId, periodoEvaluacionId)
+            .orElseGet(AsistenciaPeriodoEvaluacion::new);
+
+        if (consolidado.getId() == null) {
+            consolidado.setMatricula(matriculaRepositorio.findById(matriculaId).orElse(null));
+            consolidado.setPeriodoEvaluacion(periodoEvaluacionRepositorio.findById(periodoEvaluacionId).orElse(null));
+        }
+
+        consolidado.setClasesProgramadas(programadas);
+        consolidado.setClasesAsistidas(asistidas);
+        consolidado.setObservacion("Sincronizado automáticamente desde asistencias de sesión");
+        consolidado.setEstado(EstadoRegistro.ACTIVO);
+        asistenciaPeriodoEvaluacionRepositorio.save(consolidado);
     }
 
     private PrediccionMlRequestDto construirRequestConsolidado(

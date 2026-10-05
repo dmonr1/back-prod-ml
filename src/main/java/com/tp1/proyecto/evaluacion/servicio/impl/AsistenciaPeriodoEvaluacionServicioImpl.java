@@ -13,7 +13,10 @@ import com.tp1.proyecto.evaluacion.dto.ConfiguracionAsistenciaPeriodoSolicitudDt
 import com.tp1.proyecto.evaluacion.dto.RegistroAsistenciasPeriodoEvaluacionSolicitudDto;
 import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionAsistenciaPeriodo;
+import com.tp1.proyecto.evaluacion.entidad.AsistenciaSesion;
+import com.tp1.proyecto.evaluacion.enumeracion.EstadoAsistenciaSesion;
 import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.AsistenciaSesionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionAsistenciaPeriodoRepositorio;
 import com.tp1.proyecto.evaluacion.servicio.AsistenciaPeriodoEvaluacionServicio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
@@ -33,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AsistenciaPeriodoEvaluacionServicioImpl implements AsistenciaPeriodoEvaluacionServicio {
 
     private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
+    private final AsistenciaSesionRepositorio asistenciaSesionRepositorio;
     private final MatriculaRepositorio matriculaRepositorio;
     private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final DocenteCursoSeccionRepositorio docenteCursoSeccionRepositorio;
@@ -41,6 +45,7 @@ public class AsistenciaPeriodoEvaluacionServicioImpl implements AsistenciaPeriod
 
     public AsistenciaPeriodoEvaluacionServicioImpl(
         AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
+        AsistenciaSesionRepositorio asistenciaSesionRepositorio,
         MatriculaRepositorio matriculaRepositorio,
         PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         DocenteCursoSeccionRepositorio docenteCursoSeccionRepositorio,
@@ -48,6 +53,7 @@ public class AsistenciaPeriodoEvaluacionServicioImpl implements AsistenciaPeriod
         PrediccionRiesgoServicio prediccionRiesgoServicio
     ) {
         this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
+        this.asistenciaSesionRepositorio = asistenciaSesionRepositorio;
         this.matriculaRepositorio = matriculaRepositorio;
         this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.docenteCursoSeccionRepositorio = docenteCursoSeccionRepositorio;
@@ -132,10 +138,11 @@ public class AsistenciaPeriodoEvaluacionServicioImpl implements AsistenciaPeriod
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<AsistenciaPeriodoEvaluacionRespuestaDto> listarPorSeccionYPeriodoEvaluacion(Long seccionId, Long periodoAcademicoId, Long periodoEvaluacionId) {
         periodoEvaluacionRepositorio.findById(periodoEvaluacionId)
             .orElseThrow(() -> new RecursoNoEncontradoException("PeriodoEvaluacion no encontrado con id: " + periodoEvaluacionId));
+
+        sincronizarDesdeSesionesPorSeccion(seccionId, periodoAcademicoId, periodoEvaluacionId);
 
         Map<Long, AsistenciaPeriodoEvaluacion> asistenciaPorMatricula = new LinkedHashMap<>();
         for (Matricula matricula : matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(seccionId, periodoAcademicoId)) {
@@ -144,6 +151,62 @@ public class AsistenciaPeriodoEvaluacionServicioImpl implements AsistenciaPeriod
         }
 
         return asistenciaPorMatricula.values().stream().map(this::mapear).toList();
+    }
+
+    @Override
+    public AsistenciaPeriodoEvaluacion sincronizarDesdeSesionesPorMatricula(Long matriculaId, Long periodoEvaluacionId) {
+        List<AsistenciaSesion> sesiones = asistenciaSesionRepositorio.findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(
+            matriculaId, periodoEvaluacionId, EstadoRegistro.ACTIVO
+        );
+
+        if (sesiones.isEmpty()) {
+            return asistenciaPeriodoEvaluacionRepositorio
+                .findByMatriculaIdAndPeriodoEvaluacionId(matriculaId, periodoEvaluacionId)
+                .orElse(null);
+        }
+
+        Map<String, EstadoAsistenciaSesion> estadoPorSesion = new LinkedHashMap<>();
+        for (AsistenciaSesion sesion : sesiones) {
+            String claveProgramacion = sesion.getHorarioSemanal() != null
+                ? "horario:" + sesion.getHorarioSemanal().getId()
+                : "asignacion:" + sesion.getAsignacion().getId();
+            estadoPorSesion.put(claveProgramacion + ":" + sesion.getFechaClase(), sesion.getEstadoAsistencia());
+        }
+
+        int programadas = (int) estadoPorSesion.values().stream()
+            .filter(estado -> estado != EstadoAsistenciaSesion.JUSTIFICADO)
+            .count();
+        int asistidas = (int) estadoPorSesion.values().stream()
+            .filter(estado -> estado == EstadoAsistenciaSesion.PRESENTE || estado == EstadoAsistenciaSesion.TARDANZA)
+            .count();
+
+        AsistenciaPeriodoEvaluacion entidad = asistenciaPeriodoEvaluacionRepositorio
+            .findByMatriculaIdAndPeriodoEvaluacionId(matriculaId, periodoEvaluacionId)
+            .orElseGet(AsistenciaPeriodoEvaluacion::new);
+
+        if (entidad.getId() == null) {
+            Matricula matricula = matriculaRepositorio.findById(matriculaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Matrícula no encontrada con id: " + matriculaId));
+            com.tp1.proyecto.academico.entidad.PeriodoEvaluacion periodo = periodoEvaluacionRepositorio.findById(periodoEvaluacionId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Periodo de evaluación no encontrado con id: " + periodoEvaluacionId));
+            entidad.setMatricula(matricula);
+            entidad.setPeriodoEvaluacion(periodo);
+        }
+
+        entidad.setClasesProgramadas(programadas);
+        entidad.setClasesAsistidas(asistidas);
+        entidad.setObservacion("Sincronizado automáticamente desde asistencias de sesión");
+        entidad.setEstado(EstadoRegistro.ACTIVO);
+
+        return asistenciaPeriodoEvaluacionRepositorio.save(entidad);
+    }
+
+    @Override
+    public void sincronizarDesdeSesionesPorSeccion(Long seccionId, Long periodoAcademicoId, Long periodoEvaluacionId) {
+        List<Matricula> matriculas = matriculaRepositorio.findBySeccionIdAndPeriodoAcademicoId(seccionId, periodoAcademicoId);
+        for (Matricula matricula : matriculas) {
+            sincronizarDesdeSesionesPorMatricula(matricula.getId(), periodoEvaluacionId);
+        }
     }
 
     private AsistenciaPeriodoEvaluacionRespuestaDto mapear(AsistenciaPeriodoEvaluacion entidad) {

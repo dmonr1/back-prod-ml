@@ -27,10 +27,13 @@ import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionCurso;
 import com.tp1.proyecto.evaluacion.entidad.ConfiguracionEvaluacionPeriodo;
 import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
+import com.tp1.proyecto.evaluacion.entidad.AsistenciaSesion;
 import com.tp1.proyecto.evaluacion.entidad.DetalleNotaEvaluacion;
 import com.tp1.proyecto.evaluacion.entidad.Evaluacion;
 import com.tp1.proyecto.evaluacion.entidad.TipoEvaluacion;
+import com.tp1.proyecto.evaluacion.enumeracion.EstadoAsistenciaSesion;
 import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.AsistenciaSesionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionCursoRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionRepositorio;
 import com.tp1.proyecto.evaluacion.repositorio.ConfiguracionEvaluacionPeriodoRepositorio;
@@ -47,9 +50,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,6 +76,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     private final EvaluacionRepositorio evaluacionRepositorio;
     private final DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio;
     private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
+    private final AsistenciaSesionRepositorio asistenciaSesionRepositorio;
     private final RolRepositorio rolRepositorio;
     private final UsuarioRepositorio usuarioRepositorio;
     private final PermisoPeriodoServicio permisoPeriodoServicio;
@@ -90,6 +96,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         EvaluacionRepositorio evaluacionRepositorio,
         DetalleNotaEvaluacionRepositorio detalleNotaEvaluacionRepositorio,
         AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
+        AsistenciaSesionRepositorio asistenciaSesionRepositorio,
         RolRepositorio rolRepositorio,
         UsuarioRepositorio usuarioRepositorio,
         PermisoPeriodoServicio permisoPeriodoServicio
@@ -108,6 +115,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         this.evaluacionRepositorio = evaluacionRepositorio;
         this.detalleNotaEvaluacionRepositorio = detalleNotaEvaluacionRepositorio;
         this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
+        this.asistenciaSesionRepositorio = asistenciaSesionRepositorio;
         this.rolRepositorio = rolRepositorio;
         this.usuarioRepositorio = usuarioRepositorio;
         this.permisoPeriodoServicio = permisoPeriodoServicio;
@@ -500,6 +508,13 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
                 .map(this::mapearCursoTutoriaResumen)
                 .toList()
         );
+        List<Long> matriculaIds = matriculas.stream().map(Matricula::getId).toList();
+        Map<Long, List<AsistenciaSesion>> sesionesPorMatricula = matriculaIds.isEmpty()
+            ? Map.of()
+            : asistenciaSesionRepositorio.findByMatriculaIdInAndPeriodoEvaluacionIdAndEstado(
+                matriculaIds, periodoEvaluacion.getId(), EstadoRegistro.ACTIVO
+            ).stream().collect(Collectors.groupingBy(s -> s.getMatricula().getId()));
+
         respuesta.setAlumnos(
             matriculas.stream()
                 .sorted(
@@ -514,7 +529,8 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
                             asignaciones,
                             notasPorMatriculaCurso,
                             detalleNotasPorMatriculaCurso,
-                            periodoEvaluacion.getId()
+                            periodoEvaluacion.getId(),
+                            sesionesPorMatricula
                         )
                 )
                 .toList()
@@ -592,7 +608,8 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         List<DocenteCursoSeccion> asignaciones,
         Map<String, List<BigDecimal>> notasPorMatriculaCurso,
         Map<String, List<TutoriaResumenAcademicoRespuestaDto.NotaEvaluacionTutoriaDto>> detalleNotasPorMatriculaCurso,
-        Long periodoEvaluacionId
+        Long periodoEvaluacionId,
+        Map<Long, List<AsistenciaSesion>> sesionesPorMatricula
     ) {
         TutoriaResumenAcademicoRespuestaDto.AlumnoTutoriaResumenDto dto =
             new TutoriaResumenAcademicoRespuestaDto.AlumnoTutoriaResumenDto();
@@ -601,11 +618,53 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         dto.setCodigoAlumno(matricula.getAlumno().getCodigo());
         dto.setAlumnoNombreCompleto(matricula.getAlumno().getNombres() + " " + matricula.getAlumno().getApellidos());
 
-        AsistenciaPeriodoEvaluacion asistencia = asistenciaPeriodoEvaluacionRepositorio
-            .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
-            .orElse(null);
-        int clasesProgramadas = asistencia != null ? asistencia.getClasesProgramadas() : 0;
-        int clasesAsistidas = asistencia != null ? asistencia.getClasesAsistidas() : 0;
+        List<AsistenciaSesion> sesionesAlumno = sesionesPorMatricula.getOrDefault(matricula.getId(), List.of());
+        int clasesProgramadas = 0;
+        int clasesAsistidas = 0;
+
+        if (!sesionesAlumno.isEmpty()) {
+            Map<String, EstadoAsistenciaSesion> estadoPorSesion = new HashMap<>();
+            for (AsistenciaSesion sesion : sesionesAlumno) {
+                String claveProgramacion = sesion.getHorarioSemanal() != null
+                    ? "horario:" + sesion.getHorarioSemanal().getId()
+                    : "asignacion:" + sesion.getAsignacion().getId();
+                estadoPorSesion.put(claveProgramacion + ":" + sesion.getFechaClase(), sesion.getEstadoAsistencia());
+            }
+
+            clasesProgramadas = (int) estadoPorSesion.values().stream()
+                .filter(estado -> estado != EstadoAsistenciaSesion.JUSTIFICADO)
+                .count();
+            clasesAsistidas = (int) estadoPorSesion.values().stream()
+                .filter(estado -> estado == EstadoAsistenciaSesion.PRESENTE || estado == EstadoAsistenciaSesion.TARDANZA)
+                .count();
+
+            // Sincronizar AsistenciaPeriodoEvaluacion
+            AsistenciaPeriodoEvaluacion consolidado = asistenciaPeriodoEvaluacionRepositorio
+                .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
+                .orElseGet(AsistenciaPeriodoEvaluacion::new);
+            if (consolidado.getId() == null
+                || !Integer.valueOf(clasesProgramadas).equals(consolidado.getClasesProgramadas())
+                || !Integer.valueOf(clasesAsistidas).equals(consolidado.getClasesAsistidas())) {
+                if (consolidado.getId() == null) {
+                    consolidado.setMatricula(matricula);
+                    consolidado.setPeriodoEvaluacion(periodoEvaluacionRepositorio.findById(periodoEvaluacionId).orElse(null));
+                }
+                consolidado.setClasesProgramadas(clasesProgramadas);
+                consolidado.setClasesAsistidas(clasesAsistidas);
+                consolidado.setObservacion("Sincronizado automáticamente desde asistencias de sesión");
+                consolidado.setEstado(EstadoRegistro.ACTIVO);
+                asistenciaPeriodoEvaluacionRepositorio.save(consolidado);
+            }
+        } else {
+            AsistenciaPeriodoEvaluacion asistencia = asistenciaPeriodoEvaluacionRepositorio
+                .findByMatriculaIdAndPeriodoEvaluacionId(matricula.getId(), periodoEvaluacionId)
+                .orElse(null);
+            if (asistencia != null) {
+                clasesProgramadas = asistencia.getClasesProgramadas() != null ? asistencia.getClasesProgramadas() : 0;
+                clasesAsistidas = asistencia.getClasesAsistidas() != null ? asistencia.getClasesAsistidas() : 0;
+            }
+        }
+
         dto.setClasesProgramadas(clasesProgramadas);
         dto.setClasesAsistidas(clasesAsistidas);
         dto.setPorcentajeAsistencia(calcularPorcentajeAsistencia(clasesProgramadas, clasesAsistidas));

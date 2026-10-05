@@ -3,8 +3,10 @@ package com.tp1.proyecto.alerta.servicio.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tp1.proyecto.academico.entidad.Matricula;
 import com.tp1.proyecto.academico.entidad.PeriodoEvaluacion;
 import com.tp1.proyecto.academico.entidad.Seccion;
+import com.tp1.proyecto.academico.repositorio.MatriculaRepositorio;
 import com.tp1.proyecto.academico.repositorio.PeriodoEvaluacionRepositorio;
 import com.tp1.proyecto.academico.repositorio.SeccionRepositorio;
 import com.tp1.proyecto.alerta.dto.HallazgoDataMiningRespuestaDto;
@@ -15,16 +17,22 @@ import com.tp1.proyecto.alerta.repositorio.HallazgoDataMiningRepositorio;
 import com.tp1.proyecto.alerta.servicio.HallazgoDataMiningServicio;
 import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import com.tp1.proyecto.evaluacion.entidad.AsistenciaPeriodoEvaluacion;
+import com.tp1.proyecto.evaluacion.entidad.AsistenciaSesion;
+import com.tp1.proyecto.evaluacion.enumeracion.EstadoAsistenciaSesion;
 import com.tp1.proyecto.evaluacion.repositorio.AsistenciaPeriodoEvaluacionRepositorio;
+import com.tp1.proyecto.evaluacion.repositorio.AsistenciaSesionRepositorio;
 import com.tp1.proyecto.excepcion.RecursoNoEncontradoException;
 import com.tp1.proyecto.excepcion.ReglaNegocioException;
 import com.tp1.proyecto.prediccion.entidad.PrediccionRiesgo;
 import com.tp1.proyecto.prediccion.entidad.PrediccionRiesgoCurso;
 import com.tp1.proyecto.prediccion.repositorio.PrediccionRiesgoCursoRepositorio;
 import com.tp1.proyecto.prediccion.repositorio.PrediccionRiesgoRepositorio;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,29 +50,35 @@ public class HallazgoDataMiningServicioImpl implements HallazgoDataMiningServici
     private final HallazgoDataMiningRepositorio hallazgoDataMiningRepositorio;
     private final PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio;
     private final SeccionRepositorio seccionRepositorio;
+    private final MatriculaRepositorio matriculaRepositorio;
     private final PrediccionRiesgoRepositorio prediccionRiesgoRepositorio;
     private final PrediccionRiesgoCursoRepositorio prediccionRiesgoCursoRepositorio;
     private final AlertaRepositorio alertaRepositorio;
     private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
+    private final AsistenciaSesionRepositorio asistenciaSesionRepositorio;
     private final ObjectMapper objectMapper;
 
     public HallazgoDataMiningServicioImpl(
         HallazgoDataMiningRepositorio hallazgoDataMiningRepositorio,
         PeriodoEvaluacionRepositorio periodoEvaluacionRepositorio,
         SeccionRepositorio seccionRepositorio,
+        MatriculaRepositorio matriculaRepositorio,
         PrediccionRiesgoRepositorio prediccionRiesgoRepositorio,
         PrediccionRiesgoCursoRepositorio prediccionRiesgoCursoRepositorio,
         AlertaRepositorio alertaRepositorio,
         AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
+        AsistenciaSesionRepositorio asistenciaSesionRepositorio,
         ObjectMapper objectMapper
     ) {
         this.hallazgoDataMiningRepositorio = hallazgoDataMiningRepositorio;
         this.periodoEvaluacionRepositorio = periodoEvaluacionRepositorio;
         this.seccionRepositorio = seccionRepositorio;
+        this.matriculaRepositorio = matriculaRepositorio;
         this.prediccionRiesgoRepositorio = prediccionRiesgoRepositorio;
         this.prediccionRiesgoCursoRepositorio = prediccionRiesgoCursoRepositorio;
         this.alertaRepositorio = alertaRepositorio;
         this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
+        this.asistenciaSesionRepositorio = asistenciaSesionRepositorio;
         this.objectMapper = objectMapper;
     }
 
@@ -220,16 +234,60 @@ public class HallazgoDataMiningServicioImpl implements HallazgoDataMiningServici
         int cantidadCritica = 0;
         double sumaAsistencia = 0.0;
 
-        for (PrediccionRiesgo prediccion : prediccionesGlobales) {
-            Optional<AsistenciaPeriodoEvaluacion> asistenciaOpt = asistenciaPeriodoEvaluacionRepositorio
-                .findByMatriculaIdAndPeriodoEvaluacionId(prediccion.getMatricula().getId(), periodoEvaluacion.getId());
+        List<Matricula> matriculasSeccion = matriculaRepositorio
+            .findBySeccionIdAndPeriodoAcademicoId(seccion.getId(), periodoEvaluacion.getPeriodoAcademico().getId())
+            .stream()
+            .filter(m -> m.getEstado() == EstadoRegistro.ACTIVO)
+            .toList();
 
-            if (asistenciaOpt.isEmpty()) {
+        Map<Long, PrediccionRiesgo> prediccionPorMatricula = prediccionesGlobales.stream()
+            .collect(Collectors.toMap(p -> p.getMatricula().getId(), p -> p, (p1, p2) -> p1));
+
+        for (Matricula matricula : matriculasSeccion) {
+            Long matriculaId = matricula.getId();
+            List<AsistenciaSesion> sesiones = asistenciaSesionRepositorio
+                .findByMatriculaIdAndPeriodoEvaluacionIdAndEstado(matriculaId, periodoEvaluacion.getId(), EstadoRegistro.ACTIVO);
+
+            Double porcentaje = null;
+            if (!sesiones.isEmpty()) {
+                Map<String, EstadoAsistenciaSesion> estadoPorSesion = new HashMap<>();
+                for (AsistenciaSesion sesion : sesiones) {
+                    String claveProgramacion = sesion.getHorarioSemanal() != null
+                        ? "horario:" + sesion.getHorarioSemanal().getId()
+                        : "asignacion:" + sesion.getAsignacion().getId();
+                    estadoPorSesion.put(claveProgramacion + ":" + sesion.getFechaClase(), sesion.getEstadoAsistencia());
+                }
+                int programadas = (int) estadoPorSesion.values().stream()
+                    .filter(estado -> estado != EstadoAsistenciaSesion.JUSTIFICADO).count();
+                int asistidas = (int) estadoPorSesion.values().stream()
+                    .filter(estado -> estado == EstadoAsistenciaSesion.PRESENTE || estado == EstadoAsistenciaSesion.TARDANZA)
+                    .count();
+                porcentaje = programadas > 0
+                    ? BigDecimal.valueOf(asistidas * 100.0 / programadas).setScale(2, RoundingMode.HALF_UP).doubleValue()
+                    : 0.0;
+            } else {
+                Optional<AsistenciaPeriodoEvaluacion> asistenciaOpt = asistenciaPeriodoEvaluacionRepositorio
+                    .findByMatriculaIdAndPeriodoEvaluacionId(matriculaId, periodoEvaluacion.getId());
+                if (asistenciaOpt.isPresent()) {
+                    AsistenciaPeriodoEvaluacion asistencia = asistenciaOpt.get();
+                    porcentaje = porcentajeAsistencia(asistencia.getClasesAsistidas(), asistencia.getClasesProgramadas());
+                } else if (prediccionPorMatricula.containsKey(matriculaId)) {
+                    PrediccionRiesgo pred = prediccionPorMatricula.get(matriculaId);
+                    if (pred.getVariablesEntrada() != null) {
+                        Map<String, Object> vars = parsearVariables(pred.getVariablesEntrada());
+                        double val = obtenerNumero(vars.get("porcentaje_asistencia"));
+                        double prog = obtenerNumero(vars.get("clases_programadas"));
+                        if (val > 0 || prog > 0) {
+                            porcentaje = val;
+                        }
+                    }
+                }
+            }
+
+            if (porcentaje == null) {
                 continue;
             }
 
-            AsistenciaPeriodoEvaluacion asistencia = asistenciaOpt.get();
-            double porcentaje = porcentajeAsistencia(asistencia.getClasesAsistidas(), asistencia.getClasesProgramadas());
             sumaAsistencia += porcentaje;
             totalConDatos++;
 
@@ -667,13 +725,15 @@ public class HallazgoDataMiningServicioImpl implements HallazgoDataMiningServici
         double promedio = obtenerNumero(variables.get("promedio_general"));
         double notaMinima = obtenerNumero(variables.get("nota_minima"));
         double desaprobados = obtenerNumero(variables.get("cantidad_cursos_desaprobados"));
+        double programadas = obtenerNumero(variables.get("clases_programadas"));
 
-        boolean asistenciaCritica = asistencia > 0 && asistencia < 60;
+        boolean tieneDatoAsistencia = asistencia > 0 || programadas > 0;
+        boolean asistenciaCritica = tieneDatoAsistencia && asistencia < 60;
         boolean rendimientoBajo =
             (promedio > 0 && promedio <= 10.5) ||
             (notaMinima > 0 && notaMinima <= 10.5) ||
             desaprobados > 0;
-        boolean combinado = asistencia > 0 && asistencia < 80 && promedio > 0 && promedio < 14;
+        boolean combinado = tieneDatoAsistencia && asistencia < 80 && promedio > 0 && promedio < 14;
 
         if (asistenciaCritica && (rendimientoBajo || combinado)) {
             return "MIXTO";

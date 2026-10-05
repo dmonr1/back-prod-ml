@@ -46,4 +46,12 @@ public interface AsistenciaSesionRepositorio extends JpaRepository<AsistenciaSes
     List<AsistenciaSesion> findByAsignacionIdAndFechaClaseBetweenAndEstado(
         Long asignacionId, LocalDate desde, LocalDate hasta, EstadoRegistro estado
     );
+
+    List<AsistenciaSesion> findByMatriculaIdInAndPeriodoEvaluacionIdAndEstado(
+        List<Long> matriculaIds, Long periodoEvaluacionId, EstadoRegistro estado
+    );
+
+    List<AsistenciaSesion> findByAsignacionSeccionIdAndPeriodoEvaluacionIdAndEstado(
+        Long seccionId, Long periodoEvaluacionId, EstadoRegistro estado
+    );
 }
