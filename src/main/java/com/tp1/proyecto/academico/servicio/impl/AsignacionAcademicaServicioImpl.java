@@ -414,7 +414,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public TutoriaResumenAcademicoRespuestaDto obtenerResumenAcademicoTutoria(
         Long tutoriaId,
         Long periodoEvaluacionId
