@@ -37,9 +37,14 @@ $javaHome = $env:JAVA_HOME
 if (-not $javaHome) {
     $javaHome = [Environment]::GetEnvironmentVariable('JAVA_HOME', 'Machine')
 }
-$java = if ($javaHome) { Join-Path $javaHome 'bin\java.exe' } else { 'java.exe' }
-if (-not (Test-Path -LiteralPath $java -PathType Leaf)) {
-    throw "No se encontro java.exe en JAVA_HOME: '$javaHome'."
+$java = if ($javaHome) {
+    Join-Path $javaHome 'bin\java.exe'
+} else {
+    $javaCommand = Get-Command java.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($javaCommand) { $javaCommand.Source } else { $null }
+}
+if (-not $java -or -not (Test-Path -LiteralPath $java -PathType Leaf)) {
+    throw 'No se encontro java.exe. Configura JAVA_HOME con un JDK 21 o agregalo a PATH.'
 }
 $previousErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
