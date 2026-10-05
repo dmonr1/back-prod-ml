@@ -36,7 +36,7 @@ public class HorarioAcademicoControlador {
     @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE','DOCENTE_TUTOR')")
     public List<BloqueHorarioRespuestaDto> listarBloques(
         @RequestParam Long periodoAcademicoId,
-        @RequestParam Long nivelId
+        @RequestParam(required = false) Long nivelId
     ) {
         return servicio.listarBloques(periodoAcademicoId, nivelId);
     }

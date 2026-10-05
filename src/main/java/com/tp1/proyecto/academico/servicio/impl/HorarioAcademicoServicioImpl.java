@@ -61,6 +61,11 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
     @Override
     @Transactional(readOnly = true)
     public List<BloqueHorarioRespuestaDto> listarBloques(Long periodoId, Long nivelId) {
+        if (nivelId == null) {
+            return bloqueRepositorio.findByPeriodoAcademicoIdAndEstadoOrderByNivelIdAscOrdenAsc(
+                periodoId, EstadoRegistro.ACTIVO
+            ).stream().map(this::mapearBloque).toList();
+        }
         return bloqueRepositorio.findByPeriodoAcademicoIdAndNivelIdAndEstadoOrderByOrdenAsc(
             periodoId, nivelId, EstadoRegistro.ACTIVO
         ).stream().map(this::mapearBloque).toList();
