@@ -10,6 +10,7 @@ import com.tp1.proyecto.academico.entidad.DocenteCursoSeccion;
 import com.tp1.proyecto.academico.entidad.HorarioSemanal;
 import com.tp1.proyecto.academico.entidad.Nivel;
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
+import com.tp1.proyecto.academico.enumeracion.TipoBloqueHorario;
 import com.tp1.proyecto.academico.repositorio.BloqueHorarioRepositorio;
 import com.tp1.proyecto.academico.repositorio.DocenteCursoSeccionRepositorio;
 import com.tp1.proyecto.academico.repositorio.HorarioSemanalRepositorio;
@@ -81,8 +82,21 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<BloqueHorarioRespuestaDto> listarBloquesNoLectivos(Long periodoId) {
+        obtenerPeriodo(periodoId);
+        return bloqueRepositorio.findByPeriodoAcademicoIdAndEstadoOrderByNivelIdAscOrdenAsc(
+            periodoId, EstadoRegistro.ACTIVO
+        ).stream()
+            .filter(bloque -> bloque.getTipoBloque() != TipoBloqueHorario.CLASE)
+            .sorted(Comparator.comparing(BloqueHorario::getHoraInicio))
+            .map(this::mapearBloque).toList();
+    }
+
+    @Override
     public BloqueHorarioRespuestaDto crearBloque(BloqueHorarioSolicitudDto solicitud) {
         PeriodoAcademico periodo = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
+        validarPeriodoEditable(periodo);
         Nivel nivel = nivelRepositorio.findById(solicitud.getNivelId())
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el nivel académico."));
         validarRangoBloque(solicitud, periodo.getId(), nivel.getId(), null);
@@ -97,6 +111,7 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
     public BloqueHorarioRespuestaDto actualizarBloque(Long id, BloqueHorarioSolicitudDto solicitud) {
         BloqueHorario bloque = bloqueRepositorio.findByIdAndEstado(id, EstadoRegistro.ACTIVO)
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el bloque horario activo."));
+        validarPeriodoEditable(bloque.getPeriodoAcademico());
         if (!bloque.getPeriodoAcademico().getId().equals(solicitud.getPeriodoAcademicoId()) ||
             !bloque.getNivel().getId().equals(solicitud.getNivelId())) {
             throw new ReglaNegocioException("No se puede mover un bloque a otro período o nivel.");
@@ -111,6 +126,7 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
     public void actualizarEstadoBloque(Long id, boolean activo) {
         BloqueHorario bloque = bloqueRepositorio.findById(id)
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el bloque horario."));
+        validarPeriodoEditable(bloque.getPeriodoAcademico());
         if (activo) {
             throw new ReglaNegocioException("Un bloque inactivo no se puede reactivar; crea uno nuevo con otro orden.");
         }
@@ -130,6 +146,18 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         obtenerPeriodo(periodoId);
         return horarioRepositorio.findByAsignacionPeriodoAcademicoIdAndEstado(periodoId, EstadoRegistro.ACTIVO)
             .stream().map(this::mapearHorario).sorted(ordenHorario()).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HorarioSemanalRespuestaDto> listarPendientesReprogramacion(Long periodoId) {
+        obtenerPeriodo(periodoId);
+        return horarioRepositorio.findByAsignacionPeriodoAcademicoIdAndPendienteReprogramacionTrue(periodoId)
+            .stream()
+            .filter(item -> item.getEstado() == EstadoRegistro.INACTIVO)
+            .map(this::mapearHorario)
+            .sorted(ordenHorario())
+            .toList();
     }
 
     @Override
@@ -177,8 +205,9 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró una asignación académica activa."));
         BloqueHorario bloque = bloqueRepositorio.findByIdAndEstado(solicitud.getBloqueHorarioId(), EstadoRegistro.ACTIVO)
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró un bloque horario activo."));
-        if (bloque.isEsRecreo()) {
-            throw new ReglaNegocioException("Un bloque de recreo no se puede asignar a un curso.");
+        validarPeriodoEditable(asignacion.getPeriodoAcademico());
+        if (bloque.getTipoBloque() != TipoBloqueHorario.CLASE) {
+            throw new ReglaNegocioException("Solo los bloques de clase se pueden asignar a un curso.");
         }
         Long periodoId = asignacion.getPeriodoAcademico().getId();
         Long nivelId = asignacion.getCurso().getNivel().getId();
@@ -186,11 +215,25 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
             throw new ReglaNegocioException("El bloque debe pertenecer al mismo período y nivel de la asignación.");
         }
         validarProgramacion(asignacion, bloque, solicitud, null, periodoId);
+        HorarioSemanal horarioPendiente = null;
+        if (solicitud.getHorarioPendienteId() != null) {
+            horarioPendiente = horarioRepositorio.findByIdAndEstado(solicitud.getHorarioPendienteId(), EstadoRegistro.INACTIVO)
+                .filter(HorarioSemanal::isPendienteReprogramacion)
+                .orElseThrow(() -> new RecursoNoEncontradoException("La clase pendiente ya no está disponible para programar."));
+            if (!horarioPendiente.getAsignacion().getId().equals(asignacion.getId())) {
+                throw new ReglaNegocioException("La clase pendiente pertenece a otra asignación.");
+            }
+        }
         HorarioSemanal horario = new HorarioSemanal();
         horario.setAsignacion(asignacion);
         horario.setBloque(bloque);
         horario.setDiaSemana(solicitud.getDiaSemana());
-        return mapearHorario(horarioRepositorio.save(horario));
+        HorarioSemanal guardado = horarioRepositorio.save(horario);
+        if (horarioPendiente != null) {
+            horarioPendiente.setPendienteReprogramacion(false);
+            horarioRepositorio.save(horarioPendiente);
+        }
+        return mapearHorario(guardado);
     }
 
     @Override
@@ -202,8 +245,9 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró una asignación académica activa."));
         BloqueHorario bloque = bloqueRepositorio.findByIdAndEstado(solicitud.getBloqueHorarioId(), EstadoRegistro.ACTIVO)
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró un bloque horario activo."));
-        if (bloque.isEsRecreo()) {
-            throw new ReglaNegocioException("Un bloque de recreo no se puede asignar a un curso.");
+        validarPeriodoEditable(asignacion.getPeriodoAcademico());
+        if (bloque.getTipoBloque() != TipoBloqueHorario.CLASE) {
+            throw new ReglaNegocioException("Solo los bloques de clase se pueden asignar a un curso.");
         }
         Long periodoId = asignacion.getPeriodoAcademico().getId();
         Long nivelId = asignacion.getCurso().getNivel().getId();
@@ -218,13 +262,15 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
     }
 
     @Override
-    public void actualizarEstadoHorario(Long id, boolean activo) {
+    public void actualizarEstadoHorario(Long id, boolean activo, boolean devolverAPendientes) {
         HorarioSemanal horario = horarioRepositorio.findByIdAndEstado(id, EstadoRegistro.ACTIVO)
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró la clase programada."));
+        validarPeriodoEditable(horario.getAsignacion().getPeriodoAcademico());
         if (activo) {
             throw new ReglaNegocioException("La clase fue desactivada; crea una nueva programación para reponerla.");
         }
         horario.setEstado(EstadoRegistro.INACTIVO);
+        horario.setPendienteReprogramacion(devolverAPendientes);
         horarioRepositorio.save(horario);
     }
 
@@ -242,7 +288,7 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         if (solicitud.getHoraInicio().isBefore(inicioJornada) || solicitud.getHoraFin().isAfter(finJornada)) {
             throw new ReglaNegocioException("El bloque debe estar dentro de la jornada configurada (" + inicioJornada + " a " + finJornada + ").");
         }
-        int duracionConfigurada = solicitud.isEsRecreo()
+        int duracionConfigurada = tipoBloque(solicitud) != TipoBloqueHorario.CLASE
             ? secundaria ? periodo.getDuracionRecreoSecundariaMinutos() : periodo.getDuracionRecreoPrimariaMinutos()
             : secundaria ? periodo.getDuracionHoraSecundariaMinutos() : periodo.getDuracionHoraPrimariaMinutos();
         long duracionSolicitada = Duration.between(solicitud.getHoraInicio(), solicitud.getHoraFin()).toSeconds();
@@ -338,12 +384,27 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         bloque.setOrden(solicitud.getOrden());
         bloque.setHoraInicio(solicitud.getHoraInicio());
         bloque.setHoraFin(solicitud.getHoraFin());
-        bloque.setEsRecreo(solicitud.isEsRecreo());
+        TipoBloqueHorario tipo = tipoBloque(solicitud);
+        bloque.setTipoBloque(tipo);
+        bloque.setEsRecreo(tipo == TipoBloqueHorario.RECREO);
+    }
+
+    private TipoBloqueHorario tipoBloque(BloqueHorarioSolicitudDto solicitud) {
+        if (solicitud.getTipoBloque() != null) return solicitud.getTipoBloque();
+        return solicitud.isEsRecreo() ? TipoBloqueHorario.RECREO : TipoBloqueHorario.CLASE;
     }
 
     private PeriodoAcademico obtenerPeriodo(Long id) {
         return periodoRepositorio.findById(id)
             .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el período académico."));
+    }
+
+    private void validarPeriodoEditable(PeriodoAcademico periodo) {
+        PeriodoAcademico periodoActual = periodoRepositorio.findTopByEstadoOrderByAnioDesc(EstadoRegistro.ACTIVO)
+            .orElse(periodo);
+        if (periodo.getAnio() < periodoActual.getAnio()) {
+            throw new ReglaNegocioException("El horario de un período histórico es de solo consulta.");
+        }
     }
 
     private BloqueHorarioRespuestaDto mapearBloque(BloqueHorario bloque) {
@@ -357,6 +418,7 @@ public class HorarioAcademicoServicioImpl implements HorarioAcademicoServicio {
         dto.setHoraInicio(bloque.getHoraInicio());
         dto.setHoraFin(bloque.getHoraFin());
         dto.setEsRecreo(bloque.isEsRecreo());
+        dto.setTipoBloque(bloque.getTipoBloque());
         return dto;
     }
 

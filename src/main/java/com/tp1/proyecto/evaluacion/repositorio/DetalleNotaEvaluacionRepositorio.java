@@ -16,6 +16,10 @@ public interface DetalleNotaEvaluacionRepositorio extends JpaRepository<DetalleN
 
     List<DetalleNotaEvaluacion> findByEvaluacionIdIn(List<Long> evaluacionIds);
 
+    List<DetalleNotaEvaluacion> findByEvaluacionIdInAndEstado(
+        List<Long> evaluacionIds, EstadoRegistro estado
+    );
+
     Optional<DetalleNotaEvaluacion> findByEvaluacionIdAndMatriculaId(Long evaluacionId, Long matriculaId);
 
     List<DetalleNotaEvaluacion> findByEvaluacionIdInAndMatriculaIdAndEstado(List<Long> evaluacionIds, Long matriculaId, EstadoRegistro estado);

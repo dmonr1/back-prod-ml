@@ -62,15 +62,27 @@ public class MatriculaServicioImpl implements MatriculaServicio {
     public MatriculaRespuestaDto crear(MatriculaSolicitudDto solicitud) {
         Alumno alumno = alumnoRepositorio.findById(solicitud.getAlumnoId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Alumno no encontrado con id: " + solicitud.getAlumnoId()));
-        Seccion seccion = seccionRepositorio.findById(solicitud.getSeccionId())
+        Seccion seccion = seccionRepositorio.findByIdForUpdate(solicitud.getSeccionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
         PeriodoAcademico periodoAcademico = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
         permisoPeriodoServicio.validarEdicion(periodoAcademico);
+
+        if (!seccion.getPeriodoAcademico().getId().equals(periodoAcademico.getId())) {
+            throw new ReglaNegocioException("La seccion no pertenece al periodo academico seleccionado.");
+        }
+        if (seccion.getEstado() != EstadoRegistro.ACTIVO) {
+            throw new ReglaNegocioException("La seccion debe estar activa para recibir matriculas.");
+        }
 
         matriculaRepositorio.findByAlumnoIdAndPeriodoAcademicoId(alumno.getId(), periodoAcademico.getId())
             .ifPresent(matriculaExistente -> {
                 throw new ReglaNegocioException("El alumno ya esta matriculado en este periodo academico.");
             });
+
+        int capacidad = seccion.getCapacidad() != null ? seccion.getCapacidad() : 30;
+        if (matriculaRepositorio.countBySeccionIdAndEstado(seccion.getId(), EstadoRegistro.ACTIVO) >= capacidad) {
+            throw new ReglaNegocioException("La seccion ya alcanzo su capacidad maxima.");
+        }
 
         Matricula matricula = new Matricula();
         matricula.setAlumno(alumno);
@@ -89,6 +101,14 @@ public class MatriculaServicioImpl implements MatriculaServicio {
         Matricula matricula = matriculaRepositorio.findById(matriculaId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Matrícula no encontrada con id: " + matriculaId));
         permisoPeriodoServicio.validarEdicion(matricula.getPeriodoAcademico());
+        if (activo && matricula.getEstado() != EstadoRegistro.ACTIVO) {
+            Seccion seccion = seccionRepositorio.findByIdForUpdate(matricula.getSeccion().getId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + matricula.getSeccion().getId()));
+            int capacidad = seccion.getCapacidad() != null ? seccion.getCapacidad() : 30;
+            if (matriculaRepositorio.countBySeccionIdAndEstado(seccion.getId(), EstadoRegistro.ACTIVO) >= capacidad) {
+                throw new ReglaNegocioException("La seccion ya alcanzo su capacidad maxima.");
+            }
+        }
         matricula.setEstado(activo ? EstadoRegistro.ACTIVO : EstadoRegistro.INACTIVO);
         return mapearRespuesta(matriculaRepositorio.save(matricula));
     }

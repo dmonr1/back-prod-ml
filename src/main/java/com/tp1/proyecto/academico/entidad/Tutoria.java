@@ -2,6 +2,7 @@ package com.tp1.proyecto.academico.entidad;
 
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
 import com.tp1.proyecto.docente.entidad.Docente;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -30,6 +31,27 @@ public class Tutoria extends AuditoriaEntidad {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "periodo_academico_id", nullable = false)
     private PeriodoAcademico periodoAcademico;
+
+    @Column(name = "docente_nombre_historico", insertable = false, updatable = false)
+    private String docenteNombreHistorico;
+
+    @Column(name = "seccion_nombre_historico", insertable = false, updatable = false)
+    private String seccionNombreHistorico;
+
+    @Column(name = "grado_nombre_historico", insertable = false, updatable = false)
+    private String gradoNombreHistorico;
+
+    @Column(name = "nivel_nombre_historico", insertable = false, updatable = false)
+    private String nivelNombreHistorico;
+
+    @Column(name = "periodo_nombre_historico", insertable = false, updatable = false)
+    private String periodoNombreHistorico;
+
+    public String getDocenteNombreHistorico() { return docenteNombreHistorico; }
+    public String getSeccionNombreHistorico() { return seccionNombreHistorico; }
+    public String getGradoNombreHistorico() { return gradoNombreHistorico; }
+    public String getNivelNombreHistorico() { return nivelNombreHistorico; }
+    public String getPeriodoNombreHistorico() { return periodoNombreHistorico; }
 
     public Long getId() {
         return id;

@@ -7,6 +7,7 @@ public class HorarioSemanalSolicitudDto {
     @NotNull private Long asignacionId;
     @NotNull private Long bloqueHorarioId;
     @NotNull private DiaSemana diaSemana;
+    private Long horarioPendienteId;
 
     public Long getAsignacionId() { return asignacionId; }
     public void setAsignacionId(Long asignacionId) { this.asignacionId = asignacionId; }
@@ -14,4 +15,6 @@ public class HorarioSemanalSolicitudDto {
     public void setBloqueHorarioId(Long bloqueHorarioId) { this.bloqueHorarioId = bloqueHorarioId; }
     public DiaSemana getDiaSemana() { return diaSemana; }
     public void setDiaSemana(DiaSemana diaSemana) { this.diaSemana = diaSemana; }
+    public Long getHorarioPendienteId() { return horarioPendienteId; }
+    public void setHorarioPendienteId(Long horarioPendienteId) { this.horarioPendienteId = horarioPendienteId; }
 }

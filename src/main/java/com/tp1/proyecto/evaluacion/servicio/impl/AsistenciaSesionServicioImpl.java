@@ -180,7 +180,10 @@ public class AsistenciaSesionServicioImpl implements AsistenciaSesionServicio {
         }
 
         asistenciaSesionRepositorio.flush();
-        eventPublisher.publishEvent(new AsistenciaSesionRegistradaEvent(periodo.getId(), List.copyOf(matriculasIncluidas)));
+        eventPublisher.publishEvent(new AsistenciaSesionRegistradaEvent(
+            periodo.getId(), List.copyOf(matriculasIncluidas), asignacion.getId(),
+            horario != null ? horario.getId() : null, solicitud.getFechaClase()
+        ));
 
         return respuestas;
     }
@@ -280,7 +283,10 @@ public class AsistenciaSesionServicioImpl implements AsistenciaSesionServicio {
             }
         }
         asistenciaSesionRepositorio.flush();
-        eventPublisher.publishEvent(new AsistenciaSesionRegistradaEvent(periodo.getId(), List.copyOf(matriculasIncluidas)));
+        eventPublisher.publishEvent(new AsistenciaSesionRegistradaEvent(
+            periodo.getId(), List.copyOf(matriculasIncluidas), asignacion.getId(),
+            horario != null ? horario.getId() : null, solicitud.getFechaClase()
+        ));
         return respuestas;
     }
 

@@ -48,6 +48,7 @@ import com.tp1.proyecto.usuario.repositorio.RolRepositorio;
 import com.tp1.proyecto.usuario.repositorio.UsuarioRepositorio;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -129,7 +130,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         Seccion seccion = seccionRepositorio.findById(solicitud.getSeccionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
         PeriodoAcademico periodoAcademico = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
-        permisoPeriodoServicio.validarEdicion(periodoAcademico);
+        validarEdicionAsignaciones(periodoAcademico);
 
         if (
             seccion.getPeriodoAcademico() == null ||
@@ -194,7 +195,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     public AsignacionDocenteRespuestaDto actualizarEstadoAsignacion(Long asignacionId, boolean activo) {
         DocenteCursoSeccion asignacion = docenteCursoSeccionRepositorio.findById(asignacionId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Asignacion docente no encontrada con id: " + asignacionId));
-        permisoPeriodoServicio.validarEdicion(asignacion.getPeriodoAcademico());
+        validarEdicionAsignaciones(asignacion.getPeriodoAcademico());
 
         if (activo && asignacion.getEstado() != EstadoRegistro.ACTIVO &&
             docenteCursoSeccionRepositorio.existsByCursoIdAndSeccionIdAndPeriodoAcademicoIdAndEstado(
@@ -218,7 +219,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             .orElseThrow(() -> new RecursoNoEncontradoException("Asignacion docente no encontrada con id: " + asignacionId));
 
         PeriodoAcademico periodoAcademico = asignacion.getPeriodoAcademico();
-        permisoPeriodoServicio.validarEdicion(periodoAcademico);
+        validarEdicionAsignaciones(periodoAcademico);
 
         Docente nuevoDocente = obtenerDocente(solicitud.getDocenteId());
         Curso nuevoCurso = cursoRepositorio.findById(solicitud.getCursoId())
@@ -289,7 +290,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         Seccion seccion = seccionRepositorio.findById(solicitud.getSeccionId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Seccion no encontrada con id: " + solicitud.getSeccionId()));
         PeriodoAcademico periodoAcademico = obtenerPeriodo(solicitud.getPeriodoAcademicoId());
-        permisoPeriodoServicio.validarEdicion(periodoAcademico);
+        validarEdicionAsignaciones(periodoAcademico);
 
         if (
             seccion.getPeriodoAcademico() == null ||
@@ -343,7 +344,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
     public TutoriaRespuestaDto actualizarEstadoTutoria(Long tutoriaId, boolean activo) {
         Tutoria tutoria = tutoriaRepositorio.findById(tutoriaId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Tutoria no encontrada con id: " + tutoriaId));
-        permisoPeriodoServicio.validarEdicion(tutoria.getPeriodoAcademico());
+        validarEdicionAsignaciones(tutoria.getPeriodoAcademico());
 
         if (
             activo &&
@@ -371,7 +372,7 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             .orElseThrow(() -> new RecursoNoEncontradoException("Tutoria no encontrada con id: " + tutoriaId));
 
         PeriodoAcademico periodoAcademico = tutoria.getPeriodoAcademico();
-        permisoPeriodoServicio.validarEdicion(periodoAcademico);
+        validarEdicionAsignaciones(periodoAcademico);
 
         Docente nuevoDocente = obtenerDocente(solicitud.getDocenteId());
         Seccion nuevaSeccion = seccionRepositorio.findById(solicitud.getSeccionId())
@@ -490,14 +491,15 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         respuesta.setTutoriaId(tutoria.getId());
         respuesta.setDocenteTutorId(tutoria.getDocente().getId());
         respuesta.setDocenteTutorNombreCompleto(
-            tutoria.getDocente().getNombres() + " " + tutoria.getDocente().getApellidos()
+            nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getDocenteNombreHistorico(),
+                tutoria.getDocente().getNombres() + " " + tutoria.getDocente().getApellidos())
         );
         respuesta.setSeccionId(tutoria.getSeccion().getId());
-        respuesta.setSeccion(tutoria.getSeccion().getNombre());
-        respuesta.setGrado(tutoria.getSeccion().getGrado().getNombre());
-        respuesta.setNivel(tutoria.getSeccion().getGrado().getNivel().getNombre());
+        respuesta.setSeccion(nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getSeccionNombreHistorico(), tutoria.getSeccion().getNombre()));
+        respuesta.setGrado(nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getGradoNombreHistorico(), tutoria.getSeccion().getGrado().getNombre()));
+        respuesta.setNivel(nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getNivelNombreHistorico(), tutoria.getSeccion().getGrado().getNivel().getNombre()));
         respuesta.setPeriodoAcademicoId(tutoria.getPeriodoAcademico().getId());
-        respuesta.setPeriodoAcademico(tutoria.getPeriodoAcademico().getNombre());
+        respuesta.setPeriodoAcademico(nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getPeriodoNombreHistorico(), tutoria.getPeriodoAcademico().getNombre()));
         respuesta.setAnioAcademico(tutoria.getPeriodoAcademico().getAnio());
         respuesta.setPeriodoEvaluacionId(periodoEvaluacion.getId());
         respuesta.setPeriodoEvaluacion(periodoEvaluacion.getNombre());
@@ -542,19 +544,20 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         AsignacionDocenteRespuestaDto dto = new AsignacionDocenteRespuestaDto();
         dto.setId(asignacion.getId());
         dto.setDocenteId(asignacion.getDocente().getId());
-        dto.setDocenteNombreCompleto(
-            asignacion.getDocente().getNombres() + " " + asignacion.getDocente().getApellidos()
-        );
+        dto.setDocenteNombreCompleto(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getDocenteNombreHistorico(),
+            asignacion.getDocente().getNombres() + " " + asignacion.getDocente().getApellidos()));
         dto.setCursoId(asignacion.getCurso().getId());
-        dto.setCurso(asignacion.getCurso().getNombre());
+        dto.setCurso(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getCursoNombreHistorico(), asignacion.getCurso().getNombre()));
         dto.setSeccionId(asignacion.getSeccion().getId());
-        dto.setSeccion(asignacion.getSeccion().getNombre());
-        dto.setGrado(asignacion.getSeccion().getGrado().getNombre());
-        dto.setNivel(asignacion.getSeccion().getGrado().getNivel().getNombre());
+        dto.setSeccion(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getSeccionNombreHistorico(), asignacion.getSeccion().getNombre()));
+        dto.setGrado(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getGradoNombreHistorico(), asignacion.getSeccion().getGrado().getNombre()));
+        dto.setNivel(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getNivelNombreHistorico(), asignacion.getSeccion().getGrado().getNivel().getNombre()));
         dto.setPeriodoAcademicoId(asignacion.getPeriodoAcademico().getId());
-        dto.setPeriodoAcademico(asignacion.getPeriodoAcademico().getNombre());
+        dto.setPeriodoAcademico(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getPeriodoNombreHistorico(), asignacion.getPeriodoAcademico().getNombre()));
         dto.setAnioAcademico(asignacion.getPeriodoAcademico().getAnio());
         dto.setEstado(asignacion.getEstado() != null ? asignacion.getEstado().name() : EstadoRegistro.ACTIVO.name());
+        dto.setFechaRegistro(asignacion.getFechaRegistro());
+        dto.setFechaModificacion(asignacion.getFechaModificacion());
         return dto;
     }
 
@@ -562,16 +565,31 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
         TutoriaRespuestaDto dto = new TutoriaRespuestaDto();
         dto.setId(tutoria.getId());
         dto.setDocenteId(tutoria.getDocente().getId());
-        dto.setDocenteNombreCompleto(tutoria.getDocente().getNombres() + " " + tutoria.getDocente().getApellidos());
+        dto.setDocenteNombreCompleto(nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getDocenteNombreHistorico(),
+            tutoria.getDocente().getNombres() + " " + tutoria.getDocente().getApellidos()));
         dto.setSeccionId(tutoria.getSeccion().getId());
-        dto.setSeccion(tutoria.getSeccion().getNombre());
-        dto.setGrado(tutoria.getSeccion().getGrado().getNombre());
-        dto.setNivel(tutoria.getSeccion().getGrado().getNivel().getNombre());
+        dto.setSeccion(nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getSeccionNombreHistorico(), tutoria.getSeccion().getNombre()));
+        dto.setGrado(nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getGradoNombreHistorico(), tutoria.getSeccion().getGrado().getNombre()));
+        dto.setNivel(nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getNivelNombreHistorico(), tutoria.getSeccion().getGrado().getNivel().getNombre()));
         dto.setPeriodoAcademicoId(tutoria.getPeriodoAcademico().getId());
-        dto.setPeriodoAcademico(tutoria.getPeriodoAcademico().getNombre());
+        dto.setPeriodoAcademico(nombreHistorico(tutoria.getPeriodoAcademico(), tutoria.getPeriodoNombreHistorico(), tutoria.getPeriodoAcademico().getNombre()));
         dto.setAnioAcademico(tutoria.getPeriodoAcademico().getAnio());
         dto.setEstado(tutoria.getEstado() != null ? tutoria.getEstado().name() : EstadoRegistro.ACTIVO.name());
+        dto.setFechaRegistro(tutoria.getFechaRegistro());
+        dto.setFechaModificacion(tutoria.getFechaModificacion());
         return dto;
+    }
+
+    private String nombreHistorico(PeriodoAcademico periodo, String historico, String actual) {
+        return periodo.getAnio() < Year.now().getValue() && historico != null && !historico.isBlank()
+            ? historico : actual;
+    }
+
+    private void validarEdicionAsignaciones(PeriodoAcademico periodoAcademico) {
+        permisoPeriodoServicio.validarEdicion(periodoAcademico);
+        if (periodoAcademico.getAnio() < Year.now().getValue()) {
+            throw new ReglaNegocioException("Las asignaciones y tutorias de periodos anteriores son de solo lectura.");
+        }
     }
 
     private AlumnoSeccionRespuestaDto mapearAlumno(Matricula matricula) {
@@ -595,11 +613,10 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
             new TutoriaResumenAcademicoRespuestaDto.CursoTutoriaResumenDto();
         dto.setAsignacionId(asignacion.getId());
         dto.setCursoId(asignacion.getCurso().getId());
-        dto.setCurso(asignacion.getCurso().getNombre());
+        dto.setCurso(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getCursoNombreHistorico(), asignacion.getCurso().getNombre()));
         dto.setDocenteId(asignacion.getDocente().getId());
-        dto.setDocenteNombreCompleto(
-            asignacion.getDocente().getNombres() + " " + asignacion.getDocente().getApellidos()
-        );
+        dto.setDocenteNombreCompleto(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getDocenteNombreHistorico(),
+            asignacion.getDocente().getNombres() + " " + asignacion.getDocente().getApellidos()));
         return dto;
     }
 
@@ -699,11 +716,10 @@ public class AsignacionAcademicaServicioImpl implements AsignacionAcademicaServi
                 new TutoriaResumenAcademicoRespuestaDto.CursoAlumnoTutoriaResumenDto();
             cursoDto.setAsignacionId(asignacion.getId());
             cursoDto.setCursoId(asignacion.getCurso().getId());
-            cursoDto.setCurso(asignacion.getCurso().getNombre());
+            cursoDto.setCurso(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getCursoNombreHistorico(), asignacion.getCurso().getNombre()));
             cursoDto.setDocenteId(asignacion.getDocente().getId());
-            cursoDto.setDocenteNombreCompleto(
-                asignacion.getDocente().getNombres() + " " + asignacion.getDocente().getApellidos()
-            );
+            cursoDto.setDocenteNombreCompleto(nombreHistorico(asignacion.getPeriodoAcademico(), asignacion.getDocenteNombreHistorico(),
+                asignacion.getDocente().getNombres() + " " + asignacion.getDocente().getApellidos()));
             cursoDto.setEvaluacionesRegistradas(notas.size());
             cursoDto.setPromedio(promedio);
             cursoDto.setNotas(new ArrayList<>(notas));

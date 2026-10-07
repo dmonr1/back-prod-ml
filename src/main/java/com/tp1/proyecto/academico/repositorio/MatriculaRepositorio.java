@@ -10,6 +10,8 @@ public interface MatriculaRepositorio extends JpaRepository<Matricula, Long> {
 
     List<Matricula> findByPeriodoAcademicoId(Long periodoAcademicoId);
 
+    List<Matricula> findByPeriodoAcademicoIdAndEstado(Long periodoAcademicoId, EstadoRegistro estado);
+
     List<Matricula> findBySeccionIdAndPeriodoAcademicoId(Long seccionId, Long periodoAcademicoId);
 
     List<Matricula> findBySeccionIdAndPeriodoAcademicoIdAndEstado(
@@ -17,4 +19,6 @@ public interface MatriculaRepositorio extends JpaRepository<Matricula, Long> {
     );
 
     Optional<Matricula> findByAlumnoIdAndPeriodoAcademicoId(Long alumnoId, Long periodoAcademicoId);
+
+    long countBySeccionIdAndEstado(Long seccionId, EstadoRegistro estado);
 }

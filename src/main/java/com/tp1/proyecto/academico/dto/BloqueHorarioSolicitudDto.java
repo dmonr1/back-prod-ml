@@ -1,5 +1,6 @@
 package com.tp1.proyecto.academico.dto;
 
+import com.tp1.proyecto.academico.enumeracion.TipoBloqueHorario;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -13,6 +14,7 @@ public class BloqueHorarioSolicitudDto {
     @NotNull private LocalTime horaInicio;
     @NotNull private LocalTime horaFin;
     private boolean esRecreo;
+    private TipoBloqueHorario tipoBloque;
 
     public Long getPeriodoAcademicoId() { return periodoAcademicoId; }
     public void setPeriodoAcademicoId(Long periodoAcademicoId) { this.periodoAcademicoId = periodoAcademicoId; }
@@ -28,4 +30,6 @@ public class BloqueHorarioSolicitudDto {
     public void setHoraFin(LocalTime horaFin) { this.horaFin = horaFin; }
     public boolean isEsRecreo() { return esRecreo; }
     public void setEsRecreo(boolean esRecreo) { this.esRecreo = esRecreo; }
+    public TipoBloqueHorario getTipoBloque() { return tipoBloque; }
+    public void setTipoBloque(TipoBloqueHorario tipoBloque) { this.tipoBloque = tipoBloque; }
 }

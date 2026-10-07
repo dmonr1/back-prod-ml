@@ -14,7 +14,7 @@ public interface ClientePrediccionPython {
 
     ConfiguracionPredictoresDto actualizarConfiguracionPredictores(ConfiguracionPredictoresDto request);
 
-    ComparativaModelosDto obtenerComparativaModelos();
+    ComparativaModelosDto obtenerComparativaModelos(String tipo);
 
     PlanificadorReentrenamientoDto obtenerPlanificadorReentrenamiento();
 

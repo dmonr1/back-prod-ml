@@ -1,5 +1,7 @@
 package com.tp1.proyecto.academico.dto;
 
+import java.time.LocalDateTime;
+
 public class AsignacionDocenteRespuestaDto {
 
     private Long id;
@@ -15,6 +17,13 @@ public class AsignacionDocenteRespuestaDto {
     private String periodoAcademico;
     private Integer anioAcademico;
     private String estado;
+    private LocalDateTime fechaRegistro;
+    private LocalDateTime fechaModificacion;
+
+    public LocalDateTime getFechaRegistro() { return fechaRegistro; }
+    public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
+    public LocalDateTime getFechaModificacion() { return fechaModificacion; }
+    public void setFechaModificacion(LocalDateTime fechaModificacion) { this.fechaModificacion = fechaModificacion; }
 
     public Long getId() {
         return id;

@@ -32,6 +32,9 @@ public class HorarioSemanal extends AuditoriaEntidad {
     @Column(name = "dia_semana", nullable = false, length = 15)
     private DiaSemana diaSemana;
 
+    @Column(name = "pendiente_reprogramacion", nullable = false)
+    private boolean pendienteReprogramacion;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public DocenteCursoSeccion getAsignacion() { return asignacion; }
@@ -40,4 +43,6 @@ public class HorarioSemanal extends AuditoriaEntidad {
     public void setBloque(BloqueHorario bloque) { this.bloque = bloque; }
     public DiaSemana getDiaSemana() { return diaSemana; }
     public void setDiaSemana(DiaSemana diaSemana) { this.diaSemana = diaSemana; }
+    public boolean isPendienteReprogramacion() { return pendienteReprogramacion; }
+    public void setPendienteReprogramacion(boolean pendienteReprogramacion) { this.pendienteReprogramacion = pendienteReprogramacion; }
 }

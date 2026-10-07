@@ -1,6 +1,7 @@
 package com.tp1.proyecto.academico.repositorio;
 
 import com.tp1.proyecto.academico.entidad.PeriodoAcademico;
+import com.tp1.proyecto.comun.enumeracion.EstadoRegistro;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -9,4 +10,6 @@ public interface PeriodoAcademicoRepositorio extends JpaRepository<PeriodoAcadem
     Optional<PeriodoAcademico> findByAnio(Integer anio);
 
     Optional<PeriodoAcademico> findFirstByAnioLessThanOrderByAnioDesc(Integer anio);
+
+    Optional<PeriodoAcademico> findTopByEstadoOrderByAnioDesc(EstadoRegistro estado);
 }

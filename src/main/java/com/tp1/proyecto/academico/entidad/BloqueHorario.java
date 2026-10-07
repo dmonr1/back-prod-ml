@@ -1,6 +1,7 @@
 package com.tp1.proyecto.academico.entidad;
 
 import com.tp1.proyecto.comun.entidad.AuditoriaEntidad;
+import com.tp1.proyecto.academico.enumeracion.TipoBloqueHorario;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -9,6 +10,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.time.LocalTime;
 
@@ -42,6 +45,10 @@ public class BloqueHorario extends AuditoriaEntidad {
     @Column(name = "es_recreo", nullable = false)
     private boolean esRecreo;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_bloque", nullable = false, length = 20)
+    private TipoBloqueHorario tipoBloque = TipoBloqueHorario.CLASE;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public PeriodoAcademico getPeriodoAcademico() { return periodoAcademico; }
@@ -58,4 +65,6 @@ public class BloqueHorario extends AuditoriaEntidad {
     public void setHoraFin(LocalTime horaFin) { this.horaFin = horaFin; }
     public boolean isEsRecreo() { return esRecreo; }
     public void setEsRecreo(boolean esRecreo) { this.esRecreo = esRecreo; }
+    public TipoBloqueHorario getTipoBloque() { return tipoBloque; }
+    public void setTipoBloque(TipoBloqueHorario tipoBloque) { this.tipoBloque = tipoBloque; }
 }

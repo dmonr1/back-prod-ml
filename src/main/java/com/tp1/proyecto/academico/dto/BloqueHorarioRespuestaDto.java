@@ -1,5 +1,6 @@
 package com.tp1.proyecto.academico.dto;
 
+import com.tp1.proyecto.academico.enumeracion.TipoBloqueHorario;
 import java.time.LocalTime;
 
 public class BloqueHorarioRespuestaDto {
@@ -12,6 +13,7 @@ public class BloqueHorarioRespuestaDto {
     private LocalTime horaInicio;
     private LocalTime horaFin;
     private boolean esRecreo;
+    private TipoBloqueHorario tipoBloque;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -31,4 +33,6 @@ public class BloqueHorarioRespuestaDto {
     public void setHoraFin(LocalTime horaFin) { this.horaFin = horaFin; }
     public boolean isEsRecreo() { return esRecreo; }
     public void setEsRecreo(boolean esRecreo) { this.esRecreo = esRecreo; }
+    public TipoBloqueHorario getTipoBloque() { return tipoBloque; }
+    public void setTipoBloque(TipoBloqueHorario tipoBloque) { this.tipoBloque = tipoBloque; }
 }

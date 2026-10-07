@@ -1,5 +1,7 @@
 package com.tp1.proyecto.prediccion.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import java.util.Map;
 
 public class AlgoritmoComparativaDto {
@@ -9,8 +11,11 @@ public class AlgoritmoComparativaDto {
     private Double accuracy;
     private Double precision;
     private Double recall;
+    @JsonAlias("f1_score")
     private Double f1Score;
+    @JsonAlias("roc_auc")
     private Double rocAuc;
+    @JsonAlias("latencia_ms")
     private Double latenciaMs;
     private String estado; // ACTIVO, CANDIDATO, BASELINE
     private Integer ranking;

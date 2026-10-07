@@ -1,12 +1,20 @@
 package com.tp1.proyecto.prediccion.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class PlanificadorReentrenamientoDto {
     private String cadencia;
+    @JsonAlias("proxima_ejecucion_programada")
     private String proximaEjecucionProgramada;
+    @JsonAlias("ultimo_reentrenamiento")
     private String ultimoReentrenamiento;
+    @JsonAlias("estado_ultimo_reentrenamiento")
     private String estadoUltimoReentrenamiento;
+    @JsonAlias("registros_entrenamiento")
     private Integer registrosEntrenamiento;
+    @JsonAlias("modelo_actual_version")
     private String modeloActualVersion;
+    @JsonAlias("modo_reentrenamiento")
     private String modoReentrenamiento;
     private String mensaje;
 

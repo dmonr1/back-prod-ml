@@ -1,11 +1,17 @@
 package com.tp1.proyecto.prediccion.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import java.util.List;
 
 public class ConfiguracionPredictoresDto {
+    @JsonAlias("global_features")
     private List<PredictorFeatureDto> globalFeatures;
+    @JsonAlias("course_features")
     private List<PredictorFeatureDto> courseFeatures;
+    @JsonAlias("total_activos")
     private Integer totalActivos;
+    @JsonAlias("ultima_actualizacion")
     private String ultimaActualizacion;
 
     public ConfiguracionPredictoresDto() {}

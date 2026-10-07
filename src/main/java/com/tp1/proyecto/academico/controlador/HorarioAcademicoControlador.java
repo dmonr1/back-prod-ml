@@ -47,6 +47,12 @@ public class HorarioAcademicoControlador {
         return servicio.listarRecreos(periodoAcademicoId);
     }
 
+    @GetMapping("/bloques/no-lectivos")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO','DOCENTE','DOCENTE_TUTOR')")
+    public List<BloqueHorarioRespuestaDto> listarBloquesNoLectivos(@RequestParam Long periodoAcademicoId) {
+        return servicio.listarBloquesNoLectivos(periodoAcademicoId);
+    }
+
     @PostMapping("/bloques")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
@@ -74,6 +80,12 @@ public class HorarioAcademicoControlador {
     @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
     public List<HorarioSemanalRespuestaDto> listarPorPeriodo(@RequestParam Long periodoAcademicoId) {
         return servicio.listarPorPeriodo(periodoAcademicoId);
+    }
+
+    @GetMapping("/pendientes-reprogramacion")
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
+    public List<HorarioSemanalRespuestaDto> listarPendientesReprogramacion(@RequestParam Long periodoAcademicoId) {
+        return servicio.listarPendientesReprogramacion(periodoAcademicoId);
     }
 
     @GetMapping("/mios")
@@ -122,7 +134,11 @@ public class HorarioAcademicoControlador {
     @PatchMapping("/{id}/estado")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_ACADEMICO')")
-    public void actualizarEstado(@PathVariable Long id, @RequestParam boolean activo) {
-        servicio.actualizarEstadoHorario(id, activo);
+    public void actualizarEstado(
+        @PathVariable Long id,
+        @RequestParam boolean activo,
+        @RequestParam(defaultValue = "false") boolean devolverAPendientes
+    ) {
+        servicio.actualizarEstadoHorario(id, activo, devolverAPendientes);
     }
 }

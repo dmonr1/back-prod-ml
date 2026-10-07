@@ -9,14 +9,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AlertaAcademicaRepositorio extends JpaRepository<AlertaAcademica, Long> {
     Optional<AlertaAcademica> findByClaveOrigen(String claveOrigen);
 
+    List<AlertaAcademica> findByClaveOrigenIn(List<String> clavesOrigen);
+
     @EntityGraph(attributePaths = {
-        "asignacion.docente.usuario", "asignacion.curso", "asignacion.seccion.grado",
+        "asignacion.docente.usuario", "asignacion.curso", "asignacion.seccion.grado", "asignacion.periodoAcademico",
         "horario.bloque", "evaluacion.periodoEvaluacion", "evaluacion.tipoEvaluacion"
     })
     List<AlertaAcademica> findAllByOrderByFechaLimiteDesc();
 
     @EntityGraph(attributePaths = {
-        "asignacion.docente.usuario", "asignacion.curso", "asignacion.seccion.grado",
+        "asignacion.docente.usuario", "asignacion.curso", "asignacion.seccion.grado", "asignacion.periodoAcademico",
         "horario.bloque", "evaluacion.periodoEvaluacion", "evaluacion.tipoEvaluacion"
     })
     List<AlertaAcademica> findByEstadoAlertaOrderByFechaLimiteDesc(String estadoAlerta);
