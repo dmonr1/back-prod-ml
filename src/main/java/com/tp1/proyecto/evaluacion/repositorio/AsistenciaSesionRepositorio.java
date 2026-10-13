@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface AsistenciaSesionRepositorio extends JpaRepository<AsistenciaSesion, Long> {
 
@@ -41,6 +43,17 @@ public interface AsistenciaSesionRepositorio extends JpaRepository<AsistenciaSes
 
     List<AsistenciaSesion> findByAsignacionSeccionIdAndAsignacionPeriodoAcademicoIdAndFechaClaseLessThanEqualAndEstado(
         Long seccionId, Long periodoAcademicoId, LocalDate fechaCorte, EstadoRegistro estado
+    );
+
+    @Query("select count(distinct a.fechaClase) from AsistenciaSesion a " +
+        "where a.asignacion.seccion.id = :seccionId " +
+        "and a.asignacion.periodoAcademico.id = :periodoAcademicoId " +
+        "and a.fechaClase <= :fechaCorte and a.estado = :estado")
+    long contarDiasConClasesHastaCorte(
+        @Param("seccionId") Long seccionId,
+        @Param("periodoAcademicoId") Long periodoAcademicoId,
+        @Param("fechaCorte") LocalDate fechaCorte,
+        @Param("estado") EstadoRegistro estado
     );
 
     List<AsistenciaSesion> findByAsignacionIdAndFechaClaseBetweenAndEstado(

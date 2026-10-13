@@ -11,6 +11,7 @@ import com.tp1.proyecto.prediccion.servicio.ClientePrediccionPython;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,7 @@ public class ClientePrediccionPythonImpl implements ClientePrediccionPython {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(PrediccionMlResponseDto.class)
-                .block();
+                .block(Duration.ofSeconds(30));
         } catch (WebClientResponseException ex) {
             String detalle = ex.getResponseBodyAsString();
             throw new ReglaNegocioException(

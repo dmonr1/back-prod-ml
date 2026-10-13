@@ -36,6 +36,7 @@ import com.tp1.proyecto.prediccion.repositorio.PrediccionRiesgoCursoRepositorio;
 import com.tp1.proyecto.prediccion.repositorio.PrediccionRiesgoRepositorio;
 import com.tp1.proyecto.prediccion.servicio.ClientePrediccionPython;
 import com.tp1.proyecto.prediccion.servicio.CorteSeguimientoPrediccionServicio;
+import com.tp1.proyecto.prediccion.servicio.ProgresoRecalculoPredicciones;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -44,6 +45,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +73,7 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
     private final RecomendacionRepositorio recomendacionRepositorio;
     private final AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio;
     private final ObjectMapper objectMapper;
+    private final ProgresoRecalculoPredicciones progresoRecalculo;
 
     public CorteSeguimientoPrediccionServicioImpl(
         CorteSeguimientoRepositorio corteRepositorio,
@@ -85,7 +88,8 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         AlertaRepositorio alertaRepositorio,
         RecomendacionRepositorio recomendacionRepositorio,
         AsistenciaPeriodoEvaluacionRepositorio asistenciaPeriodoEvaluacionRepositorio,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        ProgresoRecalculoPredicciones progresoRecalculo
     ) {
         this.corteRepositorio = corteRepositorio;
         this.matriculaRepositorio = matriculaRepositorio;
@@ -100,13 +104,26 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         this.recomendacionRepositorio = recomendacionRepositorio;
         this.asistenciaPeriodoEvaluacionRepositorio = asistenciaPeriodoEvaluacionRepositorio;
         this.objectMapper = objectMapper;
+        this.progresoRecalculo = progresoRecalculo;
     }
 
     @Override
     public int recalcular(Long corteId, Long seccionId) {
         CorteSeguimiento corte = corteRepositorio.findById(corteId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Corte de seguimiento no encontrado."));
-        return recalcularCorte(corte, seccionId, null, true);
+        return recalcularCorte(corte, seccionId, null, true, false, null);
+    }
+
+    @Override
+    public int recalcularFaltantes(Long corteId, Long seccionId) {
+        return recalcularFaltantes(corteId, seccionId, null);
+    }
+
+    @Override
+    public int recalcularFaltantes(Long corteId, Long seccionId, String trabajoId) {
+        CorteSeguimiento corte = corteRepositorio.findById(corteId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Corte de seguimiento no encontrado."));
+        return recalcularCorte(corte, seccionId, null, false, true, trabajoId);
     }
 
     @Override
@@ -117,12 +134,19 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
             matricula.getPeriodoAcademico().getId(), java.time.LocalDate.now(), EstadoRegistro.ACTIVO);
         int actualizadas = 0;
         for (CorteSeguimiento corte : cortes) {
-            actualizadas += recalcularCorte(corte, matricula.getSeccion().getId(), matriculaId, false);
+            actualizadas += recalcularCorte(corte, matricula.getSeccion().getId(), matriculaId, false, false, null);
         }
         return actualizadas;
     }
 
-    private int recalcularCorte(CorteSeguimiento corte, Long seccionId, Long soloMatriculaId, boolean rechazarSinFechas) {
+    private int recalcularCorte(
+        CorteSeguimiento corte,
+        Long seccionId,
+        Long soloMatriculaId,
+        boolean rechazarSinFechas,
+        boolean soloFaltantes,
+        String trabajoId
+    ) {
         if (corte.getFechaCorte().isAfter(java.time.LocalDate.now())) return 0;
         List<Evaluacion> configuradas = evaluacionRepositorio
             .findByDocenteCursoSeccionSeccionIdAndDocenteCursoSeccionPeriodoAcademicoIdAndDocenteCursoSeccionEstadoAndEstadoOrderByPeriodoEvaluacionNumeroAscTipoEvaluacionOrdenAscNumeroEvaluacionAsc(
@@ -134,9 +158,10 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
             .filter(e -> e.getFechaEvaluacion() == null)
             .toList();
         if (!pendientes.isEmpty()) {
-            if (!rechazarSinFechas) return 0;
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Completa las fechas de " + pendientes.size() + " evaluaciones antes de calcular el riesgo del corte.");
+            if (rechazarSinFechas) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Completa las fechas de " + pendientes.size() + " evaluaciones antes de calcular el riesgo del corte.");
+            }
         }
 
         List<Evaluacion> evaluacionesAlCorte = configuradas.stream()
@@ -148,6 +173,15 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
             seccionId, corte.getPeriodoAcademico().getId()
         ).stream().filter(m -> m.getEstado() == EstadoRegistro.ACTIVO)
             .filter(m -> soloMatriculaId == null || m.getId().equals(soloMatriculaId)).toList();
+        if (soloFaltantes) {
+            Set<Long> matriculasYaProcesadas = globalRepositorio
+                .findByCorteSeguimientoIdAndMatriculaSeccionId(corte.getId(), seccionId).stream()
+                .map(prediccion -> prediccion.getMatricula().getId())
+                .collect(Collectors.toSet());
+            matriculas = matriculas.stream()
+                .filter(matricula -> !matriculasYaProcesadas.contains(matricula.getId()))
+                .toList();
+        }
         List<AsistenciaSesion> sesiones = asistenciaRepositorio
             .findByAsignacionSeccionIdAndAsignacionPeriodoAcademicoIdAndFechaClaseLessThanEqualAndEstado(
                 seccionId, corte.getPeriodoAcademico().getId(), corte.getFechaCorte(), EstadoRegistro.ACTIVO
@@ -155,10 +189,13 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         Map<Long, List<AsistenciaSesion>> sesionesPorMatricula = sesiones.stream()
             .collect(Collectors.groupingBy(s -> s.getMatricula().getId()));
         int procesadas = 0;
+        int atendidas = 0;
+        if (trabajoId != null) progresoRecalculo.preparar(trabajoId, matriculas.size());
         Long periodoEvaluacionId = obtenerPeriodoEvaluacionIdParaCorte(corte);
         PeriodoEvaluacion periodoEvaluacionEntidad = periodoEvaluacionRepositorio.findById(periodoEvaluacionId).orElse(null);
 
         for (Matricula matricula : matriculas) {
+            if (trabajoId != null) progresoRecalculo.iniciarAlumno(trabajoId, atendidas, matriculas.size());
             List<DetalleNotaEvaluacion> detalles = evaluacionIds.isEmpty() ? List.of() : detalleRepositorio
                 .findByEvaluacionIdInAndMatriculaIdAndEstado(evaluacionIds, matricula.getId(), EstadoRegistro.ACTIVO);
             List<AsistenciaSesion> sesionesAlumno = sesionesPorMatricula.getOrDefault(matricula.getId(), List.of());
@@ -166,7 +203,11 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
                 d -> d.getEvaluacion().getDocenteCursoSeccion().getCurso().getId(),
                 Collectors.mapping(DetalleNotaEvaluacion::getNota, Collectors.toList())
             ));
-            if (detalles.isEmpty() && sesionesAlumno.isEmpty()) continue;
+            if (detalles.isEmpty() && sesionesAlumno.isEmpty()) {
+                atendidas++;
+                if (trabajoId != null) progresoRecalculo.avanzar(trabajoId, atendidas, matriculas.size());
+                continue;
+            }
 
             Map<Long, BigDecimal> promedioCurso = notasPorCurso.entrySet().stream().collect(Collectors.toMap(
                 Map.Entry::getKey,
@@ -260,18 +301,32 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
             request.setModeloVersion("v4-corte-temprano");
             request.setGlobalFeatures(global);
             request.setCourseFeatures(featuresCurso);
+            PrediccionMlResponseDto response;
             try {
-                PrediccionMlResponseDto response = clienteMl.predecir(request);
-                if (response == null || response.getGlobalPrediction() == null) continue;
-                guardarGlobal(corte, matricula, periodoEvaluacionEntidad, response.getGlobalPrediction());
-                guardarCursos(corte, matricula, periodoEvaluacionEntidad, response.getCoursePredictions());
-                procesadas++;
+                response = clienteMl.predecir(request);
             } catch (Exception ex) {
-                log.warn("No se pudo predecir corte {} para matricula {}: {}", corte.getId(), matricula.getId(), ex.getMessage());
+                log.warn("No se pudo obtener la predicción ML para corte {} y matrícula {}", corte.getId(), matricula.getId(), ex);
                 if (rechazarSinFechas) {
                     throw ex;
                 }
+                if (trabajoId != null) progresoRecalculo.registrarErrorPrediccion(trabajoId);
+                atendidas++;
+                if (trabajoId != null) progresoRecalculo.avanzar(trabajoId, atendidas, matriculas.size());
+                continue;
             }
+            if (response == null || response.getGlobalPrediction() == null) {
+                atendidas++;
+                if (trabajoId != null) progresoRecalculo.avanzar(trabajoId, atendidas, matriculas.size());
+                continue;
+            }
+
+            // No absorber fallos de persistencia dentro de la transacción: Hibernate no puede
+            // continuar con la sesión después de una inserción fallida.
+            guardarGlobal(corte, matricula, periodoEvaluacionEntidad, response.getGlobalPrediction());
+            guardarCursos(corte, matricula, periodoEvaluacionEntidad, response.getCoursePredictions());
+            procesadas++;
+            atendidas++;
+            if (trabajoId != null) progresoRecalculo.avanzar(trabajoId, atendidas, matriculas.size());
         }
         return procesadas;
     }
@@ -304,6 +359,9 @@ public class CorteSeguimientoPrediccionServicioImpl implements CorteSeguimientoP
         dto.setTotalRiesgoAlto((int) items.stream().filter(p -> "ALTO".equalsIgnoreCase(p.getNivelRiesgo())).count());
         dto.setTotalRiesgoMedio((int) items.stream().filter(p -> "MEDIO".equalsIgnoreCase(p.getNivelRiesgo())).count());
         dto.setTotalRiesgoBajo((int) items.stream().filter(p -> "BAJO".equalsIgnoreCase(p.getNivelRiesgo())).count());
+        dto.setDiasConClases((int) asistenciaRepositorio.contarDiasConClasesHastaCorte(
+            seccionId, corte.getPeriodoAcademico().getId(), corte.getFechaCorte(), EstadoRegistro.ACTIVO
+        ));
         dto.setPromedioPuntajeRiesgo(items.isEmpty() ? BigDecimal.ZERO : items.stream().map(PrediccionRiesgoRespuestaDto::getPuntajeRiesgo)
             .reduce(BigDecimal.ZERO, BigDecimal::add).divide(BigDecimal.valueOf(items.size()), 2, RoundingMode.HALF_UP));
         if (!items.isEmpty()) {

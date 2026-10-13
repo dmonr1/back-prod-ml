@@ -16,6 +16,7 @@ public class ResumenPrediccionDto {
     private Integer totalRiesgoAlto;
     private Integer totalRiesgoMedio;
     private Integer totalRiesgoBajo;
+    private Integer diasConClases;
     private BigDecimal promedioPuntajeRiesgo;
 
     public Long getPeriodoEvaluacionId() {
@@ -96,6 +97,9 @@ public class ResumenPrediccionDto {
     public void setTotalRiesgoBajo(Integer totalRiesgoBajo) {
         this.totalRiesgoBajo = totalRiesgoBajo;
     }
+
+    public Integer getDiasConClases() { return diasConClases; }
+    public void setDiasConClases(Integer diasConClases) { this.diasConClases = diasConClases; }
 
     public BigDecimal getPromedioPuntajeRiesgo() {
         return promedioPuntajeRiesgo;

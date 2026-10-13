@@ -17,8 +17,6 @@ public class ComparativaModelosDto {
 
     @JsonAlias("tipo_modelo")
     private String tipoModelo;
-    @JsonAlias("origen_datos")
-    private String origenDatos;
     private List<String> variables;
     @JsonAlias("registros_entrenamiento")
     private Integer registrosEntrenamiento;
@@ -84,8 +82,6 @@ public class ComparativaModelosDto {
     }
     public String getTipoModelo() { return tipoModelo; }
     public void setTipoModelo(String value) { this.tipoModelo = value; }
-    public String getOrigenDatos() { return origenDatos; }
-    public void setOrigenDatos(String value) { this.origenDatos = value; }
     public List<String> getVariables() { return variables; }
     public void setVariables(List<String> value) { this.variables = value; }
     public Integer getRegistrosEntrenamiento() { return registrosEntrenamiento; }

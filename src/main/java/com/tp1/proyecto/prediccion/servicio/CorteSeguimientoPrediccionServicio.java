@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface CorteSeguimientoPrediccionServicio {
     int recalcular(Long corteSeguimientoId, Long seccionId);
+    int recalcularFaltantes(Long corteSeguimientoId, Long seccionId);
+    int recalcularFaltantes(Long corteSeguimientoId, Long seccionId, String trabajoId);
     int actualizarPorMatricula(Long matriculaId);
     List<PrediccionRiesgoRespuestaDto> listarGlobales(Long corteSeguimientoId, Long seccionId);
     List<PrediccionRiesgoRespuestaDto> listarCursos(Long corteSeguimientoId, Long seccionId);
